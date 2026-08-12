@@ -11,6 +11,7 @@
  */
 
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, Timestamp } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
@@ -18,6 +19,71 @@ const { getMessaging } = require("firebase-admin/messaging");
 initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
+
+/**
+ * Callable function - بتُستدعى بعد ما العميل يعمل signInAnonymously().
+ * بتدور على العضو برقم موبايله في members، وتربط الحساب (users/{uid})
+ * بسجله - أول مرة بس. الاستخدام لـ Admin SDK هنا مقصود: rules الـ
+ * Firestore بتشترط إن يوزر يبقى ليه users doc موجود عشان يقرأ members
+ * (belongsToGym) - يعني عضو بيدخل أول مرة مش هيقدر يعمل البحث ده من
+ * العميل مباشرة أصلاً. الفنكشن دي بتحل المشكلة من غير ما نفتح قواعد
+ * الأمان لقراءة members قبل ما يتربط الحساب.
+ */
+exports.linkMemberLogin = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "لازم تسجل دخول الأول");
+  }
+
+  const phone = (request.data?.phone || "").trim();
+  const gymId = (request.data?.gymId || "").trim();
+  if (!phone || !gymId) {
+    throw new HttpsError("invalid-argument", "رقم الموبايل ومعرّف الجيم مطلوبين");
+  }
+
+  const memberQuery = await db
+    .collection(`gyms/${gymId}/members`)
+    .where("phone", "==", phone)
+    .limit(1)
+    .get();
+
+  if (memberQuery.empty) {
+    throw new HttpsError("not-found", "لا يوجد عضو بهذا الرقم في هذا الجيم");
+  }
+
+  const memberDoc = memberQuery.docs[0];
+  const memberId = memberDoc.id;
+  const memberName = memberDoc.data().name || "";
+
+  const usersRef = db.collection("users").doc(uid);
+  const userSnap = await usersRef.get();
+
+  if (userSnap.exists) {
+    const existing = userSnap.data();
+    // الجهاز ده لسه فاتح جلسة عضو تاني (تابلت استقبال مشترك مثلاً)
+    if (existing.phone !== phone || existing.gymId !== gymId) {
+      throw new HttpsError(
+        "failed-precondition",
+        "الجهاز ده لسه فاتح جلسة عضو تاني. سجل خروج الأول وبعدين حاول تاني"
+      );
+    }
+    // موجود بالفعل ومطابق - مفيش حاجة نعملها، العميل هيقرأ الدوك عادي
+    return { linked: true };
+  }
+
+  await usersRef.set({
+    gymId,
+    name: memberName,
+    phone,
+    email: null,
+    role: "member",
+    memberId,
+    createdAt: Timestamp.now(),
+  });
+  // بنرجع إشارة نجاح بس - العميل هيقرأ الدوك اللي اتعمل عادي من
+  // users/{uid} (مسموح له لأن uid == request.auth.uid دلوقتي)
+  return { linked: true };
+});
 
 const EXPIRY_THRESHOLD_DAYS = 3;
 

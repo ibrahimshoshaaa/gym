@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../../../../core/errors/exceptions.dart';
@@ -10,12 +11,15 @@ import '../models/user_model.dart';
 class AuthRepositoryImpl implements AuthRepository {
   final fb.FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions _functions;
 
   AuthRepositoryImpl({
     fb.FirebaseAuth? firebaseAuth,
     FirebaseFirestore? firestore,
+    FirebaseFunctions? functions,
   })  : _firebaseAuth = firebaseAuth ?? fb.FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance;
+        _firestore = firestore ?? FirebaseFirestore.instance,
+        _functions = functions ?? FirebaseFunctions.instance;
 
   CollectionReference<Map<String, dynamic>> get _usersCollection =>
       _firestore.collection('users');
@@ -51,20 +55,43 @@ class AuthRepositoryImpl implements AuthRepository {
     required String gymId,
   }) async {
     try {
-      // العضو بيدخل برقم الموبايل بس (تسجيل دخول مبسط داخل نطاق الجيم)
-      final query = await _usersCollection
-          .where('phone', isEqualTo: phone)
-          .where('gymId', isEqualTo: gymId)
-          .where('role', isEqualTo: UserRole.member.name)
-          .limit(1)
-          .get();
+      // 1) نفتح جلسة Auth حقيقية (Anonymous). لو الجهاز ده معاه جلسة شغالة
+      // بالفعل (نفس العضو لسه مسجل دخول)، Firebase هيرجّع نفس الـ uid من غير
+      // ما يعمل حساب جديد.
+      final credential = await _firebaseAuth.signInAnonymously();
+      final uid = credential.user!.uid;
 
-      if (query.docs.isEmpty) {
-        return const Left(NotFoundFailure('لا يوجد عضو بهذا الرقم في هذا الجيم'));
+      // 2) نبعت لـ Cloud Function (linkMemberLogin) تدور على العضو برقم
+      // موبايله وتربط الحساب بسجله - لازم Function هنا (مش قراءة مباشرة
+      // من العميل) لإن قواعد أمان members بتشترط إن يوزر يبقى ليه users
+      // doc موجود عشان يقرأها أصلاً، وده بالظبط اللي أول دخول للعضو مش
+      // هيكون عنده لسه. الـ Function بتستخدم Admin SDK فبتتخطى القيد ده
+      // من غير ما نحتاج نفتح قواعد الأمان لقراءة كل الأعضاء قبل الربط.
+      try {
+        await _functions.httpsCallable('linkMemberLogin').call({
+          'phone': phone,
+          'gymId': gymId,
+        });
+      } on FirebaseFunctionsException catch (e) {
+        if (e.code == 'not-found') {
+          return const Left(NotFoundFailure('لا يوجد عضو بهذا الرقم في هذا الجيم'));
+        }
+        if (e.code == 'failed-precondition') {
+          return Left(AuthFailure(e.message ??
+              'الجهاز ده لسه فاتح جلسة عضو تاني. سجل خروج الأول وبعدين حاول تاني'));
+        }
+        return const Left(ServerFailure());
       }
 
-      final doc = query.docs.first;
-      return Right(UserModel.fromMap(doc.data(), doc.id));
+      // 3) دلوقتي users/{uid} موجود ومربوط بالعضو - نقراه عادي (مسموح لإن
+      // uid == request.auth.uid)
+      final userDoc = await _usersCollection.doc(uid).get();
+      if (!userDoc.exists) {
+        return const Left(ServerFailure());
+      }
+      return Right(UserModel.fromMap(userDoc.data()!, uid));
+    } on fb.FirebaseAuthException catch (e) {
+      return Left(AuthFailure(_mapAuthError(e.code)));
     } catch (_) {
       return const Left(ServerFailure());
     }

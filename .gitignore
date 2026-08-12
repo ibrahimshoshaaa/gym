@@ -60,3 +60,8 @@ android/app/*.keystore
 # ملفات بيئة محلية (لو استخدمت .env لاحقاً)
 .env
 .env.*
+
+# Node.js (Cloud Functions) - المكتبات دي بتترفع لوحدها بـ npm install
+# مفيش داعي تتخزن في الجيت، وحجمها كبير وبيبطّئ الريبو
+node_modules/
+functions/node_modules/
