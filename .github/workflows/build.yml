@@ -24,10 +24,7 @@ jobs:
         with:
           channel: 'stable'
 
-      # firebase_options.dart بيتستورد مباشرة في main.dart، فمن غيره
-      # الـ build هيفشل من مرحلة الـ compile مش بس وقت التشغيل.
-      # عشان كده بنحطه كـ secret (base64) بدل ما يتحط في الجيت مباشرة.
-           - name: Install dependencies
+      - name: Install dependencies
         run: flutter pub get
 
       - name: Build release APK
