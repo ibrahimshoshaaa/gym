@@ -1,0 +1,38 @@
+name: Deploy Firebase Functions
+
+# بيشتغل أوتوماتيك لما تعمل push على main وفيه تغيير في مجلد functions
+# أو ممكن تشغّله يدوي من تاب Actions في GitHub (workflow_dispatch)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'functions/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install function dependencies
+        working-directory: functions
+        run: npm install
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Write service account key
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$HOME/gcp-key.json"
+
+      - name: Deploy Functions
+        run: firebase deploy --only functions --project golden-gym-kh
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/gcp-key.json
