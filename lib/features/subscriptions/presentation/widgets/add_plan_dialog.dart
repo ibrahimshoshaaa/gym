@@ -23,6 +23,7 @@ class _AddPlanDialogState extends ConsumerState<AddPlanDialog> {
   late final TextEditingController _nameController;
   late final TextEditingController _priceController;
   late final TextEditingController _durationController;
+  late final TextEditingController _visitsController;
   bool _isLoading = false;
 
   @override
@@ -31,6 +32,9 @@ class _AddPlanDialogState extends ConsumerState<AddPlanDialog> {
     _nameController = TextEditingController(text: widget.plan?.name ?? '');
     _priceController = TextEditingController(text: widget.plan?.price.toStringAsFixed(0) ?? '');
     _durationController = TextEditingController(text: widget.plan?.durationDays.toString() ?? '');
+    _visitsController = TextEditingController(
+      text: widget.plan != null ? widget.plan!.visitsAllowed.toString() : '',
+    );
   }
 
   @override
@@ -38,6 +42,7 @@ class _AddPlanDialogState extends ConsumerState<AddPlanDialog> {
     _nameController.dispose();
     _priceController.dispose();
     _durationController.dispose();
+    _visitsController.dispose();
     super.dispose();
   }
 
@@ -52,12 +57,14 @@ class _AddPlanDialogState extends ConsumerState<AddPlanDialog> {
             name: _nameController.text.trim(),
             price: double.parse(_priceController.text.trim()),
             durationDays: int.parse(_durationController.text.trim()),
+            visitsAllowed: int.parse(_visitsController.text.trim()),
           ))
         : await repo.addPlan(Plan(
             id: '',
             name: _nameController.text.trim(),
             price: double.parse(_priceController.text.trim()),
             durationDays: int.parse(_durationController.text.trim()),
+            visitsAllowed: int.parse(_visitsController.text.trim()),
           ));
 
     if (!mounted) return;
@@ -130,6 +137,16 @@ class _AddPlanDialogState extends ConsumerState<AddPlanDialog> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: 'المدة (بالأيام)'),
               validator: (v) => Validators.positiveNumber(v, 'المدة'),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _visitsController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'عدد أيام الحضور المسموحة',
+                helperText: 'مثال: 12 حضور خلال الـ 30 يوم',
+              ),
+              validator: (v) => Validators.positiveNumber(v, 'عدد الأيام'),
             ),
           ],
         ),

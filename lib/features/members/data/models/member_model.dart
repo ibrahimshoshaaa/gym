@@ -12,6 +12,8 @@ class MemberModel extends Member {
     super.currentPlanId,
     super.currentSubscriptionId,
     super.subscriptionEnd,
+    super.visitsAllowed,
+    super.visitsUsed,
     super.notes,
   });
 
@@ -25,6 +27,8 @@ class MemberModel extends Member {
       currentPlanId: map['currentPlanId'] as String?,
       currentSubscriptionId: map['currentSubscriptionId'] as String?,
       subscriptionEnd: (map['subscriptionEnd'] as Timestamp?)?.toDate(),
+      visitsAllowed: map['visitsAllowed'] as int? ?? 0,
+      visitsUsed: map['visitsUsed'] as int? ?? 0,
       status: MemberStatus.values.firstWhere(
         (s) => s.name == map['status'],
         orElse: () => MemberStatus.expired,
@@ -42,6 +46,8 @@ class MemberModel extends Member {
       'currentPlanId': currentPlanId,
       'currentSubscriptionId': currentSubscriptionId,
       'subscriptionEnd': subscriptionEnd != null ? Timestamp.fromDate(subscriptionEnd!) : null,
+      'visitsAllowed': visitsAllowed,
+      'visitsUsed': visitsUsed,
       'status': status.name,
       'notes': notes,
     };
@@ -57,6 +63,8 @@ class MemberModel extends Member {
       currentPlanId: member.currentPlanId,
       currentSubscriptionId: member.currentSubscriptionId,
       subscriptionEnd: member.subscriptionEnd,
+      visitsAllowed: member.visitsAllowed,
+      visitsUsed: member.visitsUsed,
       status: member.status,
       notes: member.notes,
     );

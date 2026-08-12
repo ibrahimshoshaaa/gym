@@ -7,6 +7,7 @@ class PlanModel extends Plan {
     required super.name,
     required super.price,
     required super.durationDays,
+    required super.visitsAllowed,
     super.description,
     super.isActive,
   });
@@ -17,6 +18,7 @@ class PlanModel extends Plan {
       name: map['name'] as String,
       price: (map['price'] as num).toDouble(),
       durationDays: map['durationDays'] as int,
+      visitsAllowed: map['visitsAllowed'] as int? ?? 0,
       description: map['description'] as String?,
       isActive: map['isActive'] as bool? ?? true,
     );
@@ -27,6 +29,7 @@ class PlanModel extends Plan {
       'name': name,
       'price': price,
       'durationDays': durationDays,
+      'visitsAllowed': visitsAllowed,
       'description': description,
       'isActive': isActive,
     };
@@ -42,6 +45,8 @@ class SubscriptionModel extends Subscription {
     required super.endDate,
     required super.paidAmount,
     required super.createdAt,
+    required super.visitsAllowed,
+    super.visitsUsed,
     super.recordedByUid,
   });
 
@@ -54,6 +59,8 @@ class SubscriptionModel extends Subscription {
       endDate: (map['endDate'] as Timestamp).toDate(),
       paidAmount: (map['paidAmount'] as num).toDouble(),
       createdAt: (map['createdAt'] as Timestamp).toDate(),
+      visitsAllowed: map['visitsAllowed'] as int? ?? 0,
+      visitsUsed: map['visitsUsed'] as int? ?? 0,
       recordedByUid: map['recordedByUid'] as String?,
     );
   }
@@ -66,6 +73,8 @@ class SubscriptionModel extends Subscription {
       'endDate': Timestamp.fromDate(endDate),
       'paidAmount': paidAmount,
       'createdAt': Timestamp.fromDate(createdAt),
+      'visitsAllowed': visitsAllowed,
+      'visitsUsed': visitsUsed,
       'recordedByUid': recordedByUid,
     };
   }

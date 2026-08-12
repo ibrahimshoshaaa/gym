@@ -26,6 +26,8 @@ class Member extends Equatable {
   final String? currentPlanId;
   final String? currentSubscriptionId;
   final DateTime? subscriptionEnd;
+  final int visitsAllowed;
+  final int visitsUsed;
   final MemberStatus status;
   final String? notes;
 
@@ -39,6 +41,8 @@ class Member extends Equatable {
     this.currentPlanId,
     this.currentSubscriptionId,
     this.subscriptionEnd,
+    this.visitsAllowed = 0,
+    this.visitsUsed = 0,
     this.notes,
   });
 
@@ -47,7 +51,25 @@ class Member extends Equatable {
       subscriptionEnd != null &&
       subscriptionEnd!.isAfter(DateTime.now());
 
+  // لو visitsAllowed = 0 يبقى الخطة مفتوحة (مفيش حد لعدد الحضورات)
+  bool get hasVisitsRemaining => visitsAllowed <= 0 || visitsUsed < visitsAllowed;
+
+  int get visitsRemaining =>
+      visitsAllowed <= 0 ? -1 : (visitsAllowed - visitsUsed).clamp(0, visitsAllowed);
+
   @override
-  List<Object?> get props =>
-      [id, name, phone, photoUrl, joinDate, currentPlanId, currentSubscriptionId, subscriptionEnd, status, notes];
+  List<Object?> get props => [
+        id,
+        name,
+        phone,
+        photoUrl,
+        joinDate,
+        currentPlanId,
+        currentSubscriptionId,
+        subscriptionEnd,
+        visitsAllowed,
+        visitsUsed,
+        status,
+        notes,
+      ];
 }

@@ -19,30 +19,56 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   @override
   Future<Either<Failure, AttendanceRecord>> checkIn(String memberId) async {
     try {
-      final memberDoc =
-          await _firestore.collection(FirestorePaths.members(gymId)).doc(memberId).get();
+      final memberRef = _firestore.collection(FirestorePaths.members(gymId)).doc(memberId);
+      final attendanceRef = _attendanceCollection.doc();
 
-      if (!memberDoc.exists) {
-        return const Left(NotFoundFailure('العضو غير موجود'));
-      }
+      final result = await _firestore.runTransaction<Either<Failure, AttendanceModel>>(
+        (transaction) async {
+          final memberDoc = await transaction.get(memberRef);
 
-      final data = memberDoc.data()!;
-      final subscriptionEnd = (data['subscriptionEnd'] as Timestamp?)?.toDate();
+          if (!memberDoc.exists) {
+            return const Left(NotFoundFailure('العضو غير موجود'));
+          }
 
-      // مانسمحش بتسجيل الحضور لو الاشتراك منتهي أو مش موجود
-      if (subscriptionEnd == null || subscriptionEnd.isBefore(DateTime.now())) {
-        return const Left(ValidationFailure('اشتراك العضو منتهي، لازم يجدد الاشتراك الأول'));
-      }
+          final data = memberDoc.data()!;
+          final subscriptionEnd = (data['subscriptionEnd'] as Timestamp?)?.toDate();
+          final visitsAllowed = data['visitsAllowed'] as int? ?? 0;
+          final visitsUsed = data['visitsUsed'] as int? ?? 0;
 
-      final now = DateTime.now();
-      final model = AttendanceModel(
-        id: '',
-        memberId: memberId,
-        memberName: data['name'] as String,
-        checkInTime: now,
+          // 1) الاشتراك منتهي بالتاريخ
+          if (subscriptionEnd == null || subscriptionEnd.isBefore(DateTime.now())) {
+            return const Left(ValidationFailure('اشتراك العضو منتهي، لازم يجدد الاشتراك الأول'));
+          }
+
+          // 2) لسه في مدة الاشتراك، بس استنفد عدد الأيام المسموح بيها
+          // (visitsAllowed = 0 معناها خطة مفتوحة من غير حد أقصى)
+          if (visitsAllowed > 0 && visitsUsed >= visitsAllowed) {
+            return Left(ValidationFailure(
+                'العضو استنفد عدد أيامه المسموح بها ($visitsUsed/$visitsAllowed)، محتاج يجدد أو يزود خطته'));
+          }
+
+          final now = DateTime.now();
+          final model = AttendanceModel(
+            id: attendanceRef.id,
+            memberId: memberId,
+            memberName: data['name'] as String,
+            checkInTime: now,
+          );
+
+          transaction.set(attendanceRef, model.toMap());
+          transaction.update(memberRef, {'visitsUsed': visitsUsed + 1});
+
+          final subId = data['currentSubscriptionId'] as String?;
+          if (subId != null) {
+            final subRef = _firestore.collection(FirestorePaths.subscriptions(gymId)).doc(subId);
+            transaction.update(subRef, {'visitsUsed': visitsUsed + 1});
+          }
+
+          return Right(model);
+        },
       );
-      final docRef = await _attendanceCollection.add(model.toMap());
-      return Right(AttendanceModel.fromMap(model.toMap(), docRef.id));
+
+      return result;
     } catch (_) {
       return const Left(ServerFailure());
     }

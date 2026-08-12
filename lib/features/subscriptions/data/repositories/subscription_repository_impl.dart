@@ -34,6 +34,7 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
         name: plan.name,
         price: plan.price,
         durationDays: plan.durationDays,
+        visitsAllowed: plan.visitsAllowed,
         description: plan.description,
         isActive: plan.isActive,
       );
@@ -52,6 +53,7 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
         name: plan.name,
         price: plan.price,
         durationDays: plan.durationDays,
+        visitsAllowed: plan.visitsAllowed,
         description: plan.description,
         isActive: plan.isActive,
       );
@@ -94,6 +96,8 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
         endDate: endDate,
         paidAmount: paidAmount,
         createdAt: now,
+        visitsAllowed: plan.visitsAllowed,
+        visitsUsed: 0,
         recordedByUid: recordedByUid,
       );
 
@@ -105,6 +109,8 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
           'currentPlanId': plan.id,
           'currentSubscriptionId': subRef.id,
           'subscriptionEnd': Timestamp.fromDate(endDate),
+          'visitsAllowed': plan.visitsAllowed,
+          'visitsUsed': 0,
           'status': 'active',
         });
       });

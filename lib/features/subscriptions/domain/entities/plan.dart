@@ -5,6 +5,7 @@ class Plan extends Equatable {
   final String name;
   final double price;
   final int durationDays;
+  final int visitsAllowed;
   final String? description;
   final bool isActive;
 
@@ -13,12 +14,14 @@ class Plan extends Equatable {
     required this.name,
     required this.price,
     required this.durationDays,
+    required this.visitsAllowed,
     this.description,
     this.isActive = true,
   });
 
   @override
-  List<Object?> get props => [id, name, price, durationDays, description, isActive];
+  List<Object?> get props =>
+      [id, name, price, durationDays, visitsAllowed, description, isActive];
 }
 
 class Subscription extends Equatable {
@@ -29,6 +32,8 @@ class Subscription extends Equatable {
   final DateTime endDate;
   final double paidAmount;
   final DateTime createdAt;
+  final int visitsAllowed;
+  final int visitsUsed;
   final String? recordedByUid;
 
   const Subscription({
@@ -39,10 +44,22 @@ class Subscription extends Equatable {
     required this.endDate,
     required this.paidAmount,
     required this.createdAt,
+    required this.visitsAllowed,
+    this.visitsUsed = 0,
     this.recordedByUid,
   });
 
   @override
-  List<Object?> get props =>
-      [id, memberId, planId, startDate, endDate, paidAmount, createdAt, recordedByUid];
+  List<Object?> get props => [
+        id,
+        memberId,
+        planId,
+        startDate,
+        endDate,
+        paidAmount,
+        createdAt,
+        visitsAllowed,
+        visitsUsed,
+        recordedByUid,
+      ];
 }

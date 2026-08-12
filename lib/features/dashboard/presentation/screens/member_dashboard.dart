@@ -14,7 +14,7 @@ class MemberDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
-    final membersAsync = ref.watch(membersStreamProvider);
+    final memberAsync = ref.watch(currentMemberProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -26,10 +26,8 @@ class MemberDashboard extends ConsumerWidget {
           ),
         ],
       ),
-      body: membersAsync.when(
-        data: (members) {
-          final me = members.where((m) => m.id == (user?.memberId ?? '')).firstOrNull;
-
+      body: memberAsync.when(
+        data: (me) {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [

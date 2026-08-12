@@ -128,6 +128,13 @@ class MemberDetailsScreen extends ConsumerWidget {
                     ? DateFormatter.toDisplayDate(member.subscriptionEnd!)
                     : '—',
               ),
+              if (member.visitsAllowed > 0)
+                _InfoTile(
+                  icon: Icons.fitness_center,
+                  label: 'أيام الحضور',
+                  value: '${member.visitsUsed} / ${member.visitsAllowed}',
+                  valueColor: member.hasVisitsRemaining ? null : AppColors.danger,
+                ),
               _InfoTile(icon: Icons.flag, label: 'الحالة', value: member.status.label),
               const SizedBox(height: 24),
               Row(
@@ -182,8 +189,14 @@ class _InfoTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final Color? valueColor;
 
-  const _InfoTile({required this.icon, required this.label, required this.value});
+  const _InfoTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -191,7 +204,10 @@ class _InfoTile extends StatelessWidget {
       child: ListTile(
         leading: Icon(icon, color: AppColors.primary),
         title: Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-        subtitle: Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        subtitle: Text(
+          value,
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: valueColor),
+        ),
       ),
     );
   }

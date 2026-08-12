@@ -27,6 +27,15 @@ class MemberRepositoryImpl implements MemberRepository {
   }
 
   @override
+  Stream<Member?> watchMemberById(String id) {
+    if (id.isEmpty) return Stream.value(null);
+    return _collection.doc(id).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      return MemberModel.fromMap(doc.data()!, doc.id);
+    });
+  }
+
+  @override
   Future<Either<Failure, Member>> getMemberById(String id) async {
     try {
       final doc = await _collection.doc(id).get();

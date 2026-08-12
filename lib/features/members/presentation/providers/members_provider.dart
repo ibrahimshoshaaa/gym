@@ -11,8 +11,20 @@ final memberRepositoryProvider = Provider<MemberRepository>((ref) {
 });
 
 /// ستريم كل الأعضاء - بيتحدث لحظياً مع أي تغيير في Firestore
+/// ⚠️ للأدمن والموظف بس (Firestore rules بتسمح لهم يقرأوا الجدول كامل)
 final membersStreamProvider = StreamProvider<List<Member>>((ref) {
   return ref.watch(memberRepositoryProvider).watchMembers();
+});
+
+/// سجل العضو الحالي بس - ده اللي لازم داشبورد العضو يستخدمه
+/// (العضو مسموح له بقاعدة isSelf يقرأ سجله بس، مش الجدول كله)
+final currentMemberProvider = StreamProvider<Member?>((ref) {
+  final user = ref.watch(currentUserProvider);
+  final memberId = user?.memberId;
+  if (memberId == null || memberId.isEmpty) {
+    return Stream.value(null);
+  }
+  return ref.watch(memberRepositoryProvider).watchMemberById(memberId);
 });
 
 /// فلترة الأعضاء حسب البحث

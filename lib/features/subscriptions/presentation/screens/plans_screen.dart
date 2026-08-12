@@ -39,7 +39,11 @@ class PlansScreen extends ConsumerWidget {
                 child: ListTile(
                   leading: const Icon(Icons.card_membership, color: AppColors.primary),
                   title: Text(plan.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('${plan.durationDays} يوم'),
+                  subtitle: Text(
+                    plan.visitsAllowed > 0
+                        ? '${plan.durationDays} يوم · ${plan.visitsAllowed} حضور'
+                        : '${plan.durationDays} يوم · حضور مفتوح',
+                  ),
                   trailing: _isSubscribeMode
                       ? Text(
                           '${plan.price.toStringAsFixed(0)} ج.م',
