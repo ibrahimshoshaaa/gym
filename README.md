@@ -195,3 +195,4 @@ firebase deploy --only functions,firestore:rules
 ```
 
 ملحوظة: نشر Cloud Functions محتاج خطة Firebase مدفوعة (Blaze) - Firestore والـ Auth نفسهم مجانيين، بس Functions بتحتاج Blaze حتى لو الاستهلاك تحت الحد المجاني.
+"# gym" 
