@@ -16,6 +16,9 @@ class MemberRepositoryImpl implements MemberRepository {
   CollectionReference<Map<String, dynamic>> get _collection =>
       _firestore.collection(FirestorePaths.members(gymId));
 
+  CollectionReference<Map<String, dynamic>> get _phoneIndex =>
+      _firestore.collection('gyms/$gymId/phoneIndex');
+
   @override
   Stream<List<Member>> watchMembers() {
     return _collection.orderBy('joinDate', descending: true).snapshots().map(
@@ -39,6 +42,12 @@ class MemberRepositoryImpl implements MemberRepository {
     try {
       final model = MemberModel.fromEntity(member);
       final docRef = await _collection.add(model.toMap());
+      if (member.phone.isNotEmpty) {
+        await _phoneIndex.doc(member.phone).set({
+          'memberId': docRef.id,
+          'name': member.name,
+        });
+      }
       return Right(MemberModel.fromMap(model.toMap(), docRef.id));
     } catch (_) {
       return const Left(ServerFailure());
@@ -49,7 +58,21 @@ class MemberRepositoryImpl implements MemberRepository {
   Future<Either<Failure, void>> updateMember(Member member) async {
     try {
       final model = MemberModel.fromEntity(member);
+      final oldSnap = await _collection.doc(member.id).get();
+      final oldPhone = oldSnap.data()?['phone'] as String?;
+
       await _collection.doc(member.id).update(model.toMap());
+
+      // لو الرقم اتغيّر، امسح الفهرس القديم واكتب الجديد
+      if (oldPhone != null && oldPhone != member.phone && oldPhone.isNotEmpty) {
+        await _phoneIndex.doc(oldPhone).delete();
+      }
+      if (member.phone.isNotEmpty) {
+        await _phoneIndex.doc(member.phone).set({
+          'memberId': member.id,
+          'name': member.name,
+        });
+      }
       return const Right(null);
     } catch (_) {
       return const Left(ServerFailure());
@@ -59,7 +82,12 @@ class MemberRepositoryImpl implements MemberRepository {
   @override
   Future<Either<Failure, void>> deleteMember(String id) async {
     try {
+      final snap = await _collection.doc(id).get();
+      final phone = snap.data()?['phone'] as String?;
       await _collection.doc(id).delete();
+      if (phone != null && phone.isNotEmpty) {
+        await _phoneIndex.doc(phone).delete();
+      }
       return const Right(null);
     } catch (_) {
       return const Left(ServerFailure());

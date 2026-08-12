@@ -44,7 +44,15 @@ service cloud.firestore {
     // كل مستخدم يقدر يقرأ بياناته بس، والأدمن يقدر يدير الكل
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow create: if isAdmin();
+      // الأدمن يقدر ينشئ حساب موظف عادي، والعضو يقدر ينشئ حسابه هو بس
+      // (أول تسجيل دخول) بشرط إن memberId اللي بيحطه فعلاً مطابق للفهرس
+      // phoneIndex بتاع نفس الرقم اللي معاه - يعني مش هيقدر يدّعي إنه
+      // عضو تاني بمجرد ما يبعت memberId مختلف.
+      allow create: if isAdmin() ||
+        (isSignedIn() && request.auth.uid == userId &&
+         request.resource.data.role == 'member' &&
+         request.resource.data.memberId ==
+           get(/databases/$(database)/documents/gyms/$(request.resource.data.gymId)/phoneIndex/$(request.resource.data.phone)).data.memberId);
       // المستخدم نفسه مسموح له يحدث الـ fcmToken بتاعه بس (لتفعيل التنبيهات)
       allow update: if isAdmin() ||
         (isSignedIn() && request.auth.uid == userId &&
@@ -59,6 +67,15 @@ service cloud.firestore {
         allow read: if belongsToGym(gymId) && (isStaffOrAdmin() || isSelf(memberId));
         allow create, update: if belongsToGym(gymId) && isStaffOrAdmin();
         allow delete: if belongsToGym(gymId) && isAdmin();
+      }
+
+      // فهرس بيربط رقم الموبايل بمعرّف العضو بس (من غير أي بيانات حساسة تانية).
+      // أي حد عامل تسجيل دخول (حتى anonymous) يقدر يقراه عشان يعرف يربط
+      // حسابه بسجل العضو - ده بديل الـ Cloud Function اللي كانت بتعمل نفس
+      // الحاجة عن طريق Admin SDK. الكتابة بس لموظف/أدمن الجيم ده.
+      match /phoneIndex/{phone} {
+        allow read: if isSignedIn();
+        allow write: if belongsToGym(gymId) && isStaffOrAdmin();
       }
 
       match /plans/{planId} {

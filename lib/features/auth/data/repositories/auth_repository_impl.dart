@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../../../../core/errors/exceptions.dart';
@@ -11,15 +10,12 @@ import '../models/user_model.dart';
 class AuthRepositoryImpl implements AuthRepository {
   final fb.FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
-  final FirebaseFunctions _functions;
 
   AuthRepositoryImpl({
     fb.FirebaseAuth? firebaseAuth,
     FirebaseFirestore? firestore,
-    FirebaseFunctions? functions,
   })  : _firebaseAuth = firebaseAuth ?? fb.FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance,
-        _functions = functions ?? FirebaseFunctions.instance;
+        _firestore = firestore ?? FirebaseFirestore.instance;
 
   CollectionReference<Map<String, dynamic>> get _usersCollection =>
       _firestore.collection('users');
@@ -61,26 +57,40 @@ class AuthRepositoryImpl implements AuthRepository {
       final credential = await _firebaseAuth.signInAnonymously();
       final uid = credential.user!.uid;
 
-      // 2) نبعت لـ Cloud Function (linkMemberLogin) تدور على العضو برقم
-      // موبايله وتربط الحساب بسجله - لازم Function هنا (مش قراءة مباشرة
-      // من العميل) لإن قواعد أمان members بتشترط إن يوزر يبقى ليه users
-      // doc موجود عشان يقرأها أصلاً، وده بالظبط اللي أول دخول للعضو مش
-      // هيكون عنده لسه. الـ Function بتستخدم Admin SDK فبتتخطى القيد ده
-      // من غير ما نحتاج نفتح قواعد الأمان لقراءة كل الأعضاء قبل الربط.
-      try {
-        await _functions.httpsCallable('linkMemberLogin').call({
-          'phone': phone,
-          'gymId': gymId,
-        });
-      } on FirebaseFunctionsException catch (e) {
-        if (e.code == 'not-found') {
-          return const Left(NotFoundFailure('لا يوجد عضو بهذا الرقم في هذا الجيم'));
-        }
-        if (e.code == 'failed-precondition') {
-          return Left(AuthFailure(e.message ??
+      // 2) نقرأ من phoneIndex مباشرة (مسموح لأي مستخدم مسجل دخول حتى لو
+      // anonymous - القاعدة دي بديل الـ Cloud Function القديمة، بترجع
+      // memberId بس من غير أي بيانات حساسة تانية).
+      final indexDoc = await _firestore
+          .collection('gyms/$gymId/phoneIndex')
+          .doc(phone)
+          .get();
+
+      if (!indexDoc.exists) {
+        return const Left(NotFoundFailure('لا يوجد عضو بهذا الرقم في هذا الجيم'));
+      }
+      final memberId = indexDoc.data()!['memberId'] as String;
+      final memberName = indexDoc.data()!['name'] as String? ?? '';
+
+      // 3) نتأكد الجهاز ده مش فاتح جلسة عضو تاني قبل كده
+      final existingUserDoc = await _usersCollection.doc(uid).get();
+      if (existingUserDoc.exists) {
+        final existing = existingUserDoc.data()!;
+        if (existing['phone'] != phone || existing['gymId'] != gymId) {
+          return const Left(AuthFailure(
               'الجهاز ده لسه فاتح جلسة عضو تاني. سجل خروج الأول وبعدين حاول تاني'));
         }
-        return const Left(ServerFailure());
+      } else {
+        // أول دخول - ننشئ users/{uid}. قاعدة الأمان بتتأكد إن memberId
+        // ده فعلاً مطابق لـ phoneIndex بتاع نفس الرقم قبل ما تسمح بالكتابة.
+        await _usersCollection.doc(uid).set({
+          'gymId': gymId,
+          'name': memberName,
+          'phone': phone,
+          'email': null,
+          'role': 'member',
+          'memberId': memberId,
+          'createdAt': Timestamp.now(),
+        });
       }
 
       // 3) دلوقتي users/{uid} موجود ومربوط بالعضو - نقراه عادي (مسموح لإن
