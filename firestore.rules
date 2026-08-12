@@ -1,0 +1,107 @@
+rules_version = '2';
+
+// قواعد أمان Firestore لتطبيق إدارة الجيم
+// انسخ الملف ده وحطه في Firebase Console -> Firestore Database -> Rules
+// أو استخدم Firebase CLI: firebase deploy --only firestore:rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function getUserRole() {
+      return userDoc().role;
+    }
+
+    function getUserGymId() {
+      return userDoc().gymId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getUserRole() == 'admin';
+    }
+
+    function isStaffOrAdmin() {
+      return isSignedIn() && getUserRole() in ['admin', 'staff'];
+    }
+
+    // العضو يقدر يشوف/يعدل بياناته الشخصية بس (مش بيانات أعضاء تانيين)
+    function isSelf(memberId) {
+      return isSignedIn() && userDoc().memberId == memberId;
+    }
+
+    function belongsToGym(gymId) {
+      return isSignedIn() && getUserGymId() == gymId;
+    }
+
+    // ============ users ============
+    // كل مستخدم يقدر يقرأ بياناته بس، والأدمن يقدر يدير الكل
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAdmin();
+      // المستخدم نفسه مسموح له يحدث الـ fcmToken بتاعه بس (لتفعيل التنبيهات)
+      allow update: if isAdmin() ||
+        (isSignedIn() && request.auth.uid == userId &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fcmToken']));
+      allow delete: if isAdmin();
+    }
+
+    // ============ gyms/{gymId}/... ============
+    match /gyms/{gymId} {
+
+      match /members/{memberId} {
+        allow read: if belongsToGym(gymId) && (isStaffOrAdmin() || isSelf(memberId));
+        allow create, update: if belongsToGym(gymId) && isStaffOrAdmin();
+        allow delete: if belongsToGym(gymId) && isAdmin();
+      }
+
+      match /plans/{planId} {
+        // الكل يقدر يشوف الخطط (حتى الأعضاء عشان يختاروا منها)
+        allow read: if belongsToGym(gymId);
+        allow write: if belongsToGym(gymId) && isAdmin();
+      }
+
+      match /subscriptions/{subId} {
+        allow read: if belongsToGym(gymId) && isStaffOrAdmin();
+        allow create, update: if belongsToGym(gymId) && isStaffOrAdmin();
+        allow delete: if false; // الاشتراكات القديمة لازم تفضل كسجل تاريخي
+      }
+
+      match /attendance/{attendanceId} {
+        allow read: if belongsToGym(gymId) && isStaffOrAdmin();
+        allow create: if belongsToGym(gymId) && isStaffOrAdmin();
+        allow update: if belongsToGym(gymId) && isStaffOrAdmin();
+        allow delete: if false;
+      }
+
+      match /classes/{classId} {
+        // الأعضاء يقدروا يشوفوا الكلاسات ويحجزوا (update بس للحجز/الإلغاء)
+        allow read: if belongsToGym(gymId);
+        allow create, delete: if belongsToGym(gymId) && isAdmin();
+        allow update: if belongsToGym(gymId) && isSignedIn();
+      }
+
+      match /trainers/{trainerId} {
+        allow read: if belongsToGym(gymId);
+        allow write: if belongsToGym(gymId) && isAdmin();
+      }
+
+      match /staff/{staffId} {
+        allow read: if belongsToGym(gymId) && isAdmin();
+        allow write: if belongsToGym(gymId) && isAdmin();
+      }
+
+      match /payments/{paymentId} {
+        allow read: if belongsToGym(gymId) && isStaffOrAdmin();
+        allow create: if belongsToGym(gymId) && isStaffOrAdmin();
+        allow update, delete: if belongsToGym(gymId) && isAdmin();
+      }
+    }
+  }
+}
