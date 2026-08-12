@@ -79,7 +79,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen> {
                 }
               }
             },
-            errorBuilder: (context, error) {
+            errorBuilder: (context, error, child) {
               return Container(
                 color: Colors.black,
                 padding: const EdgeInsets.all(24),
