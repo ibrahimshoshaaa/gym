@@ -154,11 +154,20 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Stream<AppUser?> get authStateChanges {
-    return _firebaseAuth.authStateChanges().asyncMap((fbUser) async {
-      if (fbUser == null) return null;
-      final doc = await _usersCollection.doc(fbUser.uid).get();
-      if (!doc.exists) return null;
-      return UserModel.fromMap(doc.data()!, fbUser.uid);
+    // asyncExpand بدل asyncMap: كل ما الـ fbUser يتغيّر، بنفتح Stream حي
+    // (snapshots) على مستند اليوزر بتاعه بدل قراءة واحدة (get) بس.
+    // ده بيحل مشكلة إن تسجيل دخول العضو برقم الموبايل بيعمل الآتي بالترتيب:
+    // 1) signInAnonymously يفتح جلسة Auth -> authStateChanges بيطلق فوراً
+    // 2) في نفس اللحظة، لسه بيانات users/{uid} بتتكتب على Firestore
+    // لو استخدمنا get() هنا، هيوصلها فاضية وميعملش refresh تاني أبداً
+    // لحد ما تقفل وتفتح التطبيق. مع snapshots()، أي تحديث على المستند
+    // (حتى إنشاءه لأول مرة) بيبعت قيمة جديدة تلقائي.
+    return _firebaseAuth.authStateChanges().asyncExpand((fbUser) {
+      if (fbUser == null) return Stream.value(null);
+      return _usersCollection.doc(fbUser.uid).snapshots().map((doc) {
+        if (!doc.exists) return null;
+        return UserModel.fromMap(doc.data()!, fbUser.uid);
+      });
     });
   }
 

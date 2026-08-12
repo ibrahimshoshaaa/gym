@@ -15,6 +15,13 @@ class CheckinScreen extends ConsumerStatefulWidget {
 
 class _CheckinScreenState extends ConsumerState<CheckinScreen> {
   bool _isProcessing = false;
+  final MobileScannerController _controller = MobileScannerController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   Future<void> _handleScan(String memberId) async {
     if (_isProcessing) return;
@@ -44,6 +51,17 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen> {
     if (mounted) setState(() => _isProcessing = false);
   }
 
+  String _describeError(MobileScannerException error) {
+    switch (error.errorCode) {
+      case MobileScannerErrorCode.permissionDenied:
+        return 'صلاحية الكاميرا مرفوضة. روح إعدادات الموبايل → التطبيقات → gym_manager → الصلاحيات → فعّل الكاميرا يدوياً';
+      case MobileScannerErrorCode.unsupported:
+        return 'الجهاز ده مش بيدعم قراءة QR';
+      default:
+        return 'الكاميرا متفتحتش: ${error.errorDetails?.message ?? error.errorCode}';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,6 +69,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen> {
       body: Stack(
         children: [
           MobileScanner(
+            controller: _controller,
             onDetect: (capture) {
               final barcodes = capture.barcodes;
               if (barcodes.isNotEmpty) {
@@ -59,6 +78,32 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen> {
                   _handleScan(value);
                 }
               }
+            },
+            errorBuilder: (context, error) {
+              return Container(
+                color: Colors.black,
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.videocam_off, color: Colors.white, size: 48),
+                      const SizedBox(height: 16),
+                      Text(
+                        _describeError(error),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        onPressed: () => _controller.start(),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('إعادة محاولة'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
             },
           ),
           if (_isProcessing)

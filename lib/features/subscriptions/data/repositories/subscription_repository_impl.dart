@@ -115,9 +115,14 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
         });
       });
 
-      // تسجيل الدفعة في سجل المدفوعات
+      // تسجيل الدفعة في سجل المدفوعات - بنجيب اسم العضو الأول عشان يتسجل
+      // معاه بدل ما يتسجل بالـ memberId بس (اللي كان ظاهر كـ"اسم غريب")
+      final memberSnap = await memberRef.get();
+      final memberName = memberSnap.data()?['name'] as String? ?? '';
+
       await _firestore.collection(FirestorePaths.payments(gymId)).add({
         'memberId': memberId,
+        'memberName': memberName,
         'amount': paidAmount,
         'date': Timestamp.fromDate(now),
         'method': 'cash',
