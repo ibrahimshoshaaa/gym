@@ -49,8 +49,7 @@ app.*.map.json
 
 # مفاتيح Firebase - لازم تتولد محلياً بـ flutterfire configure
 # ومتترفعش على الجيت، خصوصاً لو الريبو عام (public)
-lib/firebase_options.dart
-android/app/google-services.json
+
 ios/Runner/GoogleService-Info.plist
 
 # مفاتيح توقيع Android (keystore) - لو فيه ملف حقيقي بعد كده

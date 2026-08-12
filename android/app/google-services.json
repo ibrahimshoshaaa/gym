@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "66561420209",
+    "project_id": "golden-gym-kh",
+    "storage_bucket": "golden-gym-kh.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:66561420209:android:dfb725b385f1a8ae3beb90",
+        "android_client_info": {
+          "package_name": "com.shosha.gym_manager"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfiqxCFde6yf4dE5CT8b-PaPG0anrxhvM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
