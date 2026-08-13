@@ -16,6 +16,7 @@ class MemberModel extends Member {
     super.visitsAllowed,
     super.visitsUsed,
     super.notes,
+    super.hasLoginAccount,
   });
 
   factory MemberModel.fromMap(Map<String, dynamic> map, String id) {
@@ -36,6 +37,7 @@ class MemberModel extends Member {
         orElse: () => MemberStatus.expired,
       ),
       notes: map['notes'] as String?,
+      hasLoginAccount: map['hasLoginAccount'] as bool? ?? false,
     );
   }
 
@@ -53,6 +55,7 @@ class MemberModel extends Member {
       'visitsUsed': visitsUsed,
       'status': status.name,
       'notes': notes,
+      'hasLoginAccount': hasLoginAccount,
     };
   }
 
@@ -71,6 +74,7 @@ class MemberModel extends Member {
       visitsUsed: member.visitsUsed,
       status: member.status,
       notes: member.notes,
+      hasLoginAccount: member.hasLoginAccount,
     );
   }
 }

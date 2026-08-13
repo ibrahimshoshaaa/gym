@@ -5,6 +5,7 @@ import '../../../../core/utils/date_formatter.dart';
 import '../../../attendance/presentation/providers/attendance_provider.dart';
 import '../../../attendance/presentation/screens/member_qr_screen.dart';
 import '../../../auth/domain/entities/app_user.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../auth/presentation/widgets/role_guard.dart';
 import '../../../subscriptions/presentation/screens/plans_screen.dart';
 import '../../domain/entities/member.dart';
@@ -137,6 +138,47 @@ class MemberDetailsScreen extends ConsumerWidget {
                   valueColor: member.hasVisitsRemaining ? null : AppColors.danger,
                 ),
               _InfoTile(icon: Icons.flag, label: 'الحالة', value: member.status.label),
+              const SizedBox(height: 12),
+              if (!member.hasLoginAccount)
+                Card(
+                  color: AppColors.warning.withValues(alpha: 0.08),
+                  child: ListTile(
+                    leading: const Icon(Icons.lock_outline, color: AppColors.warning),
+                    title: const Text('العضو ده لسه معندوش حساب دخول'),
+                    subtitle: const Text('دوس عشان تفعّله - الباسورد الابتدائي هيبقى رقم موبايله'),
+                    trailing: TextButton(
+                      onPressed: () async {
+                        final gymId = ref.read(currentUserProvider)?.gymId ?? 'default_gym';
+                        final result = await ref.read(authRepositoryProvider).createMemberAccount(
+                              gymId: gymId,
+                              memberId: member.id,
+                              memberName: member.name,
+                              phone: member.phone,
+                            );
+                        if (!context.mounted) return;
+                        result.fold(
+                          (failure) => ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(failure.message), backgroundColor: AppColors.danger),
+                          ),
+                          (_) => ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('تم تفعيل حساب الدخول ✅'),
+                              backgroundColor: AppColors.success,
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text('تفعيل'),
+                    ),
+                  ),
+                )
+              else
+                const Card(
+                  child: ListTile(
+                    leading: Icon(Icons.check_circle, color: AppColors.success),
+                    title: Text('حساب الدخول مفعّل'),
+                  ),
+                ),
               const SizedBox(height: 24),
               Row(
                 children: [

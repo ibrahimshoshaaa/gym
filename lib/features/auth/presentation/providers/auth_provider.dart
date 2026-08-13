@@ -62,9 +62,25 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     );
   }
 
-  Future<bool> signInWithPhone(String phone, String gymId) async {
+  Future<bool> signInWithPhone(String phone, String password, String gymId) async {
     state = const AsyncLoading();
-    final result = await _repository.signInWithPhone(phone: phone, gymId: gymId);
+    final result =
+        await _repository.signInWithPhone(phone: phone, password: password, gymId: gymId);
+    return result.fold(
+      (failure) {
+        state = AsyncError(failure.message, StackTrace.current);
+        return false;
+      },
+      (_) {
+        state = const AsyncData(null);
+        return true;
+      },
+    );
+  }
+
+  Future<bool> changePassword(String newPassword) async {
+    state = const AsyncLoading();
+    final result = await _repository.changePassword(newPassword);
     return result.fold(
       (failure) {
         state = AsyncError(failure.message, StackTrace.current);

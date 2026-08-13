@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:firebase_core/firebase_core.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/app_user.dart';
@@ -19,6 +20,14 @@ class AuthRepositoryImpl implements AuthRepository {
 
   CollectionReference<Map<String, dynamic>> get _usersCollection =>
       _firestore.collection('users');
+
+  /// إيميل وهمي ثابت من رقم الموبايل + الجيم - Firebase Auth محتاج شكل
+  /// إيميل صحيح، بس ده مش هيتبعت أو يتشاف لحد. لازم يتضمن الـ gymId عشان
+  /// نفس الرقم في جيمين مختلفين يبقى ليه حسابين منفصلين.
+  String _syntheticEmail({required String phone, required String gymId}) {
+    final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    return 'm$digits.$gymId@members.gymapp.local';
+  }
 
   @override
   Future<Either<Failure, AppUser>> signInWithEmail({
@@ -48,58 +57,117 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, AppUser>> signInWithPhone({
     required String phone,
+    required String password,
     required String gymId,
   }) async {
     try {
-      // 1) نفتح جلسة Auth حقيقية (Anonymous). لو الجهاز ده معاه جلسة شغالة
-      // بالفعل (نفس العضو لسه مسجل دخول)، Firebase هيرجّع نفس الـ uid من غير
-      // ما يعمل حساب جديد.
-      final credential = await _firebaseAuth.signInAnonymously();
+      final email = _syntheticEmail(phone: phone, gymId: gymId);
+      final credential = await _firebaseAuth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final uid = credential.user!.uid;
+      final doc = await _usersCollection.doc(uid).get();
+      if (!doc.exists) {
+        return const Left(NotFoundFailure('بيانات الحساب غير مكتملة، تواصل مع إدارة الجيم'));
+      }
+      return Right(UserModel.fromMap(doc.data()!, uid));
+    } on fb.FirebaseAuthException catch (e) {
+      // العضو القديم لسه ملوش حساب دخول (لسه ما اتفعّلش من الأدمن)
+      if (e.code == 'user-not-found') {
+        return const Left(AuthFailure('لسه معندكش حساب دخول مفعّل - كلم إدارة الجيم يفعّله'));
+      }
+      return Left(AuthFailure(_mapAuthError(e.code)));
+    } catch (_) {
+      return const Left(ServerFailure());
+    }
+  }
+
+  /// بيفتح نسخة معزولة تمامًا من Firebase App عشان ننشئ فيها حساب Auth
+  /// جديد من غير ما نأثر على جلسة الأدمن الحالية (Firebase Auth بطبيعته
+  /// بيسجّل دخولك تلقائي بالحساب اللي بتنشئه لو استخدمت instance واحد بس).
+  Future<fb.FirebaseAuth> _isolatedAuthInstance() async {
+    const appName = 'accountCreationHelper';
+    try {
+      final existing = Firebase.app(appName);
+      await existing.delete();
+    } catch (_) {
+      // مفيش نسخة قديمة عالقة - عادي
+    }
+    final app = await Firebase.initializeApp(
+      name: appName,
+      options: Firebase.app().options,
+    );
+    return fb.FirebaseAuth.instanceFor(app: app);
+  }
+
+  @override
+  Future<Either<Failure, void>> createMemberAccount({
+    required String gymId,
+    required String memberId,
+    required String memberName,
+    required String phone,
+  }) async {
+    fb.FirebaseAuth? isolatedAuth;
+    try {
+      isolatedAuth = await _isolatedAuthInstance();
+      final email = _syntheticEmail(phone: phone, gymId: gymId);
+
+      final credential = await isolatedAuth.createUserWithEmailAndPassword(
+        email: email,
+        // الباسورد الابتدائي = رقم الموبايل نفسه، والعضو هيتجبر يغيّره
+        // أول ما يدخل (mustChangePassword)
+        password: phone.replaceAll(RegExp(r'[^0-9]'), '').padRight(6, '0'),
+      );
       final uid = credential.user!.uid;
 
-      // 2) نقرأ من phoneIndex مباشرة (مسموح لأي مستخدم مسجل دخول حتى لو
-      // anonymous - القاعدة دي بديل الـ Cloud Function القديمة، بترجع
-      // memberId بس من غير أي بيانات حساسة تانية).
-      final indexDoc = await _firestore
-          .collection('gyms/$gymId/phoneIndex')
-          .doc(phone)
-          .get();
+      // بنكتب users/{uid} من نفس الجلسة المعزولة (اللي هي فعلياً uid بتاع
+      // العضو الجديد نفسه) - ده بيمر من قاعدة الأمان اللي بتسمح لعضو
+      // ينشئ سجله هو بس، بشرط إن الـ memberId يطابق فهرس الأرقام
+      final isolatedFirestore = FirebaseFirestore.instanceFor(app: isolatedAuth.app);
+      await isolatedFirestore.collection('users').doc(uid).set({
+        'gymId': gymId,
+        'name': memberName,
+        'phone': phone,
+        'email': null,
+        'role': 'member',
+        'memberId': memberId,
+        'mustChangePassword': true,
+        'createdAt': Timestamp.now(),
+      });
 
-      if (!indexDoc.exists) {
-        return const Left(NotFoundFailure('لا يوجد عضو بهذا الرقم في هذا الجيم'));
-      }
-      final memberId = indexDoc.data()!['memberId'] as String;
-      final memberName = indexDoc.data()!['name'] as String? ?? '';
+      await isolatedAuth.signOut();
 
-      // 3) نتأكد الجهاز ده مش فاتح جلسة عضو تاني قبل كده
-      final existingUserDoc = await _usersCollection.doc(uid).get();
-      if (existingUserDoc.exists) {
-        final existing = existingUserDoc.data()!;
-        if (existing['phone'] != phone || existing['gymId'] != gymId) {
-          return const Left(AuthFailure(
-              'الجهاز ده لسه فاتح جلسة عضو تاني. سجل خروج الأول وبعدين حاول تاني'));
-        }
-      } else {
-        // أول دخول - ننشئ users/{uid}. قاعدة الأمان بتتأكد إن memberId
-        // ده فعلاً مطابق لـ phoneIndex بتاع نفس الرقم قبل ما تسمح بالكتابة.
-        await _usersCollection.doc(uid).set({
-          'gymId': gymId,
-          'name': memberName,
-          'phone': phone,
-          'email': null,
-          'role': 'member',
-          'memberId': memberId,
-          'createdAt': Timestamp.now(),
-        });
-      }
+      // نرجع نستخدم الـ Firestore الأساسي (بجلسة الأدمن) عشان نعلّم على
+      // العضو إن عنده حساب دخول دلوقتي
+      await _firestore.collection('gyms/$gymId/members').doc(memberId).update({
+        'hasLoginAccount': true,
+      });
 
-      // 3) دلوقتي users/{uid} موجود ومربوط بالعضو - نقراه عادي (مسموح لإن
-      // uid == request.auth.uid)
-      final userDoc = await _usersCollection.doc(uid).get();
-      if (!userDoc.exists) {
-        return const Left(ServerFailure());
+      return const Right(null);
+    } on fb.FirebaseAuthException catch (e) {
+      return Left(AuthFailure(_mapAuthError(e.code)));
+    } catch (_) {
+      return const Left(ServerFailure());
+    } finally {
+      if (isolatedAuth != null) {
+        try {
+          await isolatedAuth.app.delete();
+        } catch (_) {}
       }
-      return Right(UserModel.fromMap(userDoc.data()!, uid));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> changePassword(String newPassword) async {
+    try {
+      final fbUser = _firebaseAuth.currentUser;
+      if (fbUser == null) {
+        return const Left(AuthFailure('لا يوجد مستخدم مسجل دخول'));
+      }
+      await fbUser.updatePassword(newPassword);
+      await _usersCollection.doc(fbUser.uid).update({'mustChangePassword': false});
+      return const Right(null);
     } on fb.FirebaseAuthException catch (e) {
       return Left(AuthFailure(_mapAuthError(e.code)));
     } catch (_) {
@@ -116,8 +184,12 @@ class AuthRepositoryImpl implements AuthRepository {
     required String phone,
     required UserRole role,
   }) async {
+    fb.FirebaseAuth? isolatedAuth;
     try {
-      final credential = await _firebaseAuth.createUserWithEmailAndPassword(
+      // نفس فكرة إنشاء حساب العضو - بنستخدم جلسة معزولة عشان إنشاء
+      // حساب موظف جديد ميقفلش جلسة الأدمن اللي بيعمل الإضافة
+      isolatedAuth = await _isolatedAuthInstance();
+      final credential = await isolatedAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -133,12 +205,21 @@ class AuthRepositoryImpl implements AuthRepository {
         createdAt: DateTime.now(),
       );
 
+      // الكتابة هنا بجلسة الأدمن الأساسية (مش المعزولة) لإن قاعدة الأمان
+      // لسجل موظف بتشترط isAdmin() صراحة
       await _usersCollection.doc(uid).set(newUser.toMap());
+      await isolatedAuth.signOut();
       return Right(newUser);
     } on fb.FirebaseAuthException catch (e) {
       return Left(AuthFailure(_mapAuthError(e.code)));
     } catch (_) {
       return const Left(ServerFailure());
+    } finally {
+      if (isolatedAuth != null) {
+        try {
+          await isolatedAuth.app.delete();
+        } catch (_) {}
+      }
     }
   }
 
@@ -178,14 +259,9 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Stream<AppUser?> get authStateChanges {
-    // asyncExpand بدل asyncMap: كل ما الـ fbUser يتغيّر، بنفتح Stream حي
-    // (snapshots) على مستند اليوزر بتاعه بدل قراءة واحدة (get) بس.
-    // ده بيحل مشكلة إن تسجيل دخول العضو برقم الموبايل بيعمل الآتي بالترتيب:
-    // 1) signInAnonymously يفتح جلسة Auth -> authStateChanges بيطلق فوراً
-    // 2) في نفس اللحظة، لسه بيانات users/{uid} بتتكتب على Firestore
-    // لو استخدمنا get() هنا، هيوصلها فاضية وميعملش refresh تاني أبداً
-    // لحد ما تقفل وتفتح التطبيق. مع snapshots()، أي تحديث على المستند
-    // (حتى إنشاءه لأول مرة) بيبعت قيمة جديدة تلقائي.
+    // asyncExpand: كل ما الـ fbUser يتغيّر، بنفتح Stream حي (snapshots)
+    // على مستند اليوزر بتاعه بدل قراءة واحدة (get) بس - عشان لو المستند
+    // اتحدث بعد لحظة تسجيل الدخول (حالة نادرة)، الشاشة تتحدث تلقائي.
     return _firebaseAuth.authStateChanges().asyncExpand((fbUser) {
       if (fbUser == null) return Stream.value(null);
       return _usersCollection.doc(fbUser.uid).snapshots().map((doc) {
@@ -219,13 +295,15 @@ class AuthRepositoryImpl implements AuthRepository {
       case 'wrong-password':
         return 'كلمة المرور غير صحيحة';
       case 'email-already-in-use':
-        return 'البريد الإلكتروني مستخدم بالفعل';
+        return 'الحساب موجود بالفعل';
       case 'invalid-email':
         return 'بريد إلكتروني غير صحيح';
       case 'weak-password':
         return 'كلمة المرور ضعيفة جداً';
       case 'invalid-credential':
-        return 'بيانات الدخول غير صحيحة';
+        return 'رقم الموبايل أو كلمة المرور غلط';
+      case 'requires-recent-login':
+        return 'لازم تسجل خروج وتدخل تاني قبل ما تغيّر الباسورد';
       default:
         return 'حصل خطأ، حاول تاني';
     }

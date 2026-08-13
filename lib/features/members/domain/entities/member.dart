@@ -35,6 +35,9 @@ class Member extends Equatable {
   final MemberStatus status;
   final String? notes;
 
+  /// true لو العضو عنده حساب دخول (رقم موبايل + باسورد) بيقدر يستخدمه في التطبيق
+  final bool hasLoginAccount;
+
   const Member({
     required this.id,
     required this.name,
@@ -49,6 +52,7 @@ class Member extends Equatable {
     this.visitsAllowed = 0,
     this.visitsUsed = 0,
     this.notes,
+    this.hasLoginAccount = false,
   });
 
   bool get hasActiveSubscription =>
@@ -77,5 +81,6 @@ class Member extends Equatable {
         visitsUsed,
         status,
         notes,
+        hasLoginAccount,
       ];
 }

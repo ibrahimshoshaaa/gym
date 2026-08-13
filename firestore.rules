@@ -53,10 +53,15 @@ service cloud.firestore {
          request.resource.data.role == 'member' &&
          request.resource.data.memberId ==
            get(/databases/$(database)/documents/gyms/$(request.resource.data.gymId)/phoneIndex/$(request.resource.data.phone)).data.memberId);
-      // المستخدم نفسه مسموح له يحدث الـ fcmToken بتاعه بس (لتفعيل التنبيهات)
+      // المستخدم نفسه مسموح له يحدث الـ fcmToken بتاعه (لتفعيل التنبيهات)
+      // وكمان mustChangePassword بس لما يخليها false (بعد ما يغيّر
+      // الباسورد بنجاح) - مينفعش يحطها true بنفسه، ده حق الأدمن بس
+      // (بيتحط true تلقائي وقت إنشاء الحساب)
       allow update: if isAdmin() ||
         (isSignedIn() && request.auth.uid == userId &&
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fcmToken']));
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fcmToken', 'mustChangePassword']) &&
+         (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['mustChangePassword']) ||
+          request.resource.data.mustChangePassword == false));
       allow delete: if isAdmin();
     }
 

@@ -100,17 +100,33 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
   }
 
   Future<dynamic> _saveNew(dynamic repo, String gymId, String? notes) async {
+    final phone = _phoneController.text.trim();
+    final name = _nameController.text.trim();
+
     final addResult = await repo.addMember(Member(
       id: '',
-      name: _nameController.text.trim(),
-      phone: _phoneController.text.trim(),
+      name: name,
+      phone: phone,
       joinDate: DateTime.now(),
       status: MemberStatus.expired,
       notes: notes,
     ));
 
-    return addResult.fold((f) => addResult, (newMember) async {
-      if (_pickedPhoto == null) return addResult;
+    final withAccount = await addResult.fold((f) async => addResult, (newMember) async {
+      // بعد ما العضو اتسجل، ننشئله حساب دخول (رقم موبايله + باسورد
+      // ابتدائي = نفس الرقم) - لو فشل الإنشاء لأي سبب، العضو لسه
+      // متسجل عادي والأدمن يقدر يفعّل الحساب بعدين من صفحة بياناته
+      await ref.read(authRepositoryProvider).createMemberAccount(
+            gymId: gymId,
+            memberId: newMember.id,
+            memberName: newMember.name,
+            phone: newMember.phone,
+          );
+      return addResult;
+    });
+
+    return withAccount.fold((f) => withAccount, (newMember) async {
+      if (_pickedPhoto == null) return withAccount;
       // رفعنا الصورة بعد ما عرفنا الـ id بتاع العضو
       // لو فشل الرفع (مثلاً Storage محتاج خطة Blaze) منوقفش العملية -
       // العضو بيتحفظ عادي من غير صورة، ونبلغ المستخدم بس
@@ -129,7 +145,7 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
         ));
       } catch (_) {
         _photoUploadFailed = true;
-        return addResult;
+        return withAccount;
       }
     });
   }

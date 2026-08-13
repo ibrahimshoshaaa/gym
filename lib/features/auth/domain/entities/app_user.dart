@@ -37,6 +37,10 @@ class AppUser extends Equatable {
   /// موجود فقط لو الدور "member" - بيربط اليوزر بسجله في members collection
   final String? memberId;
 
+  /// لو true، لازم يغيّر الباسورد قبل ما يقدر يستخدم التطبيق - بتتحط
+  /// true أول ما الأدمن ينشئ حساب العضو (الباسورد الافتراضي = رقم الموبايل)
+  final bool mustChangePassword;
+
   const AppUser({
     required this.uid,
     required this.gymId,
@@ -46,6 +50,7 @@ class AppUser extends Equatable {
     required this.createdAt,
     this.email,
     this.memberId,
+    this.mustChangePassword = false,
   });
 
   bool get isAdmin => role == UserRole.admin;
@@ -56,5 +61,6 @@ class AppUser extends Equatable {
   bool get canManageOperations => isAdmin || isStaff;
 
   @override
-  List<Object?> get props => [uid, gymId, name, phone, email, role, createdAt, memberId];
+  List<Object?> get props =>
+      [uid, gymId, name, phone, email, role, createdAt, memberId, mustChangePassword];
 }

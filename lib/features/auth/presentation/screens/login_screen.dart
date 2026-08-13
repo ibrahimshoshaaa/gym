@@ -22,6 +22,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   // Member login
   final _memberFormKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
+  final _memberPasswordController = TextEditingController();
+  bool _obscureMemberPassword = true;
 
   // TODO: يتغير حسب طريقة تحديد الجيم (subdomain / اختيار / رابط دعوة)
   static const String currentGymId = 'default_gym';
@@ -38,6 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     _emailController.dispose();
     _passwordController.dispose();
     _phoneController.dispose();
+    _memberPasswordController.dispose();
     super.dispose();
   }
 
@@ -143,6 +146,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
               decoration: const InputDecoration(labelText: 'رقم الموبايل'),
               validator: Validators.phone,
             ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _memberPasswordController,
+              obscureText: _obscureMemberPassword,
+              decoration: InputDecoration(
+                labelText: 'كلمة المرور',
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureMemberPassword ? Icons.visibility : Icons.visibility_off),
+                  onPressed: () => setState(() => _obscureMemberPassword = !_obscureMemberPassword),
+                ),
+              ),
+              validator: Validators.password,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'أول مرة تدخل، كلمة المرور هي رقم موبايلك، وهيطلب منك تغيّرها.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: isLoading ? null : _handleMemberLogin,
@@ -170,6 +191,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     if (!_memberFormKey.currentState!.validate()) return;
     ref.read(authControllerProvider.notifier).signInWithPhone(
           _phoneController.text.trim(),
+          _memberPasswordController.text,
           currentGymId,
         );
   }

@@ -83,10 +83,39 @@ class MemberDashboard extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        // في حالة الخطأ (زي permission-denied لحظة تسجيل الخروج قبل ما
-        // الشاشة تتنقل) منعرضش الرسالة الخام، بنعرض مؤشر تحميل بس
-        // لحد ما الـ Router ينقلنا لمكاننا الصح
-        error: (err, _) => const Center(child: CircularProgressIndicator()),
+        // في حالة خطأ فعلي (مش مجرد لحظة تحميل عابرة)، لازم نديله طريقة
+        // يطلع بيها - قبل كده كنا بنعرض مؤشر تحميل بس، فلو الخطأ مستمر
+        // (مش لحظي) المستخدم كان بيفضل شايف تحميل من غير أي مخرج غير
+        // إنه يقفل التطبيق بالقوة. دلوقتي بنعرض رسالة واضحة + زرار.
+        error: (err, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, color: AppColors.danger, size: 48),
+                const SizedBox(height: 12),
+                const Text(
+                  'حصلت مشكلة في تحميل بياناتك',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'جرب تسجّل خروج وتدخل تاني، ولو المشكلة استمرت كلم إدارة الجيم',
+                  style: TextStyle(color: AppColors.textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('تسجيل خروج'),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

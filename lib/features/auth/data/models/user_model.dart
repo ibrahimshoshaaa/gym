@@ -11,6 +11,7 @@ class UserModel extends AppUser {
     required super.createdAt,
     super.email,
     super.memberId,
+    super.mustChangePassword,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
@@ -22,6 +23,7 @@ class UserModel extends AppUser {
       email: map['email'] as String?,
       role: UserRole.fromString(map['role'] as String? ?? 'member'),
       memberId: map['memberId'] as String?,
+      mustChangePassword: map['mustChangePassword'] as bool? ?? false,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -35,6 +37,7 @@ class UserModel extends AppUser {
       email: user.email,
       role: user.role,
       memberId: user.memberId,
+      mustChangePassword: user.mustChangePassword,
       createdAt: user.createdAt,
     );
   }
@@ -47,6 +50,7 @@ class UserModel extends AppUser {
       'email': email,
       'role': role.name,
       'memberId': memberId,
+      'mustChangePassword': mustChangePassword,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }

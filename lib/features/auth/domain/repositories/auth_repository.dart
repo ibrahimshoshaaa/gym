@@ -9,11 +9,29 @@ abstract class AuthRepository {
     required String password,
   });
 
-  /// تسجيل دخول العضو برقم الموبايل (أبسط للأعضاء)
+  /// تسجيل دخول العضو برقم الموبايل + باسورد (الباسورد الافتراضي بيكون
+  /// رقم الموبايل نفسه أول ما الأدمن ينشئ الحساب - العضو بيتجبر يغيّره
+  /// أول تسجيل دخول عن طريق mustChangePassword)
   Future<Either<Failure, AppUser>> signInWithPhone({
     required String phone,
+    required String password,
     required String gymId,
   });
+
+  /// بينشئ حساب دخول حقيقي (Auth + users doc) لعضو موجود بالفعل في
+  /// members collection - الباسورد الابتدائي = رقم الموبايل، ومطلوب من
+  /// العضو يغيّره أول ما يدخل. بيستخدم Firebase App تانوي عشان جلسة
+  /// الأدمن الحالية متتأثرش أو تتقفل.
+  Future<Either<Failure, void>> createMemberAccount({
+    required String gymId,
+    required String memberId,
+    required String memberName,
+    required String phone,
+  });
+
+  /// العضو بيغيّر الباسورد بتاعه (أول دخول أو وقت ما يحب) - بيمسح
+  /// علامة mustChangePassword تلقائياً بعد النجاح
+  Future<Either<Failure, void>> changePassword(String newPassword);
 
   Future<Either<Failure, AppUser>> registerStaff({
     required String gymId,
