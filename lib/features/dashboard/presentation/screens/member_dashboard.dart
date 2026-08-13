@@ -83,7 +83,10 @@ class MemberDashboard extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('حصل خطأ: $err')),
+        // في حالة الخطأ (زي permission-denied لحظة تسجيل الخروج قبل ما
+        // الشاشة تتنقل) منعرضش الرسالة الخام، بنعرض مؤشر تحميل بس
+        // لحد ما الـ Router ينقلنا لمكاننا الصح
+        error: (err, _) => const Center(child: CircularProgressIndicator()),
       ),
     );
   }

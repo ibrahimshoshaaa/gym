@@ -13,12 +13,51 @@ class CheckinScreen extends ConsumerStatefulWidget {
   ConsumerState<CheckinScreen> createState() => _CheckinScreenState();
 }
 
-class _CheckinScreenState extends ConsumerState<CheckinScreen> {
+class _CheckinScreenState extends ConsumerState<CheckinScreen> with WidgetsBindingObserver {
   bool _isProcessing = false;
-  final MobileScannerController _controller = MobileScannerController();
+  // autoStart: false - بنبدأ الكاميرا يدوياً بعد أول frame بدل ما تبدأ
+  // فوراً وقت إنشاء الـ widget. على أجهزة شاومي (MIUI) بالذات، بدء
+  // الكاميرا قبل ما الـ Activity يخلص الإعداد بالكامل بيسبب كراش
+  // (null object reference) - التأخير البسيط ده بيحل المشكلة غالباً.
+  final MobileScannerController _controller = MobileScannerController(autoStart: false);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startCamera());
+  }
+
+  Future<void> _startCamera() async {
+    try {
+      await _controller.start();
+    } catch (_) {
+      // هيتلقط ويتعرض من خلال errorBuilder بتاع الـ widget نفسه
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // لازم نوقف/نشغّل الكاميرا مع رجوع التطبيق من الخلفية، وإلا ممكن
+    // تفضل واقفة أو تكرش لما المستخدم يرجع للتطبيق (مشكلة معروفة في
+    // mobile_scanner على أجهزة كتير، وده الحل الموصى بيه رسمياً)
+    if (!_controller.value.isInitialized) return;
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _startCamera();
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        _controller.stop();
+        break;
+    }
+  }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
   }
@@ -96,7 +135,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen> {
                       ),
                       const SizedBox(height: 20),
                       ElevatedButton.icon(
-                        onPressed: () => _controller.start(),
+                        onPressed: _startCamera,
                         icon: const Icon(Icons.refresh),
                         label: const Text('إعادة محاولة'),
                       ),
