@@ -26,6 +26,7 @@ class SubscribeDialog extends ConsumerStatefulWidget {
 class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _amountController;
+  DateTime _startDate = DateTime.now();
   bool _isLoading = false;
 
   @override
@@ -40,6 +41,20 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
     super.dispose();
   }
 
+  Future<void> _pickStartDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _startDate,
+      // ممكن تبدأ اشتراك جديد من قبل النهاردة كمان لو حابب تسجل دفعة
+      // متأخرة، فمحددناش firstDate بتاريخ اليوم
+      firstDate: DateTime.now().subtract(const Duration(days: 30)),
+      lastDate: DateTime.now().add(const Duration(days: 90)),
+    );
+    if (picked != null) {
+      setState(() => _startDate = picked);
+    }
+  }
+
   Future<void> _handleConfirm() async {
     if (!_formKey.currentState!.validate()) return;
     final user = ref.read(currentUserProvider);
@@ -52,6 +67,7 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
           plan: widget.plan,
           paidAmount: double.parse(_amountController.text.trim()),
           recordedByUid: user.uid,
+          startDate: _startDate,
         );
 
     if (!mounted) return;
@@ -71,6 +87,10 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isToday = _startDate.year == DateTime.now().year &&
+        _startDate.month == DateTime.now().month &&
+        _startDate.day == DateTime.now().day;
+
     return AlertDialog(
       title: Text('اشتراك ${widget.memberName}'),
       content: Form(
@@ -86,6 +106,25 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: 'المبلغ المدفوع (ج.م)'),
               validator: (v) => Validators.positiveNumber(v, 'المبلغ'),
+            ),
+            const SizedBox(height: 16),
+            InkWell(
+              onTap: _pickStartDate,
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'تاريخ بداية الاشتراك',
+                  prefixIcon: Icon(Icons.calendar_today),
+                ),
+                child: Text(
+                  '${_startDate.day}/${_startDate.month}/${_startDate.year}'
+                  '${isToday ? ' (النهاردة)' : ''}',
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'هينتهي في: ${_endDatePreview().day}/${_endDatePreview().month}/${_endDatePreview().year}',
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
           ],
         ),
@@ -103,4 +142,6 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
       ],
     );
   }
+
+  DateTime _endDatePreview() => _startDate.add(Duration(days: widget.plan.durationDays));
 }

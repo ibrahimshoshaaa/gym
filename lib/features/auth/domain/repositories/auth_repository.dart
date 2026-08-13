@@ -24,6 +24,11 @@ abstract class AuthRepository {
     required UserRole role,
   });
 
+  /// ستريم لكل الأدمن والموظفين في الجيم - للأدمن بس عشان يشوفهم
+  Stream<List<AppUser>> watchStaff(String gymId);
+
+  Future<Either<Failure, void>> deleteStaff(String uid);
+
   Future<Either<Failure, void>> signOut();
 
   /// المستخدم الحالي (null لو مفيش حد داخل)

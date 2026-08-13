@@ -30,16 +30,39 @@ final currentMemberProvider = StreamProvider<Member?>((ref) {
 /// فلترة الأعضاء حسب البحث
 final memberSearchQueryProvider = StateProvider<String>((ref) => '');
 
+/// فئة الفلتر - بتتغير لما تدوس على كارت في الداشبورد (نشط/قربت/منتهية)
+enum MemberFilterCategory { all, active, expiringSoon, expired }
+
+final memberFilterCategoryProvider =
+    StateProvider<MemberFilterCategory>((ref) => MemberFilterCategory.all);
+
+bool _matchesCategory(Member m, MemberFilterCategory category) {
+  switch (category) {
+    case MemberFilterCategory.all:
+      return true;
+    case MemberFilterCategory.active:
+      return m.status == MemberStatus.active;
+    case MemberFilterCategory.expiringSoon:
+      if (m.subscriptionEnd == null) return false;
+      final days = m.subscriptionEnd!.difference(DateTime.now()).inDays;
+      return days >= 0 && days <= 3;
+    case MemberFilterCategory.expired:
+      return m.status == MemberStatus.expired;
+  }
+}
+
 final filteredMembersProvider = Provider<AsyncValue<List<Member>>>((ref) {
   final membersAsync = ref.watch(membersStreamProvider);
   final query = ref.watch(memberSearchQueryProvider).trim().toLowerCase();
+  final category = ref.watch(memberFilterCategoryProvider);
 
   return membersAsync.whenData((members) {
-    if (query.isEmpty) return members;
-    return members
-        .where((m) =>
-            m.name.toLowerCase().contains(query) || m.phone.contains(query))
-        .toList();
+    var result = members.where((m) => _matchesCategory(m, category));
+    if (query.isNotEmpty) {
+      result = result.where((m) =>
+          m.name.toLowerCase().contains(query) || m.phone.contains(query));
+    }
+    return result.toList();
   });
 });
 

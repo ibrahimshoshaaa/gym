@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../attendance/presentation/providers/attendance_provider.dart';
+import '../../../attendance/presentation/screens/member_qr_screen.dart';
 import '../../../auth/domain/entities/app_user.dart';
 import '../../../auth/presentation/widgets/role_guard.dart';
 import '../../../subscriptions/presentation/screens/plans_screen.dart';
@@ -174,6 +175,15 @@ class MemberDetailsScreen extends ConsumerWidget {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => MemberQrScreen(member: member)),
+                ),
+                icon: const Icon(Icons.badge),
+                label: const Text('عرض كارت العضوية'),
               ),
             ],
           );

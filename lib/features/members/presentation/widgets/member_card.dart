@@ -11,6 +11,7 @@ class MemberCard extends StatelessWidget {
 
   Color get _statusColor {
     if (member.status == MemberStatus.frozen) return AppColors.textSecondary;
+    if (member.status == MemberStatus.pending) return AppColors.primary;
     if (member.subscriptionEnd == null) return AppColors.subscriptionExpired;
     if (DateFormatter.isExpired(member.subscriptionEnd!)) {
       return AppColors.subscriptionExpired;
@@ -23,6 +24,10 @@ class MemberCard extends StatelessWidget {
 
   String get _statusText {
     if (member.status == MemberStatus.frozen) return 'مجمد';
+    if (member.status == MemberStatus.pending && member.subscriptionStart != null) {
+      final s = member.subscriptionStart!;
+      return 'هيبدأ ${s.day}/${s.month}';
+    }
     if (member.subscriptionEnd == null) return 'بدون اشتراك';
     if (DateFormatter.isExpired(member.subscriptionEnd!)) return 'منتهي';
     final days = DateFormatter.daysRemaining(member.subscriptionEnd!);

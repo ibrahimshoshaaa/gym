@@ -143,6 +143,30 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Stream<List<AppUser>> watchStaff(String gymId) {
+    return _usersCollection
+        .where('gymId', isEqualTo: gymId)
+        .where('role', whereIn: [UserRole.admin.name, UserRole.staff.name])
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => UserModel.fromMap(d.data(), d.id)).toList());
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteStaff(String uid) async {
+    try {
+      // ملحوظة: ده بيمسح سجل الموظف من Firestore بس (يمنعه يستخدم
+      // التطبيق فوراً)، مش بيمسح حساب الدخول بتاعه من Firebase Auth
+      // نفسه - ده محتاج Admin SDK (Cloud Function) مش متاح على الخطة
+      // المجانية. عملياً برضو كافي: من غير سجل Firestore، مش هيقدر
+      // يدخل التطبيق تاني حتى لو حاول بنفس الإيميل والباسورد.
+      await _usersCollection.doc(uid).delete();
+      return const Right(null);
+    } catch (_) {
+      return const Left(ServerFailure());
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> signOut() async {
     try {
       await _firebaseAuth.signOut();

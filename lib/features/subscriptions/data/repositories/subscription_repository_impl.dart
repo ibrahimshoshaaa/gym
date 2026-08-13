@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dartz/dartz.dart';
 import '../../../../core/constants/firestore_paths.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../members/domain/entities/member.dart';
 import '../../domain/entities/plan.dart';
 import '../../domain/repositories/subscription_repository.dart';
 import '../models/plan_model.dart';
@@ -81,10 +82,13 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
     required Plan plan,
     required double paidAmount,
     required String recordedByUid,
+    DateTime? startDate,
   }) async {
     try {
       final now = DateTime.now();
-      final endDate = now.add(Duration(days: plan.durationDays));
+      // لو محددش تاريخ بداية، نستخدم دلوقتي (السلوك القديم زي ما هو)
+      final effectiveStart = startDate ?? now;
+      final endDate = effectiveStart.add(Duration(days: plan.durationDays));
       final subRef = _subscriptionsCollection.doc();
       final memberRef = _firestore.collection(FirestorePaths.members(gymId)).doc(memberId);
 
@@ -92,7 +96,7 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
         id: subRef.id,
         memberId: memberId,
         planId: plan.id,
-        startDate: now,
+        startDate: effectiveStart,
         endDate: endDate,
         paidAmount: paidAmount,
         createdAt: now,
@@ -108,10 +112,14 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
         transaction.update(memberRef, {
           'currentPlanId': plan.id,
           'currentSubscriptionId': subRef.id,
+          'subscriptionStart': Timestamp.fromDate(effectiveStart),
           'subscriptionEnd': Timestamp.fromDate(endDate),
           'visitsAllowed': plan.visitsAllowed,
           'visitsUsed': 0,
-          'status': 'active',
+          // العضو بيتحسب "نشط" بس لو تاريخ البداية وصل فعلاً - لو الاشتراك
+          // هيبدأ بعد كذا يوم، الحالة تفضل "منتظر" لحد ميجيش يوم البداية.
+          // ده بيمنع إن الشاشات تعرضه "نشط" ويقدر يدخل الجيم قبل معاده.
+          'status': effectiveStart.isAfter(now) ? MemberStatus.pending.name : MemberStatus.active.name,
         });
       });
 

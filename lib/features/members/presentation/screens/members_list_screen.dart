@@ -6,12 +6,49 @@ import '../widgets/member_card.dart';
 import 'add_member_screen.dart';
 import 'member_details_screen.dart';
 
-class MembersListScreen extends ConsumerWidget {
-  const MembersListScreen({super.key});
+class MembersListScreen extends ConsumerStatefulWidget {
+  /// فلتر ابتدائي - بيتحط لما تيجي من كارت في الداشبورد (مثلاً "قربت تخلص")
+  final MemberFilterCategory initialFilter;
+
+  const MembersListScreen({super.key, this.initialFilter = MemberFilterCategory.all});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MembersListScreen> createState() => _MembersListScreenState();
+}
+
+class _MembersListScreenState extends ConsumerState<MembersListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(memberFilterCategoryProvider.notifier).state = widget.initialFilter;
+    });
+  }
+
+  @override
+  void dispose() {
+    // نرجّع الفلتر لـ "الكل" عشان مايأثرش على الشاشة دي المرة الجاية
+    ref.read(memberFilterCategoryProvider.notifier).state = MemberFilterCategory.all;
+    super.dispose();
+  }
+
+  String _categoryLabel(MemberFilterCategory c) {
+    switch (c) {
+      case MemberFilterCategory.all:
+        return 'الكل';
+      case MemberFilterCategory.active:
+        return 'نشطة';
+      case MemberFilterCategory.expiringSoon:
+        return 'قربت تخلص';
+      case MemberFilterCategory.expired:
+        return 'منتهية';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final membersAsync = ref.watch(filteredMembersProvider);
+    final currentCategory = ref.watch(memberFilterCategoryProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('الأعضاء')),
@@ -26,6 +63,25 @@ class MembersListScreen extends ConsumerWidget {
               ),
               onChanged: (value) =>
                   ref.read(memberSearchQueryProvider.notifier).state = value,
+            ),
+          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: MemberFilterCategory.values.map((c) {
+                final selected = c == currentCategory;
+                return Padding(
+                  padding: const EdgeInsets.only(left: 8, bottom: 8),
+                  child: ChoiceChip(
+                    label: Text(_categoryLabel(c)),
+                    selected: selected,
+                    selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                    onSelected: (_) =>
+                        ref.read(memberFilterCategoryProvider.notifier).state = c,
+                  ),
+                );
+              }).toList(),
             ),
           ),
           Expanded(

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../attendance/presentation/screens/checkin_screen.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../auth/presentation/screens/add_staff_screen.dart';
+import '../../../auth/presentation/screens/staff_list_screen.dart';
 import '../../../classes/presentation/screens/classes_schedule_screen.dart';
 import '../../../classes/presentation/screens/trainers_list_screen.dart';
 import '../../../members/presentation/providers/members_provider.dart';
@@ -44,10 +44,34 @@ class AdminDashboard extends ConsumerWidget {
               crossAxisSpacing: 12,
               childAspectRatio: 1.5,
               children: [
-                _StatCard(label: 'إجمالي الأعضاء', value: '${stats.total}', color: AppColors.primary, icon: Icons.people),
-                _StatCard(label: 'اشتراكات نشطة', value: '${stats.active}', color: AppColors.success, icon: Icons.check_circle),
-                _StatCard(label: 'قربت تخلص', value: '${stats.expiringSoon}', color: AppColors.warning, icon: Icons.warning),
-                _StatCard(label: 'منتهية', value: '${stats.expired}', color: AppColors.danger, icon: Icons.cancel),
+                _StatCard(
+                  label: 'إجمالي الأعضاء',
+                  value: '${stats.total}',
+                  color: AppColors.primary,
+                  icon: Icons.people,
+                  onTap: () => _push(context, const MembersListScreen(initialFilter: MemberFilterCategory.all)),
+                ),
+                _StatCard(
+                  label: 'اشتراكات نشطة',
+                  value: '${stats.active}',
+                  color: AppColors.success,
+                  icon: Icons.check_circle,
+                  onTap: () => _push(context, const MembersListScreen(initialFilter: MemberFilterCategory.active)),
+                ),
+                _StatCard(
+                  label: 'قربت تخلص',
+                  value: '${stats.expiringSoon}',
+                  color: AppColors.warning,
+                  icon: Icons.warning,
+                  onTap: () => _push(context, const MembersListScreen(initialFilter: MemberFilterCategory.expiringSoon)),
+                ),
+                _StatCard(
+                  label: 'منتهية',
+                  value: '${stats.expired}',
+                  color: AppColors.danger,
+                  icon: Icons.cancel,
+                  onTap: () => _push(context, const MembersListScreen(initialFilter: MemberFilterCategory.expired)),
+                ),
               ],
             ),
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -63,7 +87,7 @@ class AdminDashboard extends ConsumerWidget {
           _QuickAction(icon: Icons.sports_gymnastics, label: 'المدربين', onTap: () => _push(context, const TrainersListScreen())),
           _QuickAction(icon: Icons.payments, label: 'سجل المدفوعات', onTap: () => _push(context, const PaymentsHistoryScreen())),
           _QuickAction(icon: Icons.bar_chart, label: 'التقارير المالية', onTap: () => _push(context, const ReportsScreen())),
-          _QuickAction(icon: Icons.badge, label: 'إضافة موظف', onTap: () => _push(context, const AddStaffScreen())),
+          _QuickAction(icon: Icons.badge, label: 'الموظفين', onTap: () => _push(context, const StaffListScreen())),
         ],
       ),
     );
@@ -79,23 +103,28 @@ class _StatCard extends StatelessWidget {
   final String value;
   final Color color;
   final IconData icon;
+  final VoidCallback? onTap;
 
-  const _StatCard({required this.label, required this.value, required this.color, required this.icon});
+  const _StatCard({required this.label, required this.value, required this.color, required this.icon, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       color: color.withValues(alpha: 0.08),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Icon(icon, color: color),
-            Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-            Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-          ],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(icon, color: color),
+              Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+              Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            ],
+          ),
         ),
       ),
     );

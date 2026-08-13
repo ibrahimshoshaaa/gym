@@ -32,6 +32,14 @@ final currentUserProvider = Provider<AppUser?>((ref) {
   );
 });
 
+/// كل الأدمن والموظفين في الجيم الحالي - للأدمن بس
+final staffListProvider = StreamProvider<List<AppUser>>((ref) {
+  final user = ref.watch(currentUserProvider);
+  final gymId = user?.gymId;
+  if (gymId == null) return Stream.value([]);
+  return ref.watch(authRepositoryProvider).watchStaff(gymId);
+});
+
 /// حالة تسجيل الدخول (loading/error) لشاشة اللوجين
 class AuthController extends StateNotifier<AsyncValue<void>> {
   final AuthRepository _repository;

@@ -31,6 +31,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
           }
 
           final data = memberDoc.data()!;
+          final subscriptionStart = (data['subscriptionStart'] as Timestamp?)?.toDate();
           final subscriptionEnd = (data['subscriptionEnd'] as Timestamp?)?.toDate();
           final visitsAllowed = data['visitsAllowed'] as int? ?? 0;
           final visitsUsed = data['visitsUsed'] as int? ?? 0;
@@ -40,7 +41,13 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
             return const Left(ValidationFailure('اشتراك العضو منتهي، لازم يجدد الاشتراك الأول'));
           }
 
-          // 2) لسه في مدة الاشتراك، بس استنفد عدد الأيام المسموح بيها
+          // 2) الاشتراك مدفوع بس معاده لسه ما جاش (تاريخ بداية مستقبلي)
+          if (subscriptionStart != null && subscriptionStart.isAfter(DateTime.now())) {
+            final day = subscriptionStart.day, month = subscriptionStart.month, year = subscriptionStart.year;
+            return Left(ValidationFailure('اشتراك العضو هيبدأ يوم $day/$month/$year، لسه معادُه ما جاش'));
+          }
+
+          // 3) لسه في مدة الاشتراك، بس استنفد عدد الأيام المسموح بيها
           // (visitsAllowed = 0 معناها خطة مفتوحة من غير حد أقصى)
           if (visitsAllowed > 0 && visitsUsed >= visitsAllowed) {
             return Left(ValidationFailure(

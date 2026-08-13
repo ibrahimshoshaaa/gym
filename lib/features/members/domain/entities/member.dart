@@ -3,7 +3,8 @@ import 'package:equatable/equatable.dart';
 enum MemberStatus {
   active,
   expired,
-  frozen; // تجميد الاشتراك (إجازة، إصابة..)
+  frozen, // تجميد الاشتراك (إجازة، إصابة..)
+  pending; // اشتراك مدفوع بس لسه معادُه ما جاش (تاريخ بداية مستقبلي)
 
   String get label {
     switch (this) {
@@ -13,6 +14,8 @@ enum MemberStatus {
         return 'منتهي';
       case MemberStatus.frozen:
         return 'مجمد';
+      case MemberStatus.pending:
+        return 'هيبدأ قريباً';
     }
   }
 }
@@ -25,6 +28,7 @@ class Member extends Equatable {
   final DateTime joinDate;
   final String? currentPlanId;
   final String? currentSubscriptionId;
+  final DateTime? subscriptionStart;
   final DateTime? subscriptionEnd;
   final int visitsAllowed;
   final int visitsUsed;
@@ -40,6 +44,7 @@ class Member extends Equatable {
     this.photoUrl,
     this.currentPlanId,
     this.currentSubscriptionId,
+    this.subscriptionStart,
     this.subscriptionEnd,
     this.visitsAllowed = 0,
     this.visitsUsed = 0,
@@ -66,6 +71,7 @@ class Member extends Equatable {
         joinDate,
         currentPlanId,
         currentSubscriptionId,
+        subscriptionStart,
         subscriptionEnd,
         visitsAllowed,
         visitsUsed,

@@ -36,6 +36,12 @@ dependencies:
   qr_flutter: ^4.1.0
   mobile_scanner: ^5.1.1
 
+  # كارت العضو (مشاركة كصورة + طباعة كـ PDF)
+  share_plus: ^12.0.2
+  path_provider: ^2.1.4
+  printing: ^5.13.3
+  pdf: ^3.11.1
+
   # Utilities
   equatable: ^2.0.5
   dartz: ^0.10.1
