@@ -83,7 +83,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return Consumer(
             builder: (context, ref, _) {
               final user = ref.watch(currentUserProvider);
-              if (user == null) return const SizedBox.shrink();
+              // اللحظة القصيرة دي (يوزر لسه null) ممكن تحصل لحظة تسجيل
+              // الخروج قبل ما GoRouter يخلّص التنقل لصفحة الدخول - قبل
+              // كده كنا بنرجع SizedBox.shrink() عاري من غير أي خلفية،
+              // وده بالظبط اللي كان بيظهر كـ"شاشة سودة" (خلفية الجهاز
+              // الافتراضية سودة لما مفيش Scaffold). دلوقتي بنعرض مؤشر
+              // تحميل عادي جوه Scaffold بخلفية طبيعية بدل الفراغ الأسود.
+              if (user == null) {
+                return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              }
 
               switch (user.role) {
                 case UserRole.admin:

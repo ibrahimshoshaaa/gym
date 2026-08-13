@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
@@ -21,14 +22,68 @@ class AuthRepositoryImpl implements AuthRepository {
   CollectionReference<Map<String, dynamic>> get _usersCollection =>
       _firestore.collection('users');
 
-  /// نسخة واحدة مشتركة (broadcast) من ستريم حالة الدخول - بنبنيها مرة واحدة
-  /// بس (lazy) وكل حد يسمعها (authStateProvider، والـ Router..) بياخد
-  /// نفس الـ subscription الحقيقي على Firestore. قبل كده كل حد كان بيعمل
-  /// ستريم مستقل بنفسه من الصفر، وده كان بيسبب "سباق" (race condition):
-  /// حالتين مختلفتين شوية في التوقيت بيقروا نفس البيانات، وده اللي كان
-  /// بيسبب مشاكل زي "تسجيل الخروج بيوديني لصفحة تانية غلط" أو الشاشة
-  /// السودة أو التعليق على صفحة تسجيل الدخول بعد إعادة فتح التطبيق.
-  Stream<AppUser?>? _cachedAuthStateStream;
+  /// ستريم واحد مشترك (broadcast) بنتحكم فيه إحنا يدوياً - كل حد يسمعه
+  /// (authStateProvider، والـ Router..) بياخد نفس القيمة بالظبط في نفس
+  /// اللحظة (بدل ما كل واحد يعمل اشتراك مستقل بيوصله نفس الحدث في
+  /// توقيتين مختلفين شوية - وده كان سبب مشاكل زي "تسجيل الخروج بيوديني
+  /// لصفحة غلط" والشاشة السودة).
+  ///
+  /// ليه مش ستريم عادي متفرع من authStateChanges() بتاع Firebase مباشرة؟
+  /// لإن Firebase بطبيعته **مش بيبعت حدث جديد** لو عملت تسجيل دخول بنفس
+  /// الحساب اللي كان شغال بالفعل في الخلفية (زي الجلسة المحفوظة بعد ما
+  /// تقفل التطبيق وتفتحه تاني) - فلو التطبيق افترض غلط إنك مسجل خروج
+  /// وعرضلك شاشة الدخول، وكتبت بياناتك الصح وضغطت دخول، Firebase كان
+  /// بينفذ العملية بصمت من غير ما يبعت أي إشعار تغيير، فالتطبيق كان
+  /// فاضل واقف على شاشة الدخول وكأن حاجة محصلتش. دلوقتي بعد أي تسجيل
+  /// دخول ناجح، بننادي _pokeCurrentUser() يدوياً عشان نضمن التحديث
+  /// يحصل مهما كانت حالة Firebase الداخلية.
+  final _authStateController = StreamController<AppUser?>.broadcast();
+  fb.User? _lastFbUser;
+  bool _listening = false;
+
+  void _startListeningOnce() {
+    if (_listening) return;
+    _listening = true;
+    _firebaseAuth.authStateChanges().listen((fbUser) {
+      _lastFbUser = fbUser;
+      if (fbUser == null) {
+        _authStateController.add(null);
+        return;
+      }
+      _usersCollection.doc(fbUser.uid).snapshots().listen((doc) {
+        // نتأكد إن ده لسه نفس المستخدم الحالي (مش رد فعل متأخر من جلسة قديمة)
+        if (_lastFbUser?.uid != fbUser.uid) return;
+        if (!doc.exists) {
+          _authStateController.add(null);
+        } else {
+          _authStateController.add(UserModel.fromMap(doc.data()!, fbUser.uid));
+        }
+      }, onError: (_) => _authStateController.add(null));
+    });
+  }
+
+  /// بيجبر إعادة قراءة وبثّ بيانات المستخدم الحالي - بننادَيها يدوياً بعد
+  /// أي تسجيل دخول أو تغيير باسورد ناجح، عشان الشاشة تتحدث أكيد حتى لو
+  /// Firebase مبعتش حدث تغيير جديد (شوف الشرح فوق)
+  Future<void> _pokeCurrentUser() async {
+    _startListeningOnce();
+    final fbUser = _firebaseAuth.currentUser;
+    _lastFbUser = fbUser;
+    if (fbUser == null) {
+      _authStateController.add(null);
+      return;
+    }
+    try {
+      final doc = await _usersCollection.doc(fbUser.uid).get();
+      if (!doc.exists) {
+        _authStateController.add(null);
+      } else {
+        _authStateController.add(UserModel.fromMap(doc.data()!, fbUser.uid));
+      }
+    } catch (_) {
+      // تجاهل - الـ listener الحي فوق هيتكفل بيها لو البيانات ظهرت لاحقاً
+    }
+  }
 
   /// نسخة Firebase App تانوية (معزولة) بنستخدمها لإنشاء حسابات جديدة
   /// (عضو/موظف) من غير ما نأثر على جلسة دخول الأدمن الحالية. قبل كده
@@ -60,6 +115,7 @@ class AuthRepositoryImpl implements AuthRepository {
       if (!doc.exists) {
         throw NotFoundException('بيانات المستخدم غير موجودة');
       }
+      await _pokeCurrentUser();
       return Right(UserModel.fromMap(doc.data()!, uid));
     } on fb.FirebaseAuthException catch (e) {
       return Left(AuthFailure(_mapAuthError(e.code)));
@@ -87,6 +143,7 @@ class AuthRepositoryImpl implements AuthRepository {
       if (!doc.exists) {
         return const Left(NotFoundFailure('بيانات الحساب غير مكتملة، تواصل مع إدارة الجيم'));
       }
+      await _pokeCurrentUser();
       return Right(UserModel.fromMap(doc.data()!, uid));
     } on fb.FirebaseAuthException catch (e) {
       // العضو القديم لسه ملوش حساب دخول (لسه ما اتفعّلش من الأدمن)
@@ -174,18 +231,29 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, void>> changePassword(String newPassword) async {
+    final fbUser = _firebaseAuth.currentUser;
+    if (fbUser == null) {
+      return const Left(AuthFailure('لا يوجد مستخدم مسجل دخول'));
+    }
     try {
-      final fbUser = _firebaseAuth.currentUser;
-      if (fbUser == null) {
-        return const Left(AuthFailure('لا يوجد مستخدم مسجل دخول'));
-      }
       await fbUser.updatePassword(newPassword);
-      await _usersCollection.doc(fbUser.uid).update({'mustChangePassword': false});
-      return const Right(null);
     } on fb.FirebaseAuthException catch (e) {
       return Left(AuthFailure(_mapAuthError(e.code)));
     } catch (_) {
       return const Left(ServerFailure());
+    }
+
+    // الباسورد اتغيّر بنجاح في Firebase Auth - دلوقتي لازم نمسح علامة
+    // mustChangePassword. لو الخطوة دي فشلت (مثلاً صلاحيات قديمة لسه مش
+    // منشورة على Firebase Console)، لازم نوضح ده بالظبط بدل رسالة عامة،
+    // عشان الباسورد فعلياً اتغيّر بس العلامة لسه true فهيرجّعه تاني.
+    try {
+      await _usersCollection.doc(fbUser.uid).update({'mustChangePassword': false});
+      await _pokeCurrentUser();
+      return const Right(null);
+    } catch (_) {
+      return const Left(AuthFailure(
+          'الباسورد اتغيّر، بس حصلت مشكلة صلاحيات وإحنا بنسجل ده. جرب تسجّل خروج ودخول تاني بالباسورد الجديد.'));
     }
   }
 
@@ -267,19 +335,8 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Stream<AppUser?> get authStateChanges {
-    // asyncExpand: كل ما الـ fbUser يتغيّر، بنفتح Stream حي (snapshots)
-    // على مستند اليوزر بتاعه بدل قراءة واحدة (get) بس - عشان لو المستند
-    // اتحدث بعد لحظة تسجيل الدخول (حالة نادرة)، الشاشة تتحدث تلقائي.
-    // .asBroadcastStream() + التخزين المؤقت (cache) فوق يضمنوا إن كل
-    // مستمعين التطبيق (authStateProvider + الراوتر) بياخدوا نفس القيمة
-    // بالظبط في نفس اللحظة، مفيش سباق بين نسختين مختلفتين من الستريم.
-    return _cachedAuthStateStream ??= _firebaseAuth.authStateChanges().asyncExpand((fbUser) {
-      if (fbUser == null) return Stream.value(null);
-      return _usersCollection.doc(fbUser.uid).snapshots().map((doc) {
-        if (!doc.exists) return null;
-        return UserModel.fromMap(doc.data()!, fbUser.uid);
-      });
-    }).asBroadcastStream();
+    _startListeningOnce();
+    return _authStateController.stream;
   }
 
   @override
