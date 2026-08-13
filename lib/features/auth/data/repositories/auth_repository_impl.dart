@@ -21,6 +21,22 @@ class AuthRepositoryImpl implements AuthRepository {
   CollectionReference<Map<String, dynamic>> get _usersCollection =>
       _firestore.collection('users');
 
+  /// نسخة واحدة مشتركة (broadcast) من ستريم حالة الدخول - بنبنيها مرة واحدة
+  /// بس (lazy) وكل حد يسمعها (authStateProvider، والـ Router..) بياخد
+  /// نفس الـ subscription الحقيقي على Firestore. قبل كده كل حد كان بيعمل
+  /// ستريم مستقل بنفسه من الصفر، وده كان بيسبب "سباق" (race condition):
+  /// حالتين مختلفتين شوية في التوقيت بيقروا نفس البيانات، وده اللي كان
+  /// بيسبب مشاكل زي "تسجيل الخروج بيوديني لصفحة تانية غلط" أو الشاشة
+  /// السودة أو التعليق على صفحة تسجيل الدخول بعد إعادة فتح التطبيق.
+  Stream<AppUser?>? _cachedAuthStateStream;
+
+  /// نسخة Firebase App تانوية (معزولة) بنستخدمها لإنشاء حسابات جديدة
+  /// (عضو/موظف) من غير ما نأثر على جلسة دخول الأدمن الحالية. قبل كده
+  /// كنا بننشئها ونمسحها (delete) في كل مرة - ده اتضح إنه مش مستقر
+  /// وممكن يأثر على جلسة الدخول الأساسية على بعض الأجهزة. دلوقتي بننشئها
+  /// مرة واحدة بس ونعيد استخدامها (ونعمل لها signOut بس بين كل استخدام).
+  fb.FirebaseAuth? _isolatedAuth;
+
   /// إيميل وهمي ثابت من رقم الموبايل + الجيم - Firebase Auth محتاج شكل
   /// إيميل صحيح، بس ده مش هيتبعت أو يتشاف لحد. لازم يتضمن الـ gymId عشان
   /// نفس الرقم في جيمين مختلفين يبقى ليه حسابين منفصلين.
@@ -83,22 +99,26 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  /// بيفتح نسخة معزولة تمامًا من Firebase App عشان ننشئ فيها حساب Auth
-  /// جديد من غير ما نأثر على جلسة الأدمن الحالية (Firebase Auth بطبيعته
-  /// بيسجّل دخولك تلقائي بالحساب اللي بتنشئه لو استخدمت instance واحد بس).
+  /// بيرجع نسخة معزولة من Firebase Auth عشان ننشئ فيها حساب Auth جديد
+  /// من غير ما نأثر على جلسة الأدمن الحالية. بننشئها مرة واحدة بس ونعيد
+  /// استخدامها - إنشاء ومسح (delete) النسخة دي في كل مرة كان بيسبب عدم
+  /// استقرار في جلسة الدخول الأساسية على بعض الأجهزة (مشكلة معروفة في
+  /// Firebase SDK نفسه)، فدلوقتي بنعمل لها signOut بس بين كل استخدام
+  /// ونسيبها موجودة.
   Future<fb.FirebaseAuth> _isolatedAuthInstance() async {
-    const appName = 'accountCreationHelper';
-    try {
-      final existing = Firebase.app(appName);
-      await existing.delete();
-    } catch (_) {
-      // مفيش نسخة قديمة عالقة - عادي
+    if (_isolatedAuth != null) {
+      await _isolatedAuth!.signOut();
+      return _isolatedAuth!;
     }
-    final app = await Firebase.initializeApp(
-      name: appName,
-      options: Firebase.app().options,
-    );
-    return fb.FirebaseAuth.instanceFor(app: app);
+    const appName = 'accountCreationHelper';
+    FirebaseApp app;
+    try {
+      app = Firebase.app(appName);
+    } catch (_) {
+      app = await Firebase.initializeApp(name: appName, options: Firebase.app().options);
+    }
+    _isolatedAuth = fb.FirebaseAuth.instanceFor(app: app);
+    return _isolatedAuth!;
   }
 
   @override
@@ -149,12 +169,6 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(AuthFailure(_mapAuthError(e.code)));
     } catch (_) {
       return const Left(ServerFailure());
-    } finally {
-      if (isolatedAuth != null) {
-        try {
-          await isolatedAuth.app.delete();
-        } catch (_) {}
-      }
     }
   }
 
@@ -214,12 +228,6 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(AuthFailure(_mapAuthError(e.code)));
     } catch (_) {
       return const Left(ServerFailure());
-    } finally {
-      if (isolatedAuth != null) {
-        try {
-          await isolatedAuth.app.delete();
-        } catch (_) {}
-      }
     }
   }
 
@@ -262,13 +270,16 @@ class AuthRepositoryImpl implements AuthRepository {
     // asyncExpand: كل ما الـ fbUser يتغيّر، بنفتح Stream حي (snapshots)
     // على مستند اليوزر بتاعه بدل قراءة واحدة (get) بس - عشان لو المستند
     // اتحدث بعد لحظة تسجيل الدخول (حالة نادرة)، الشاشة تتحدث تلقائي.
-    return _firebaseAuth.authStateChanges().asyncExpand((fbUser) {
+    // .asBroadcastStream() + التخزين المؤقت (cache) فوق يضمنوا إن كل
+    // مستمعين التطبيق (authStateProvider + الراوتر) بياخدوا نفس القيمة
+    // بالظبط في نفس اللحظة، مفيش سباق بين نسختين مختلفتين من الستريم.
+    return _cachedAuthStateStream ??= _firebaseAuth.authStateChanges().asyncExpand((fbUser) {
       if (fbUser == null) return Stream.value(null);
       return _usersCollection.doc(fbUser.uid).snapshots().map((doc) {
         if (!doc.exists) return null;
         return UserModel.fromMap(doc.data()!, fbUser.uid);
       });
-    });
+    }).asBroadcastStream();
   }
 
   @override

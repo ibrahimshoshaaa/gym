@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,21 +9,32 @@ import '../../features/dashboard/presentation/screens/admin_dashboard.dart';
 import '../../features/dashboard/presentation/screens/member_dashboard.dart';
 import '../../features/dashboard/presentation/screens/staff_dashboard.dart';
 
-/// بيحوّل أي Stream لـ Listenable بينادي notifyListeners() مع كل حدث جديد.
-/// GoRouter بيستخدم الـ Listenable ده عشان "يعرف" إمتى يعيد تقييم الـ
-/// redirect - من غير ما نحتاج نعمل GoRouter كائن جديد من الصفر كل مرة
-/// حالة تسجيل الدخول تتغيّر (اللي كان بيسبب التعليق على نفس الشاشة).
-class GoRouterRefreshStream extends ChangeNotifier {
-  late final StreamSubscription<dynamic> _subscription;
+/// بيربط GoRouter بتغيّرات authStateProvider عن طريق ref.listen (مش عن طريق
+/// عمل ستريم مستقل من الـ Repository زي قبل). الفرق مهم جداً: ref.listen
+/// هنا مضمون إنه بيتنفذ *بعد* ما Riverpod يكون خلّص تحديث كل الـ providers
+/// المشتقة (زي currentUserProvider) من authStateProvider - يعني لما
+/// notifyListeners() تتنادى هنا، أي ref.read(currentUserProvider) بعدها
+/// في الـ redirect هيرجع القيمة الصح المضمونة، مش قيمة قديمة.
+///
+/// قبل كده كنا بنعمل ستريم منفصل بنداء authRepo.authStateChanges مباشرة -
+/// وده كان بيبني اشتراك (subscription) تاني مختلف عن اللي authStateProvider
+/// بيستخدمه، فكانوا بيوصلهم نفس الحدث في توقيتين مختلفين شوية. الفرق
+/// الصغير ده كان سبب كل مشاكل الدخول/الخروج الغريبة (تعليق على شاشة
+/// الدخول، شاشة سودة بعد تسجيل الخروج، الرجوع لشاشة تغيير الباسورد
+/// بالغلط بعد ما العضو يخرج).
+class _RouterRefreshNotifier extends ChangeNotifier {
+  late final ProviderSubscription<AsyncValue<AppUser?>> _subscription;
 
-  GoRouterRefreshStream(Stream<dynamic> stream) {
-    notifyListeners();
-    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
+  _RouterRefreshNotifier(Ref ref) {
+    _subscription = ref.listen<AsyncValue<AppUser?>>(
+      authStateProvider,
+      (previous, next) => notifyListeners(),
+    );
   }
 
   @override
   void dispose() {
-    _subscription.cancel();
+    _subscription.close();
     super.dispose();
   }
 }
@@ -33,11 +43,12 @@ class GoRouterRefreshStream extends ChangeNotifier {
 /// بتتغيّر)، وده مقصود. التفاعل مع تغيّر حالة الدخول بيحصل عن طريق
 /// refreshListenable جوا GoRouter نفسه، مش عن طريق إعادة بناء الكائن كله.
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authRepo = ref.watch(authRepositoryProvider);
+  final refreshNotifier = _RouterRefreshNotifier(ref);
+  ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
     initialLocation: '/',
-    refreshListenable: GoRouterRefreshStream(authRepo.authStateChanges),
+    refreshListenable: refreshNotifier,
     redirect: (context, state) {
       // ref.read (مش watch) - بنقرا آخر حالة معروفة لحظة الاستدعاء بس،
       // من غير ما نربط الـ Router نفسه بالتغيير. الـ refreshListenable

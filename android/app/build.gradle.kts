@@ -22,7 +22,10 @@ android {
         applicationId = "com.shosha.gym_manager"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // mobile_scanner 7.x (CameraX الحديثة) محتاج minSdk 23 على الأقل -
+        // بنحددها صراحة بدل ما نسيبها على قيمة فلاتر الافتراضية اللي ممكن
+        // تكون أقل من كده
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

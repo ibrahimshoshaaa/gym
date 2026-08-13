@@ -13,23 +13,22 @@ class CheckinScreen extends ConsumerStatefulWidget {
   ConsumerState<CheckinScreen> createState() => _CheckinScreenState();
 }
 
-class _CheckinScreenState extends ConsumerState<CheckinScreen> with WidgetsBindingObserver {
+class _CheckinScreenState extends ConsumerState<CheckinScreen> {
   bool _isProcessing = false;
-  // autoStart: false - بنبدأ الكاميرا يدوياً بعد أول frame بدل ما تبدأ
-  // فوراً وقت إنشاء الـ widget. على أجهزة شاومي (MIUI) بالذات، بدء
-  // الكاميرا قبل ما الـ Activity يخلص الإعداد بالكامل بيسبب كراش
-  // (null object reference) - التأخير البسيط ده بيحل المشكلة غالباً.
-  final MobileScannerController _controller = MobileScannerController(autoStart: false);
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startCamera());
-  }
+  // من إصدار 7.x بقى الباكدج نفسه بيدير دورة حياة الكاميرا (وقف/تشغيل
+  // مع رجوع التطبيق من الخلفية) بشكل داخلي أفضل وأكثر استقراراً -
+  // مبقاش لازم نعمل ده يدوياً بـ WidgetsBindingObserver زي الأول.
+  // كان فيه احتمال إن استدعاء start() يدوي من عندنا + تشغيل الباكدج
+  // الداخلي يحصلوا في نفس اللحظة، وده بالظبط اللي ممكن يسبب كراش
+  // "null object reference" على أجهزة زي شاومي (MIUI). الحل الرسمي
+  // الجديد: useAppLifecycleState: true على الـ widget، ومفيش تدخل
+  // يدوي تاني من عندنا خالص.
+  final MobileScannerController _controller = MobileScannerController();
 
-  Future<void> _startCamera() async {
+  Future<void> _restartCamera() async {
     try {
+      await _controller.stop();
       await _controller.start();
     } catch (_) {
       // هيتلقط ويتعرض من خلال errorBuilder بتاع الـ widget نفسه
@@ -37,27 +36,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen> with WidgetsBindi
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // لازم نوقف/نشغّل الكاميرا مع رجوع التطبيق من الخلفية، وإلا ممكن
-    // تفضل واقفة أو تكرش لما المستخدم يرجع للتطبيق (مشكلة معروفة في
-    // mobile_scanner على أجهزة كتير، وده الحل الموصى بيه رسمياً)
-    if (!_controller.value.isInitialized) return;
-    switch (state) {
-      case AppLifecycleState.resumed:
-        _startCamera();
-        break;
-      case AppLifecycleState.inactive:
-      case AppLifecycleState.paused:
-      case AppLifecycleState.detached:
-      case AppLifecycleState.hidden:
-        _controller.stop();
-        break;
-    }
-  }
-
-  @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
   }
@@ -109,6 +88,10 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen> with WidgetsBindi
         children: [
           MobileScanner(
             controller: _controller,
+            // الباكدج بيتابع دورة حياة التطبيق بنفسه (وقف الكاميرا وقت
+            // الخلفية، تشغيلها تاني وقت الرجوع) - أكثر استقراراً من أي
+            // كود يدوي كنا بنكتبه إحنا
+            useAppLifecycleState: true,
             onDetect: (capture) {
               final barcodes = capture.barcodes;
               if (barcodes.isNotEmpty) {
@@ -118,7 +101,8 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen> with WidgetsBindi
                 }
               }
             },
-            errorBuilder: (context, error, child) {
+            // من إصدار 7.x الباكدج مبقاش بيبعت child - بس context والخطأ
+            errorBuilder: (context, error) {
               return Container(
                 color: Colors.black,
                 padding: const EdgeInsets.all(24),
@@ -135,7 +119,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen> with WidgetsBindi
                       ),
                       const SizedBox(height: 20),
                       ElevatedButton.icon(
-                        onPressed: _startCamera,
+                        onPressed: _restartCamera,
                         icon: const Icon(Icons.refresh),
                         label: const Text('إعادة محاولة'),
                       ),

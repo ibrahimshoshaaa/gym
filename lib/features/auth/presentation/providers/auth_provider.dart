@@ -94,9 +94,17 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<void> signOut() async {
-    final currentUser = _ref.read(currentUserProvider);
-    if (currentUser != null) {
-      await _ref.read(notificationServiceProvider).clearToken(currentUser.uid);
+    // مسح الـ FCM token عملية "تنظيف" بس، مش أساسية. لو فشلت (مشكلة شبكة
+    // مثلاً)، برضو المفروض تسجيل الخروج الفعلي يحصل - قبل كده لو
+    // clearToken فشلت، الدالة كانت بترمي استثناء ومتكملش لسطر الـ signOut
+    // الحقيقي، فزرار "تسجيل خروج" كان ببساطة مش بيعمل حاجة خالص.
+    try {
+      final currentUser = _ref.read(currentUserProvider);
+      if (currentUser != null) {
+        await _ref.read(notificationServiceProvider).clearToken(currentUser.uid);
+      }
+    } catch (_) {
+      // تجاهل - مش سبب كافي إننا نمنع تسجيل الخروج الفعلي
     }
     await _repository.signOut();
   }
