@@ -56,6 +56,12 @@ ios/Runner/GoogleService-Info.plist
 android/key.properties
 android/app/*.jks
 android/app/*.keystore
+# استثناء: debug.keystore ده مفتاح ثابت متعمد إنه يترفع على الجيت -
+# مش سر حقيقي (باسورده "android" المعروف)، والغرض منه إن كل الـ builds
+# اللي بتطلع من GitHub Actions توقّع بنفس المفتاح بالظبط (شوف الشرح في
+# android/app/build.gradle.kts). لو استثنيناه، هيرجع نفس مشكلة تسجيل
+# الدخول اللي بيتمسح مع كل نسخة جديدة.
+!android/app/debug.keystore
 
 # ملفات بيئة محلية (لو استخدمت .env لاحقاً)
 .env

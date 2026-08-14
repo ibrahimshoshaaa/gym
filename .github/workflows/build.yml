@@ -27,6 +27,20 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Restore debug keystore
+        # بنحوّل ملف debug-keystore-base64.txt (نص عادي، آمن إنه يترفع
+        # على الجيت بسهولة) لملف debug.keystore حقيقي قبل الـ build.
+        # ده بديل عن رفع ملف .keystore باينري مباشرة، اللي ممكن يضيع
+        # بسهولة لو اترفع بطريقة يدوية (زي رفع ملفات على GitHub من
+        # المتصفح) - النص بيبقى مضمون إنه يترفع صح زي أي ملف كود عادي.
+        run: |
+          if [ ! -f android/app/debug-keystore-base64.txt ]; then
+            echo "::error::ملف android/app/debug-keystore-base64.txt مش موجود في الريبو - لازم يترفع مع باقي الكود"
+            exit 1
+          fi
+          base64 -d android/app/debug-keystore-base64.txt > android/app/debug.keystore
+          ls -la android/app/debug.keystore
+
       - name: Build release APK
         run: flutter build apk --release
 

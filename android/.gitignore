@@ -12,3 +12,12 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# استثناء: debug.keystore ده مفتاح ثابت متعمد رفعه (باسورده "android"
+# المعروف، مش سر حقيقي) - عشان كل الـ builds من GitHub Actions توقّع
+# بنفس المفتاح. الملف ده هو اللي كان فعلياً بيمنع debug.keystore من
+# الترفع للجيت طول الوقت، حتى بعد ما استثنيناه في .gitignore الرئيسي -
+# لإن git بياخد بقاعدة أقرب ملف .gitignore للملف (ده جوه android/)،
+# مش قاعدة الجيتإجنور اللي فوق في روت المشروع.
+!debug.keystore
+!app/debug.keystore
