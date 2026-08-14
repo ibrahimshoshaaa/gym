@@ -79,10 +79,13 @@ class _MemberQrScreenState extends ConsumerState<MemberQrScreen> {
 
     final pdf = pw.Document();
     final image = pw.MemoryImage(bytes);
+    // مقاس كارت حقيقي (زي كارت البنك) مش صفحة A6 كاملة - عشان لو
+    // طبعناه يطلع بحجم كارت فعلي بدل صورة صغيرة وسط ورقة كبيرة
+    final cardFormat = PdfPageFormat(90 * PdfPageFormat.mm, 56 * PdfPageFormat.mm, marginAll: 0);
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.a6,
-        build: (context) => pw.Center(child: pw.Image(image)),
+        pageFormat: cardFormat,
+        build: (context) => pw.Center(child: pw.Image(image, fit: pw.BoxFit.contain)),
       ),
     );
 

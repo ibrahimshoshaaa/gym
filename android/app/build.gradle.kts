@@ -17,6 +17,24 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // مفتاح توقيع ثابت (debug.keystore) محفوظ جوه المشروع نفسه - عشان كل
+    // build يطلع من GitHub Actions يتوقع بنفس المفتاح بالظبط. قبل كده كل
+    // build كان بيستخدم مفتاح debug افتراضي بيتولد جديد على كل CI runner
+    // (لأنه مؤقت ومش موجود على القرص أصلاً)، فكل نسخة APK كانت بتوقيعها
+    // مختلف عن اللي قبلها - يعني أندرويد كان بيشوفها "برنامج مختلف"، فلو
+    // ثبتّها فوق نسخة قديمة كان بيمسح كل بيانات التطبيق (بما فيها جلسة
+    // تسجيل الدخول المحفوظة)، وده كان سبب "بيطلب دخول من جديد كل مرة".
+    // دلوقتي بما إن المفتاح ثابت، أي تحديث APK هيتعامل معاه أندرويد
+    // كـ"ترقية" عادية ويحافظ على بيانات التطبيق وجلسة الدخول.
+    signingConfigs {
+        create("debugFixed") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.shosha.gym_manager"
@@ -33,9 +51,9 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // بنستخدم المفتاح الثابت اللي عرفناه فوق (debugFixed) بدل
+            // debug العادي - عشان التوقيع يفضل ثابت بين كل الـ builds
+            signingConfig = signingConfigs.getByName("debugFixed")
         }
     }
 }

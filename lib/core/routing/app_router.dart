@@ -53,10 +53,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // ref.read (مش watch) - بنقرا آخر حالة معروفة لحظة الاستدعاء بس،
       // من غير ما نربط الـ Router نفسه بالتغيير. الـ refreshListenable
       // فوق هو اللي بيقول لـ GoRouter "في تغيير، أعد التقييم".
-      final user = ref.read(currentUserProvider);
-      final isLoggedIn = user != null;
+      final authAsync = ref.read(authStateProvider);
       final isLoggingIn = state.matchedLocation == '/login';
       final isChangingPassword = state.matchedLocation == '/change-password';
+
+      // لسه بنستنى أول رد من فايربيز (بيحصل لحظة أي فتح للتطبيق، حتى
+      // لو المستخدم فعلياً مسجل دخول ومحفوظة جلسته) - في اللحظة دي
+      // authStateProvider بيكون AsyncLoading، ومفيهاش لسه قيمة حقيقية.
+      // قبل كده كنا بنعامل اللحظة دي بالظبط زي "مش مسجل دخول" وكنا
+      // بنوديه على شاشة اللوجين فوراً - وده كان بيحصل *كل* مرة تفتح
+      // التطبيق (حتى لو الجلسة محفوظة فعلاً)، وكان بيرجعه تلقائي بعد
+      // كده لو التوقيت ظبط، بس عملياً كان دايماً بيحس إنه "بيطلب
+      // تسجيل دخول من جديد كل مرة". دلوقتي بنستنى تأكيد حقيقي (مسجل
+      // دخول أو مسجل خروج فعلاً) قبل ما نقرر نوديه فين.
+      if (authAsync.isLoading && !authAsync.hasValue) {
+        return null;
+      }
+
+      final user = authAsync.valueOrNull;
+      final isLoggedIn = user != null;
 
       if (!isLoggedIn && !isLoggingIn) return '/login';
       if (isLoggedIn && isLoggingIn) return '/';

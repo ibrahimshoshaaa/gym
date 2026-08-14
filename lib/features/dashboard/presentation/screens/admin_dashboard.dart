@@ -106,14 +106,24 @@ class AdminDashboard extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 10),
-          _QuickAction(icon: Icons.people, label: 'إدارة الأعضاء', isDark: isDark, onTap: () => _push(context, const MembersListScreen())),
-          _QuickAction(icon: Icons.qr_code_scanner, label: 'تسجيل حضور', isDark: isDark, onTap: () => _push(context, const CheckinScreen())),
-          _QuickAction(icon: Icons.card_membership, label: 'خطط الاشتراك', isDark: isDark, onTap: () => _push(context, const PlansScreen())),
-          _QuickAction(icon: Icons.event, label: 'الكلاسات', isDark: isDark, onTap: () => _push(context, const ClassesScheduleScreen())),
-          _QuickAction(icon: Icons.sports_gymnastics, label: 'المدربين', isDark: isDark, onTap: () => _push(context, const TrainersListScreen())),
-          _QuickAction(icon: Icons.payments, label: 'سجل المدفوعات', isDark: isDark, onTap: () => _push(context, const PaymentsHistoryScreen())),
-          _QuickAction(icon: Icons.bar_chart, label: 'التقارير المالية', isDark: isDark, onTap: () => _push(context, const ReportsScreen())),
-          _QuickAction(icon: Icons.badge, label: 'الموظفين', isDark: isDark, onTap: () => _push(context, const StaffListScreen())),
+          GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 0.95,
+            children: [
+              _QuickAction(icon: Icons.people, label: 'الأعضاء', isDark: isDark, onTap: () => _push(context, const MembersListScreen())),
+              _QuickAction(icon: Icons.qr_code_scanner, label: 'تسجيل حضور', isDark: isDark, onTap: () => _push(context, const CheckinScreen())),
+              _QuickAction(icon: Icons.card_membership, label: 'الخطط', isDark: isDark, onTap: () => _push(context, const PlansScreen())),
+              _QuickAction(icon: Icons.event, label: 'الكلاسات', isDark: isDark, onTap: () => _push(context, const ClassesScheduleScreen())),
+              _QuickAction(icon: Icons.sports_gymnastics, label: 'المدربين', isDark: isDark, onTap: () => _push(context, const TrainersListScreen())),
+              _QuickAction(icon: Icons.payments, label: 'المدفوعات', isDark: isDark, onTap: () => _push(context, const PaymentsHistoryScreen())),
+              _QuickAction(icon: Icons.bar_chart, label: 'التقارير', isDark: isDark, onTap: () => _push(context, const ReportsScreen())),
+              _QuickAction(icon: Icons.badge, label: 'الموظفين', isDark: isDark, onTap: () => _push(context, const StaffListScreen())),
+            ],
+          ),
         ],
       ),
     );
@@ -252,18 +262,37 @@ class _QuickAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: GoldPalette.gold.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: GoldPalette.gold, size: 20),
-        ),
-        title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-        trailing: Icon(Icons.arrow_forward_ios, size: 14, color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: GoldPalette.gold.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: GoldPalette.gold, size: 22),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? GoldPalette.darkTextPrimary : GoldPalette.lightTextPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
