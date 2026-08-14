@@ -155,7 +155,7 @@ class MemberIdCardWidget extends StatelessWidget {
             left: 20,
             right: 20,
             bottom: 16,
-            top: 108,
+            top: 98,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -166,12 +166,13 @@ class MemberIdCardWidget extends StatelessWidget {
                     children: [
                       Text(
                         memberName,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 20,
+                          fontSize: 17,
                           fontWeight: FontWeight.bold,
+                          height: 1.15,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -206,7 +207,7 @@ class MemberIdCardWidget extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Padding(
-                  padding: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.only(top: 14),
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(

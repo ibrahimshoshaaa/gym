@@ -1,18 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/providers/theme_provider.dart';
-import '../../../attendance/presentation/screens/checkin_screen.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../auth/presentation/screens/staff_list_screen.dart';
-import '../../../classes/presentation/screens/classes_schedule_screen.dart';
-import '../../../classes/presentation/screens/trainers_list_screen.dart';
 import '../../../members/presentation/providers/members_provider.dart';
 import '../../../members/presentation/screens/members_list_screen.dart';
-import '../../../payments/presentation/screens/payments_history_screen.dart';
-import '../../../payments/presentation/screens/reports_screen.dart';
-import '../../../subscriptions/presentation/screens/plans_screen.dart';
-import '../../../debts/presentation/screens/debts_list_screen.dart';
 import '../widgets/app_drawer.dart';
 
 class AdminDashboard extends ConsumerWidget {
@@ -35,17 +26,6 @@ class AdminDashboard extends ConsumerWidget {
             const Text('Golden Gym'),
           ],
         ),
-        actions: [
-          IconButton(
-            tooltip: isDark ? 'الوضع الفاتح' : 'الوضع الداكن',
-            icon: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
-            onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
-          ),
-        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -97,35 +77,6 @@ class AdminDashboard extends ConsumerWidget {
             ),
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, __) => const SizedBox.shrink(),
-          ),
-          const SizedBox(height: 28),
-          Text(
-            'الوصول السريع',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
-              letterSpacing: 0.3,
-            ),
-          ),
-          const SizedBox(height: 10),
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 0.95,
-            children: [
-              _QuickAction(icon: Icons.people, label: 'الأعضاء', isDark: isDark, onTap: () => _push(context, const MembersListScreen())),
-              _QuickAction(icon: Icons.qr_code_scanner, label: 'تسجيل حضور', isDark: isDark, onTap: () => _push(context, const CheckinScreen())),
-              _QuickAction(icon: Icons.card_membership, label: 'الخطط', isDark: isDark, onTap: () => _push(context, const PlansScreen())),
-              _QuickAction(icon: Icons.event, label: 'الكلاسات', isDark: isDark, onTap: () => _push(context, const ClassesScheduleScreen())),
-              _QuickAction(icon: Icons.sports_gymnastics, label: 'المدربين', isDark: isDark, onTap: () => _push(context, const TrainersListScreen())),
-              _QuickAction(icon: Icons.payments, label: 'المدفوعات', isDark: isDark, onTap: () => _push(context, const PaymentsHistoryScreen())),
-              _QuickAction(icon: Icons.bar_chart, label: 'التقارير', isDark: isDark, onTap: () => _push(context, const ReportsScreen())),
-              _QuickAction(icon: Icons.badge, label: 'الموظفين', isDark: isDark, onTap: () => _push(context, const StaffListScreen())),
-            ],
           ),
         ],
       ),
@@ -244,53 +195,6 @@ class _StatCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _QuickAction({required this.icon, required this.label, required this.isDark, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: GoldPalette.gold.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: GoldPalette.gold, size: 22),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? GoldPalette.darkTextPrimary : GoldPalette.lightTextPrimary,
                 ),
               ),
             ],

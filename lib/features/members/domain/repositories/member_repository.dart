@@ -15,4 +15,8 @@ abstract class MemberRepository {
   Future<Either<Failure, void>> updateMember(Member member);
   Future<Either<Failure, void>> deleteMember(String id);
   Future<Either<Failure, List<Member>>> searchMembers(String query);
+
+  /// بيتأكد إن الرقم ده مش مسجل لعضو تاني قبل كدا (بيستخدم فهرس الأرقام)
+  /// excludeMemberId اختياري - عشان وقت التعديل ميرفضش رقم العضو نفسه
+  Future<Either<Failure, bool>> isPhoneTaken(String phone, {String? excludeMemberId});
 }

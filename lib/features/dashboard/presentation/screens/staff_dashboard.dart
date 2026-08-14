@@ -24,12 +24,6 @@ class StaffDashboard extends ConsumerWidget {
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('شاشة الموظف'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
-          ),
-        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

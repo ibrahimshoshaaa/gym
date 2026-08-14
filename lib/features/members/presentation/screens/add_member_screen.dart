@@ -85,6 +85,26 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
     final repo = ref.read(memberRepositoryProvider);
     final notes = _notesController.text.trim().isEmpty ? null : _notesController.text.trim();
     final gymId = ref.read(currentUserProvider)?.gymId ?? 'default_gym';
+    final phone = _phoneController.text.trim();
+
+    // نتأكد إن الرقم مش مسجل لعضو تاني قبل الحفظ (في التعديل، بنتجاهل
+    // العضو اللي بنعدله نفسه عشان ميرفضش رقمه هو)
+    final phoneCheck = await repo.isPhoneTaken(
+      phone,
+      excludeMemberId: widget.isEditMode ? widget.member!.id : null,
+    );
+    final isTaken = phoneCheck.fold((f) => false, (taken) => taken);
+    if (isTaken) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('رقم الموبايل ده متسجل لعضو تاني بالفعل'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+      return;
+    }
 
     // في وضع الإضافة، لازم نحفظ العضو الأول عشان ناخد الـ id، وبعدين نرفع الصورة
     // ونحدث السجل بالرابط (الصورة اسمها بمعرف العضو نفسه)

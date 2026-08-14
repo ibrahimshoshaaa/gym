@@ -118,4 +118,19 @@ class MemberRepositoryImpl implements MemberRepository {
       return const Left(ServerFailure());
     }
   }
+
+  @override
+  Future<Either<Failure, bool>> isPhoneTaken(String phone, {String? excludeMemberId}) async {
+    try {
+      if (phone.isEmpty) return const Right(false);
+      final doc = await _phoneIndex.doc(phone).get();
+      if (!doc.exists) return const Right(false);
+      final ownerId = doc.data()?['memberId'] as String?;
+      // لو الرقم موجود بس بتاع نفس العضو اللي بنعدله، ده مش تكرار
+      if (excludeMemberId != null && ownerId == excludeMemberId) return const Right(false);
+      return const Right(true);
+    } catch (_) {
+      return const Left(ServerFailure());
+    }
+  }
 }
