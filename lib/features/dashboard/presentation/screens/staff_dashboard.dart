@@ -6,7 +6,9 @@ import '../../../attendance/presentation/providers/attendance_provider.dart';
 import '../../../attendance/presentation/screens/checkin_screen.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../members/presentation/screens/members_list_screen.dart';
+import '../../../members/presentation/widgets/member_picker_dialog.dart';
 import '../../../subscriptions/presentation/screens/plans_screen.dart';
+import '../widgets/app_drawer.dart';
 
 /// داشبورد الموظف - تركيزه على العمليات اليومية (حضور، اشتراكات)
 /// مش على التقارير والإحصائيات زي الأدمن
@@ -19,6 +21,7 @@ class StaffDashboard extends ConsumerWidget {
     final todayAttendance = ref.watch(todayAttendanceProvider);
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('شاشة الموظف'),
         actions: [
@@ -46,7 +49,18 @@ class StaffDashboard extends ConsumerWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlansScreen())),
+                  onPressed: () async {
+                    // بنسأل الموظف يختار عضو الأول عشان الاشتراك يترتبط
+                    // بيه، بدل ما نودّيه لشاشة خطط عامة معندهاش عضو
+                    final member = await pickMember(context);
+                    if (member == null || !context.mounted) return;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PlansScreen(memberId: member.id, memberName: member.name),
+                      ),
+                    );
+                  },
                   icon: const Icon(Icons.card_membership),
                   label: const Text('تجديد اشتراك'),
                   style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),

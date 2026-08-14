@@ -12,6 +12,8 @@ import '../../../members/presentation/screens/members_list_screen.dart';
 import '../../../payments/presentation/screens/payments_history_screen.dart';
 import '../../../payments/presentation/screens/reports_screen.dart';
 import '../../../subscriptions/presentation/screens/plans_screen.dart';
+import '../../../debts/presentation/screens/debts_list_screen.dart';
+import '../widgets/app_drawer.dart';
 
 class AdminDashboard extends ConsumerWidget {
   const AdminDashboard({super.key});
@@ -23,6 +25,7 @@ class AdminDashboard extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: Row(
           mainAxisSize: MainAxisSize.min,

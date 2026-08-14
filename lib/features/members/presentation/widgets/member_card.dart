@@ -6,8 +6,9 @@ import '../../domain/entities/member.dart';
 class MemberCard extends StatelessWidget {
   final Member member;
   final VoidCallback? onTap;
+  final double? debtAmount;
 
-  const MemberCard({super.key, required this.member, this.onTap});
+  const MemberCard({super.key, required this.member, this.onTap, this.debtAmount});
 
   Color get _statusColor {
     if (member.status == MemberStatus.frozen) return AppColors.textSecondary;
@@ -52,7 +53,25 @@ class MemberCard extends StatelessWidget {
               : null,
         ),
         title: Text(member.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(member.phone, style: const TextStyle(color: AppColors.textSecondary)),
+        subtitle: Row(
+          children: [
+            Text(member.phone, style: const TextStyle(color: AppColors.textSecondary)),
+            if (debtAmount != null && debtAmount! > 0) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'عليه ${debtAmount!.toStringAsFixed(0)} ج.م',
+                  style: const TextStyle(color: AppColors.danger, fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ],
+        ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(

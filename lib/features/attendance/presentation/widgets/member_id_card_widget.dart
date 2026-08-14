@@ -157,7 +157,7 @@ class MemberIdCardWidget extends StatelessWidget {
             bottom: 16,
             top: 108,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Column(
@@ -174,10 +174,14 @@ class MemberIdCardWidget extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
                         memberPhone,
-                        style: const TextStyle(color: GoldPalette.darkTextSecondary, fontSize: 12),
+                        style: const TextStyle(
+                          color: GoldPalette.goldLight,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(height: 14),
                       Row(
@@ -201,18 +205,21 @@ class MemberIdCardWidget extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: GoldPalette.gold, width: 1.5),
-                  ),
-                  child: QrImageView(
-                    data: qrData,
-                    version: QrVersions.auto,
-                    size: 78,
-                    padding: EdgeInsets.zero,
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: GoldPalette.gold, width: 1.5),
+                    ),
+                    child: QrImageView(
+                      data: qrData,
+                      version: QrVersions.auto,
+                      size: 78,
+                      padding: EdgeInsets.zero,
+                    ),
                   ),
                 ),
               ],

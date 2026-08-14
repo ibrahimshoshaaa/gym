@@ -8,6 +8,8 @@ import '../../../auth/domain/entities/app_user.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../auth/presentation/widgets/role_guard.dart';
 import '../../../subscriptions/presentation/screens/plans_screen.dart';
+import '../../../debts/presentation/providers/debts_provider.dart';
+import '../../../debts/presentation/widgets/pay_debt_dialog.dart';
 import '../../domain/entities/member.dart';
 import '../providers/members_provider.dart';
 import 'add_member_screen.dart';
@@ -134,7 +136,7 @@ class MemberDetailsScreen extends ConsumerWidget {
                 _InfoTile(icon: Icons.badge_outlined, label: 'الرقم القومي', value: member.nationalId!),
               _InfoTile(
                 icon: Icons.calendar_today,
-                label: 'تاريخ الاشتراك',
+                label: 'تاريخ التسجيل',
                 value: DateFormatter.toDisplayDate(member.joinDate),
               ),
               _InfoTile(
@@ -152,6 +154,8 @@ class MemberDetailsScreen extends ConsumerWidget {
                   valueColor: member.hasVisitsRemaining ? null : AppColors.danger,
                 ),
               _InfoTile(icon: Icons.flag, label: 'الحالة', value: member.status.label),
+              const SizedBox(height: 12),
+              _MemberDebtsSection(memberId: member.id),
               const SizedBox(height: 12),
               if (!member.hasLoginAccount)
                 Card(
@@ -247,6 +251,77 @@ class MemberDetailsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('حصل خطأ: $err')),
       ),
+    );
+  }
+}
+
+/// بتعرض مديونيات العضو المفتوحة (لو موجودة) مع زرار تسديد لكل واحدة
+class _MemberDebtsSection extends ConsumerWidget {
+  final String memberId;
+  const _MemberDebtsSection({required this.memberId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final debtsAsync = ref.watch(memberDebtsProvider(memberId));
+
+    return debtsAsync.maybeWhen(
+      data: (debts) {
+        final openDebts = debts.where((d) => !d.isPaid).toList();
+        if (openDebts.isEmpty) return const SizedBox.shrink();
+        final total = openDebts.fold<double>(0, (sum, d) => sum + d.remainingAmount);
+        return Card(
+          color: AppColors.danger.withValues(alpha: 0.08),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.money_off, color: AppColors.danger),
+                    const SizedBox(width: 8),
+                    Text(
+                      'مديونية: ${total.toStringAsFixed(0)} ج.م',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.danger),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ...openDebts.map((debt) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${debt.planName ?? 'اشتراك'} — باقي ${debt.remainingAmount.toStringAsFixed(0)} ج.م',
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => showDialog<bool>(
+                              context: context,
+                              builder: (_) => PayDebtDialog(debt: debt),
+                            ).then((paid) {
+                              if (paid == true && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('تم تسجيل التسديد ✅'),
+                                    backgroundColor: AppColors.success,
+                                  ),
+                                );
+                              }
+                            }),
+                            child: const Text('سدد'),
+                          ),
+                        ],
+                      ),
+                    )),
+              ],
+            ),
+          ),
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
     );
   }
 }

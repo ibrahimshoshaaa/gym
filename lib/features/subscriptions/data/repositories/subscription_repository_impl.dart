@@ -91,6 +91,15 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
       final endDate = effectiveStart.add(Duration(days: plan.durationDays));
       final subRef = _subscriptionsCollection.doc();
       final memberRef = _firestore.collection(FirestorePaths.members(gymId)).doc(memberId);
+      // لو المبلغ المدفوع أقل من سعر الخطة، الفرق ده بيتسجل كمديونية
+      // على العضو (مثلاً الخطة بـ500 ودفع 400 -> مديونية 100)
+      final remaining = plan.price - paidAmount;
+      final debtRef = remaining > 0 ? _firestore.collection(FirestorePaths.debts(gymId)).doc() : null;
+
+      // بنجيب اسم العضو قبل الـ transaction عشان نسجله مع الدفعة/المديونية
+      // بدل ما يتسجلوا بالـ memberId بس (اللي كان ظاهر كـ"اسم غريب")
+      final memberSnap = await memberRef.get();
+      final memberName = memberSnap.data()?['name'] as String? ?? '';
 
       final subModel = SubscriptionModel(
         id: subRef.id,
@@ -121,21 +130,33 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
           // ده بيمنع إن الشاشات تعرضه "نشط" ويقدر يدخل الجيم قبل معاده.
           'status': effectiveStart.isAfter(now) ? MemberStatus.pending.name : MemberStatus.active.name,
         });
-      });
 
-      // تسجيل الدفعة في سجل المدفوعات - بنجيب اسم العضو الأول عشان يتسجل
-      // معاه بدل ما يتسجل بالـ memberId بس (اللي كان ظاهر كـ"اسم غريب")
-      final memberSnap = await memberRef.get();
-      final memberName = memberSnap.data()?['name'] as String? ?? '';
+        // تسجيل الدفعة في سجل المدفوعات
+        final paymentRef = _firestore.collection(FirestorePaths.payments(gymId)).doc();
+        transaction.set(paymentRef, {
+          'memberId': memberId,
+          'memberName': memberName,
+          'amount': paidAmount,
+          'date': Timestamp.fromDate(now),
+          'method': 'cash',
+          'recordedBy': recordedByUid,
+          'relatedSubscriptionId': subRef.id,
+        });
 
-      await _firestore.collection(FirestorePaths.payments(gymId)).add({
-        'memberId': memberId,
-        'memberName': memberName,
-        'amount': paidAmount,
-        'date': Timestamp.fromDate(now),
-        'method': 'cash',
-        'recordedBy': recordedByUid,
-        'relatedSubscriptionId': subRef.id,
+        // لو فيه فرق (المدفوع أقل من سعر الخطة) بنسجله كمديونية على العضو
+        if (debtRef != null) {
+          transaction.set(debtRef, {
+            'memberId': memberId,
+            'memberName': memberName,
+            'totalAmount': plan.price,
+            'paidAmount': paidAmount,
+            'createdAt': Timestamp.fromDate(now),
+            'relatedSubscriptionId': subRef.id,
+            'planName': plan.name,
+            'recordedByUid': recordedByUid,
+            'isPaid': false,
+          });
+        }
       });
 
       return Right(subModel);

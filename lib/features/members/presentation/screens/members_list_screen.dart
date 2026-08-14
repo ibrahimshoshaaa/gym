@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../debts/presentation/providers/debts_provider.dart';
 import '../providers/members_provider.dart';
 import '../widgets/member_card.dart';
 import 'add_member_screen.dart';
@@ -49,6 +50,7 @@ class _MembersListScreenState extends ConsumerState<MembersListScreen> {
   Widget build(BuildContext context) {
     final membersAsync = ref.watch(filteredMembersProvider);
     final currentCategory = ref.watch(memberFilterCategoryProvider);
+    final debtTotals = ref.watch(memberDebtTotalsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('الأعضاء')),
@@ -96,6 +98,7 @@ class _MembersListScreenState extends ConsumerState<MembersListScreen> {
                     final member = members[i];
                     return MemberCard(
                       member: member,
+                      debtAmount: debtTotals[member.id],
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(

@@ -124,6 +124,15 @@ service cloud.firestore {
         allow create: if belongsToGym(gymId) && isStaffOrAdmin();
         allow update, delete: if belongsToGym(gymId) && isAdmin();
       }
+
+      match /debts/{debtId} {
+        allow read: if belongsToGym(gymId) && isStaffOrAdmin();
+        // create بتحصل تلقائي وقت الاشتراك، update بتحصل وقت التسديد -
+        // الاتنين لازم يقدر يعملهم الموظف عادي (مش أدمن بس) عشان
+        // ده جزء من شغل الاستقبال اليومي
+        allow create, update: if belongsToGym(gymId) && isStaffOrAdmin();
+        allow delete: if belongsToGym(gymId) && isAdmin();
+      }
     }
   }
 }
