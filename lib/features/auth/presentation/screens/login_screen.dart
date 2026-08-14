@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/utils/validators.dart';
 import '../providers/auth_provider.dart';
 
@@ -24,6 +25,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   final _phoneController = TextEditingController();
   final _memberPasswordController = TextEditingController();
   bool _obscureMemberPassword = true;
+  bool _obscureStaffPassword = true;
 
   // TODO: يتغير حسب طريقة تحديد الجيم (subdomain / اختيار / رابط دعوة)
   static const String currentGymId = 'default_gym';
@@ -48,6 +50,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.isLoading;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final gold = GoldPalette.gold;
 
     ref.listen<AsyncValue<void>>(authControllerProvider, (previous, next) {
       next.whenOrNull(
@@ -61,31 +65,93 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
 
     return Scaffold(
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            const SizedBox(height: 40),
-            const Icon(Icons.fitness_center, size: 64, color: AppColors.primary),
-            const SizedBox(height: 12),
-            const Text(
-              'إدارة الجيم',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 24),
-            TabBar(
-              controller: _tabController,
-              labelColor: AppColors.primary,
-              tabs: const [
-                Tab(text: 'أدمن / موظف'),
-                Tab(text: 'عضو'),
+            Column(
+              children: [
+                const SizedBox(height: 32),
+                // شعار دائري ذهبي بلمسة دمبل - يوحّد الهوية مع أيقونة التطبيق
+                Container(
+                  width: 92,
+                  height: 92,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [GoldPalette.goldLight, GoldPalette.goldDark],
+                    ),
+                    boxShadow: [
+                      BoxShadow(color: gold.withValues(alpha: 0.35), blurRadius: 24, spreadRadius: 2),
+                    ],
+                  ),
+                  child: const Icon(Icons.fitness_center, size: 42, color: Colors.black),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Golden Gym',
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                    color: isDark ? GoldPalette.darkTextPrimary : GoldPalette.lightTextPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'إدارة الجيم',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: isDark ? GoldPalette.darkSurfaceAlt : GoldPalette.lightSurfaceAlt,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicator: BoxDecoration(
+                      color: gold,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    dividerColor: Colors.transparent,
+                    labelColor: Colors.black,
+                    unselectedLabelColor: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                    tabs: const [
+                      Tab(text: 'أدمن / موظف'),
+                      Tab(text: 'عضو'),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildStaffLoginForm(isLoading, isDark),
+                      _buildMemberLoginForm(isLoading, isDark),
+                    ],
+                  ),
+                ),
               ],
             ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildStaffLoginForm(isLoading),
-                  _buildMemberLoginForm(isLoading),
-                ],
+            // زرار تبديل الوضع (دارك/لايت) في أعلى الشاشة
+            Positioned(
+              top: 4,
+              left: 4,
+              child: IconButton(
+                onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
+                icon: Icon(
+                  isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                  color: gold,
+                ),
+                tooltip: isDark ? 'الوضع الفاتح' : 'الوضع الداكن',
               ),
             ),
           ],
@@ -94,7 +160,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     );
   }
 
-  Widget _buildStaffLoginForm(bool isLoading) {
+  Widget _buildStaffLoginForm(bool isLoading, bool isDark) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Form(
@@ -106,23 +172,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'البريد الإلكتروني'),
+              decoration: const InputDecoration(
+                labelText: 'البريد الإلكتروني',
+                prefixIcon: Icon(Icons.email_outlined),
+              ),
               validator: Validators.email,
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'كلمة المرور'),
+              obscureText: _obscureStaffPassword,
+              decoration: InputDecoration(
+                labelText: 'كلمة المرور',
+                prefixIcon: const Icon(Icons.lock_outline),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureStaffPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                  onPressed: () => setState(() => _obscureStaffPassword = !_obscureStaffPassword),
+                ),
+              ),
               validator: Validators.password,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
             ElevatedButton(
               onPressed: isLoading ? null : _handleStaffLogin,
               child: isLoading
                   ? const SizedBox(
                       height: 20, width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
                   : const Text('تسجيل الدخول'),
             ),
           ],
@@ -131,7 +207,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     );
   }
 
-  Widget _buildMemberLoginForm(bool isLoading) {
+  Widget _buildMemberLoginForm(bool isLoading, bool isDark) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Form(
@@ -143,7 +219,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'رقم الموبايل'),
+              decoration: const InputDecoration(
+                labelText: 'رقم الموبايل',
+                prefixIcon: Icon(Icons.phone_outlined),
+              ),
               validator: Validators.phone,
             ),
             const SizedBox(height: 16),
@@ -152,17 +231,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
               obscureText: _obscureMemberPassword,
               decoration: InputDecoration(
                 labelText: 'كلمة المرور',
+                prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureMemberPassword ? Icons.visibility : Icons.visibility_off),
+                  icon: Icon(_obscureMemberPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                   onPressed: () => setState(() => _obscureMemberPassword = !_obscureMemberPassword),
                 ),
               ),
               validator: Validators.password,
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'أول مرة تدخل، كلمة المرور هي رقم موبايلك، وهيطلب منك تغيّرها.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: (isDark ? GoldPalette.gold : GoldPalette.goldDark).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: isDark ? GoldPalette.goldLight : GoldPalette.goldDark),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'أول مرة تدخل، كلمة المرور هي رقم موبايلك، وهيطلب منك تغيّرها.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -170,7 +268,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
               child: isLoading
                   ? const SizedBox(
                       height: 20, width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
                   : const Text('دخول'),
             ),
           ],

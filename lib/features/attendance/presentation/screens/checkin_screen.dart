@@ -16,6 +16,15 @@ class CheckinScreen extends ConsumerStatefulWidget {
 class _CheckinScreenState extends ConsumerState<CheckinScreen> {
   bool _isProcessing = false;
 
+  // بيمنع تسجيل نفس كود الـ QR أكتر من مرة وإحنا لسه موجّهين الكاميرا
+  // عليه. المدة دي مش بس "قفل مؤقت وقت المعالجة" (زي _isProcessing) -
+  // دي فترة تجاهل كاملة لنفس القيمة، فحتى لو المعالجة خلصت والكاميرا
+  // لسه شايفة نفس العضو، مش هيتسجل تاني إلا بعد ما الفترة دي تخلص أو
+  // كود مختلف يتقرا (عضو تاني)
+  static const _sameCodeCooldown = Duration(seconds: 15);
+  String? _lastScannedValue;
+  DateTime? _lastScanTime;
+
   // من إصدار 7.x بقى الباكدج نفسه بيدير دورة حياة الكاميرا (وقف/تشغيل
   // مع رجوع التطبيق من الخلفية) بشكل داخلي أفضل وأكثر استقراراً -
   // مبقاش لازم نعمل ده يدوياً بـ WidgetsBindingObserver زي الأول.
@@ -43,6 +52,20 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen> {
 
   Future<void> _handleScan(String memberId) async {
     if (_isProcessing) return;
+
+    // لو نفس الكود اتقرا قبل كده من أقل من _sameCodeCooldown، نتجاهله -
+    // ده اللي بيمنع "تسجيل مرة واتنين وتلاتة" وإحنا لسه موجّهين الكاميرا
+    // على نفس العضو. بنسجل وقت وقيمة المحاولة دي فورًا (قبل أي await)
+    // عشان نقفل الفرصة من أول detect، مش بعد ما الشبكة ترد
+    final now = DateTime.now();
+    if (_lastScannedValue == memberId &&
+        _lastScanTime != null &&
+        now.difference(_lastScanTime!) < _sameCodeCooldown) {
+      return;
+    }
+    _lastScannedValue = memberId;
+    _lastScanTime = now;
+
     setState(() => _isProcessing = true);
 
     final result = await ref.read(attendanceRepositoryProvider).checkIn(memberId);
