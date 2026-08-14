@@ -118,6 +118,20 @@ class MemberDetailsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               _InfoTile(icon: Icons.phone, label: 'الموبايل', value: member.phone),
+              if (member.gender != null)
+                _InfoTile(icon: Icons.wc, label: 'النوع', value: member.gender!.label),
+              if (member.dateOfBirth != null)
+                _InfoTile(
+                  icon: Icons.cake,
+                  label: 'تاريخ الميلاد',
+                  value: member.age != null
+                      ? '${DateFormatter.toDisplayDate(member.dateOfBirth!)} (${member.age} سنة)'
+                      : DateFormatter.toDisplayDate(member.dateOfBirth!),
+                ),
+              if (member.occupation != null && member.occupation!.isNotEmpty)
+                _InfoTile(icon: Icons.work_outline, label: 'الوظيفة', value: member.occupation!),
+              if (member.nationalId != null && member.nationalId!.isNotEmpty)
+                _InfoTile(icon: Icons.badge_outlined, label: 'الرقم القومي', value: member.nationalId!),
               _InfoTile(
                 icon: Icons.calendar_today,
                 label: 'تاريخ الاشتراك',
