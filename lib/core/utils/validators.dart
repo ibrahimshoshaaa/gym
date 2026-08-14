@@ -38,4 +38,15 @@ class Validators {
     if (n == null || n <= 0) return '$fieldName يجب أن تكون رقم أكبر من صفر';
     return null;
   }
+
+  /// الرقم القومي المصري اختياري - لو المستخدم كتب حاجة، لازم تكون
+  /// 14 رقم بالظبط، لو سايبه فاضي مفيش مشكلة (مش إجباري)
+  static String? nationalId(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    final regex = RegExp(r'^[0-9]{14}$');
+    if (!regex.hasMatch(value.trim())) {
+      return 'الرقم القومي لازم يكون 14 رقم';
+    }
+    return null;
+  }
 }

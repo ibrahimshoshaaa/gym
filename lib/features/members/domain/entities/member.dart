@@ -1,5 +1,12 @@
 import 'package:equatable/equatable.dart';
 
+enum Gender {
+  male,
+  female;
+
+  String get label => this == Gender.male ? 'ذكر' : 'أنثى';
+}
+
 enum MemberStatus {
   active,
   expired,
@@ -34,6 +41,11 @@ class Member extends Equatable {
   final int visitsUsed;
   final MemberStatus status;
   final String? notes;
+  final Gender? gender;
+  // الرقم القومي المصري - 14 رقم، اختياري
+  final String? nationalId;
+  final DateTime? dateOfBirth;
+  final String? occupation;
 
   /// true لو العضو عنده حساب دخول (رقم موبايل + باسورد) بيقدر يستخدمه في التطبيق
   final bool hasLoginAccount;
@@ -52,8 +64,23 @@ class Member extends Equatable {
     this.visitsAllowed = 0,
     this.visitsUsed = 0,
     this.notes,
+    this.gender,
+    this.nationalId,
+    this.dateOfBirth,
+    this.occupation,
     this.hasLoginAccount = false,
   });
+
+  int? get age {
+    if (dateOfBirth == null) return null;
+    final now = DateTime.now();
+    int years = now.year - dateOfBirth!.year;
+    if (now.month < dateOfBirth!.month ||
+        (now.month == dateOfBirth!.month && now.day < dateOfBirth!.day)) {
+      years--;
+    }
+    return years;
+  }
 
   bool get hasActiveSubscription =>
       status == MemberStatus.active &&
@@ -81,6 +108,10 @@ class Member extends Equatable {
         visitsUsed,
         status,
         notes,
+        gender,
+        nationalId,
+        dateOfBirth,
+        occupation,
         hasLoginAccount,
       ];
 }

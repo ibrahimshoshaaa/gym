@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/providers/storage_provider.dart';
+import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/member.dart';
@@ -25,23 +26,33 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _phoneController;
+  late final TextEditingController _nationalIdController;
+  late final TextEditingController _occupationController;
   late final TextEditingController _notesController;
   File? _pickedPhoto;
   bool _isLoading = false;
   bool _photoUploadFailed = false;
+  Gender _gender = Gender.male;
+  DateTime? _dateOfBirth;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.member?.name ?? '');
     _phoneController = TextEditingController(text: widget.member?.phone ?? '');
+    _nationalIdController = TextEditingController(text: widget.member?.nationalId ?? '');
+    _occupationController = TextEditingController(text: widget.member?.occupation ?? '');
     _notesController = TextEditingController(text: widget.member?.notes ?? '');
+    _gender = widget.member?.gender ?? Gender.male;
+    _dateOfBirth = widget.member?.dateOfBirth;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _nationalIdController.dispose();
+    _occupationController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -50,6 +61,20 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (picked != null) {
       setState(() => _pickedPhoto = File(picked.path));
+    }
+  }
+
+  Future<void> _pickDateOfBirth() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dateOfBirth ?? DateTime(now.year - 25),
+      firstDate: DateTime(now.year - 100),
+      lastDate: now,
+      helpText: 'تاريخ الميلاد',
+    );
+    if (picked != null) {
+      setState(() => _dateOfBirth = picked);
     }
   }
 
@@ -63,8 +88,6 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
 
     // في وضع الإضافة، لازم نحفظ العضو الأول عشان ناخد الـ id، وبعدين نرفع الصورة
     // ونحدث السجل بالرابط (الصورة اسمها بمعرف العضو نفسه)
-    String? photoUrl = widget.member?.photoUrl;
-
     final result = widget.isEditMode
         ? await _saveEdit(repo, gymId, notes)
         : await _saveNew(repo, gymId, notes);
@@ -99,6 +122,12 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
     );
   }
 
+  String? get _nationalIdOrNull =>
+      _nationalIdController.text.trim().isEmpty ? null : _nationalIdController.text.trim();
+
+  String? get _occupationOrNull =>
+      _occupationController.text.trim().isEmpty ? null : _occupationController.text.trim();
+
   Future<dynamic> _saveNew(dynamic repo, String gymId, String? notes) async {
     final phone = _phoneController.text.trim();
     final name = _nameController.text.trim();
@@ -110,6 +139,10 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
       joinDate: DateTime.now(),
       status: MemberStatus.expired,
       notes: notes,
+      gender: _gender,
+      nationalId: _nationalIdOrNull,
+      dateOfBirth: _dateOfBirth,
+      occupation: _occupationOrNull,
     ));
 
     final withAccount = await addResult.fold((f) async => addResult, (newMember) async {
@@ -142,6 +175,10 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
           status: newMember.status,
           photoUrl: url,
           notes: newMember.notes,
+          gender: newMember.gender,
+          nationalId: newMember.nationalId,
+          dateOfBirth: newMember.dateOfBirth,
+          occupation: newMember.occupation,
         ));
       } catch (_) {
         _photoUploadFailed = true;
@@ -173,6 +210,10 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
       currentSubscriptionId: widget.member!.currentSubscriptionId,
       subscriptionEnd: widget.member!.subscriptionEnd,
       notes: notes,
+      gender: _gender,
+      nationalId: _nationalIdOrNull,
+      dateOfBirth: _dateOfBirth,
+      occupation: _occupationOrNull,
     ));
   }
 
@@ -187,6 +228,7 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // الصورة أول حاجة - زي ما اتفقنا
               Center(
                 child: GestureDetector(
                   onTap: _pickPhoto,
@@ -221,12 +263,16 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // الاسم الكامل
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'الاسم الكامل'),
                 validator: (v) => Validators.required(v, 'الاسم'),
               ),
               const SizedBox(height: 16),
+
+              // رقم الموبايل
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
@@ -234,6 +280,58 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
                 validator: Validators.phone,
               ),
               const SizedBox(height: 16),
+
+              // النوع
+              Text('النوع', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+              const SizedBox(height: 8),
+              SegmentedButton<Gender>(
+                segments: const [
+                  ButtonSegment(value: Gender.male, label: Text('ذكر'), icon: Icon(Icons.male)),
+                  ButtonSegment(value: Gender.female, label: Text('أنثى'), icon: Icon(Icons.female)),
+                ],
+                selected: {_gender},
+                onSelectionChanged: (selection) => setState(() => _gender = selection.first),
+              ),
+              const SizedBox(height: 16),
+
+              // الرقم القومي (اختياري)
+              TextFormField(
+                controller: _nationalIdController,
+                keyboardType: TextInputType.number,
+                maxLength: 14,
+                decoration: const InputDecoration(
+                  labelText: 'الرقم القومي (اختياري)',
+                  counterText: '',
+                ),
+                validator: Validators.nationalId,
+              ),
+              const SizedBox(height: 8),
+
+              // تاريخ الميلاد
+              InkWell(
+                onTap: _pickDateOfBirth,
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'تاريخ الميلاد',
+                    suffixIcon: Icon(Icons.calendar_today, size: 18),
+                  ),
+                  child: Text(
+                    _dateOfBirth != null ? DateFormatter.toDisplayDate(_dateOfBirth!) : 'اختر التاريخ',
+                    style: TextStyle(
+                      color: _dateOfBirth != null ? null : AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // الوظيفة (اختياري)
+              TextFormField(
+                controller: _occupationController,
+                decoration: const InputDecoration(labelText: 'الوظيفة (اختياري)'),
+              ),
+              const SizedBox(height: 16),
+
               TextFormField(
                 controller: _notesController,
                 maxLines: 3,

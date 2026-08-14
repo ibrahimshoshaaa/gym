@@ -16,6 +16,10 @@ class MemberModel extends Member {
     super.visitsAllowed,
     super.visitsUsed,
     super.notes,
+    super.gender,
+    super.nationalId,
+    super.dateOfBirth,
+    super.occupation,
     super.hasLoginAccount,
   });
 
@@ -37,6 +41,15 @@ class MemberModel extends Member {
         orElse: () => MemberStatus.expired,
       ),
       notes: map['notes'] as String?,
+      gender: map['gender'] == null
+          ? null
+          : Gender.values.firstWhere(
+              (g) => g.name == map['gender'],
+              orElse: () => Gender.male,
+            ),
+      nationalId: map['nationalId'] as String?,
+      dateOfBirth: (map['dateOfBirth'] as Timestamp?)?.toDate(),
+      occupation: map['occupation'] as String?,
       hasLoginAccount: map['hasLoginAccount'] as bool? ?? false,
     );
   }
@@ -55,6 +68,10 @@ class MemberModel extends Member {
       'visitsUsed': visitsUsed,
       'status': status.name,
       'notes': notes,
+      'gender': gender?.name,
+      'nationalId': nationalId,
+      'dateOfBirth': dateOfBirth != null ? Timestamp.fromDate(dateOfBirth!) : null,
+      'occupation': occupation,
       'hasLoginAccount': hasLoginAccount,
     };
   }
@@ -74,6 +91,10 @@ class MemberModel extends Member {
       visitsUsed: member.visitsUsed,
       status: member.status,
       notes: member.notes,
+      gender: member.gender,
+      nationalId: member.nationalId,
+      dateOfBirth: member.dateOfBirth,
+      occupation: member.occupation,
       hasLoginAccount: member.hasLoginAccount,
     );
   }
