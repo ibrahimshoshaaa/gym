@@ -48,4 +48,52 @@ class AppTheme {
       ),
     );
   }
+
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: GoldPalette.darkBg,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: GoldPalette.gold,
+        brightness: Brightness.dark,
+        primary: GoldPalette.gold,
+        secondary: GoldPalette.goldLight,
+        surface: GoldPalette.darkSurface,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: GoldPalette.darkSurface,
+        foregroundColor: GoldPalette.gold,
+        elevation: 0,
+        centerTitle: true,
+      ),
+      cardTheme: CardThemeData(
+        color: GoldPalette.darkSurfaceAlt,
+        elevation: 1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: GoldPalette.gold,
+          foregroundColor: GoldPalette.darkBg,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: GoldPalette.darkSurfaceAlt,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+      textTheme: const TextTheme(
+        titleLarge: TextStyle(fontWeight: FontWeight.bold, color: GoldPalette.darkTextPrimary),
+        bodyMedium: TextStyle(color: GoldPalette.darkTextPrimary),
+      ),
+    );
+  }
 }
