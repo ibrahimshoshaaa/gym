@@ -41,6 +41,12 @@ class AppUser extends Equatable {
   /// true أول ما الأدمن ينشئ حساب العضو (الباسورد الافتراضي = رقم الموبايل)
   final bool mustChangePassword;
 
+  /// تفاصيل إضافية للموظف/الأدمن (مش للأعضاء) - المرتب الشهري بيتحسب
+  /// كمصروف لما الأدمن يسجل دفعه من شاشة الموظفين
+  final double? salary;
+  final String? address;
+  final String? notes;
+
   const AppUser({
     required this.uid,
     required this.gymId,
@@ -51,6 +57,9 @@ class AppUser extends Equatable {
     this.email,
     this.memberId,
     this.mustChangePassword = false,
+    this.salary,
+    this.address,
+    this.notes,
   });
 
   bool get isAdmin => role == UserRole.admin;
@@ -61,6 +70,18 @@ class AppUser extends Equatable {
   bool get canManageOperations => isAdmin || isStaff;
 
   @override
-  List<Object?> get props =>
-      [uid, gymId, name, phone, email, role, createdAt, memberId, mustChangePassword];
+  List<Object?> get props => [
+        uid,
+        gymId,
+        name,
+        phone,
+        email,
+        role,
+        createdAt,
+        memberId,
+        mustChangePassword,
+        salary,
+        address,
+        notes,
+      ];
 }

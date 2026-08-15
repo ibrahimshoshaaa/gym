@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../expenses/domain/entities/expense.dart';
+import '../../../expenses/presentation/providers/expenses_provider.dart';
 import '../providers/payments_provider.dart';
 
 /// شاشة التقارير المالية - بتجمع المدفوعات شهرياً وسنوياً
@@ -11,6 +13,7 @@ class ReportsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final paymentsAsync = ref.watch(allPaymentsProvider);
+    final expensesAsync = ref.watch(expensesStreamProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('التقارير المالية')),
@@ -28,6 +31,12 @@ class ReportsScreen extends ConsumerWidget {
 
           final monthTotal = thisMonth.fold<double>(0, (sum, p) => sum + p.amount);
           final yearTotal = thisYear.fold<double>(0, (sum, p) => sum + p.amount);
+
+          final expenses = expensesAsync.maybeWhen(data: (e) => e, orElse: () => <Expense>[]);
+          final monthExpenses = expenses
+              .where((e) => e.date.year == now.year && e.date.month == now.month)
+              .fold<double>(0, (sum, e) => sum + e.amount);
+          final netProfit = monthTotal - monthExpenses;
 
           // تجميع آخر 6 شهور لعرضها في رسم بياني بسيط
           final monthlyTotals = <String, double>{};
@@ -70,8 +79,30 @@ class ReportsScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _SummaryCard(
+                      label: 'مصروفات الشهر الحالي',
+                      value: monthExpenses,
+                      color: AppColors.danger,
+                      icon: Icons.point_of_sale,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _SummaryCard(
+                      label: 'صافي الربح (الشهر)',
+                      value: netProfit,
+                      color: netProfit >= 0 ? AppColors.success : AppColors.danger,
+                      icon: Icons.account_balance_wallet,
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 24),
-              const Text('آخر 6 شهور', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('آخر 6 شهور (إيرادات)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               Card(
                 child: Padding(

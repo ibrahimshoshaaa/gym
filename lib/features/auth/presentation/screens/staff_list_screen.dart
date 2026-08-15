@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../expenses/presentation/widgets/pay_salary_dialog.dart';
 import '../../domain/entities/app_user.dart';
 import '../providers/auth_provider.dart';
 import 'add_staff_screen.dart';
@@ -78,14 +79,49 @@ class StaffListScreen extends ConsumerWidget {
                   ),
                   title: Text(s.name + (isMe ? ' (أنت)' : ''),
                       style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('${s.role.label} • ${s.phone}\n${s.email ?? ''}'),
+                  subtitle: Text(
+                    [
+                      '${s.role.label} • ${s.phone}',
+                      s.email ?? '',
+                      if (s.salary != null) 'مرتب ${s.salary!.toStringAsFixed(0)} ج.م',
+                    ].where((l) => l.isNotEmpty).join('\n'),
+                  ),
                   isThreeLine: true,
-                  trailing: isMe
-                      ? null
-                      : IconButton(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => AddStaffScreen(staff: s)),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'دفع مرتب',
+                        icon: const Icon(Icons.payments_outlined, color: AppColors.success),
+                        onPressed: () => showDialog<bool>(
+                          context: context,
+                          builder: (_) => PaySalaryDialog(
+                            personId: s.uid,
+                            personName: s.name,
+                            defaultAmount: s.salary,
+                          ),
+                        ).then((paid) {
+                          if (paid == true && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('تم تسجيل المرتب كمصروف ✅'),
+                                backgroundColor: AppColors.success,
+                              ),
+                            );
+                          }
+                        }),
+                      ),
+                      if (!isMe)
+                        IconButton(
                           icon: const Icon(Icons.delete_outline, color: AppColors.danger),
                           onPressed: () => _confirmDelete(context, ref, s),
                         ),
+                    ],
+                  ),
                 ),
               );
             },

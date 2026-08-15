@@ -6,6 +6,9 @@ class Trainer extends Equatable {
   final String phone;
   final String? specialty;
   final bool isActive;
+  final double? salary;
+  final String? address;
+  final String? notes;
 
   const Trainer({
     required this.id,
@@ -13,8 +16,11 @@ class Trainer extends Equatable {
     required this.phone,
     this.specialty,
     this.isActive = true,
+    this.salary,
+    this.address,
+    this.notes,
   });
 
   @override
-  List<Object?> get props => [id, name, phone, specialty, isActive];
+  List<Object?> get props => [id, name, phone, specialty, isActive, salary, address, notes];
 }

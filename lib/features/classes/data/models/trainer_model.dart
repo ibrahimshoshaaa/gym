@@ -7,6 +7,9 @@ class TrainerModel extends Trainer {
     required super.phone,
     super.specialty,
     super.isActive,
+    super.salary,
+    super.address,
+    super.notes,
   });
 
   factory TrainerModel.fromMap(Map<String, dynamic> map, String id) {
@@ -16,6 +19,9 @@ class TrainerModel extends Trainer {
       phone: map['phone'] as String,
       specialty: map['specialty'] as String?,
       isActive: map['isActive'] as bool? ?? true,
+      salary: (map['salary'] as num?)?.toDouble(),
+      address: map['address'] as String?,
+      notes: map['notes'] as String?,
     );
   }
 
@@ -25,6 +31,9 @@ class TrainerModel extends Trainer {
       'phone': phone,
       'specialty': specialty,
       'isActive': isActive,
+      'salary': salary,
+      'address': address,
+      'notes': notes,
     };
   }
 }

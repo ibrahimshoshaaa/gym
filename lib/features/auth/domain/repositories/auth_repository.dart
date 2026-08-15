@@ -40,6 +40,18 @@ abstract class AuthRepository {
     required String password,
     required String phone,
     required UserRole role,
+    double? salary,
+    String? address,
+    String? notes,
+  });
+
+  /// تعديل تفاصيل موظف موجود (المرتب/العنوان/الملاحظات) - من غير ما
+  /// يأثر على حساب الدخول بتاعه (إيميل/باسورد)
+  Future<Either<Failure, void>> updateStaffDetails({
+    required String uid,
+    double? salary,
+    String? address,
+    String? notes,
   });
 
   /// ستريم لكل الأدمن والموظفين في الجيم - للأدمن بس عشان يشوفهم

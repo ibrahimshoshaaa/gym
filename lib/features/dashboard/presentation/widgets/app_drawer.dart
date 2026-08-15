@@ -9,6 +9,7 @@ import '../../../auth/presentation/screens/staff_list_screen.dart';
 import '../../../classes/presentation/screens/classes_schedule_screen.dart';
 import '../../../classes/presentation/screens/trainers_list_screen.dart';
 import '../../../debts/presentation/screens/debts_list_screen.dart';
+import '../../../expenses/presentation/screens/expenses_screen.dart';
 import '../../../members/presentation/providers/members_provider.dart';
 import '../../../members/presentation/screens/members_list_screen.dart';
 import '../../../payments/presentation/screens/payments_history_screen.dart';
@@ -89,6 +90,11 @@ class AppDrawer extends ConsumerWidget {
               icon: Icons.money_off,
               label: 'المديونيات',
               onTap: () => _navigate(context, const DebtsListScreen()),
+            ),
+            _DrawerItem(
+              icon: Icons.point_of_sale,
+              label: 'المصروفات',
+              onTap: () => _navigate(context, const ExpensesScreen()),
             ),
             if (role == UserRole.admin) ...[
               _DrawerItem(

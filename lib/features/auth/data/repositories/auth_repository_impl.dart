@@ -265,6 +265,9 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
     required String phone,
     required UserRole role,
+    double? salary,
+    String? address,
+    String? notes,
   }) async {
     fb.FirebaseAuth? isolatedAuth;
     try {
@@ -285,6 +288,9 @@ class AuthRepositoryImpl implements AuthRepository {
         email: email,
         role: role,
         createdAt: DateTime.now(),
+        salary: salary,
+        address: address,
+        notes: notes,
       );
 
       // الكتابة هنا بجلسة الأدمن الأساسية (مش المعزولة) لإن قاعدة الأمان
@@ -294,6 +300,25 @@ class AuthRepositoryImpl implements AuthRepository {
       return Right(newUser);
     } on fb.FirebaseAuthException catch (e) {
       return Left(AuthFailure(_mapAuthError(e.code)));
+    } catch (_) {
+      return const Left(ServerFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateStaffDetails({
+    required String uid,
+    double? salary,
+    String? address,
+    String? notes,
+  }) async {
+    try {
+      await _usersCollection.doc(uid).update({
+        'salary': salary,
+        'address': address,
+        'notes': notes,
+      });
+      return const Right(null);
     } catch (_) {
       return const Left(ServerFailure());
     }
