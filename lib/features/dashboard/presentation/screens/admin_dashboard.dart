@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../debts/presentation/providers/debts_provider.dart';
+import '../../../debts/presentation/screens/debts_list_screen.dart';
 import '../../../members/presentation/providers/members_provider.dart';
 import '../../../members/presentation/screens/members_list_screen.dart';
 import '../widgets/app_drawer.dart';
@@ -72,6 +74,20 @@ class AdminDashboard extends ConsumerWidget {
                   icon: Icons.cancel,
                   isDark: isDark,
                   onTap: () => _push(context, const MembersListScreen(initialFilter: MemberFilterCategory.expired)),
+                ),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final debtsAsync = ref.watch(openDebtsProvider);
+                    final count = debtsAsync.maybeWhen(data: (list) => list.length, orElse: () => 0);
+                    return _StatCard(
+                      label: 'المديونيات',
+                      value: '$count',
+                      color: AppColors.danger,
+                      icon: Icons.money_off,
+                      isDark: isDark,
+                      onTap: () => _push(context, const DebtsListScreen()),
+                    );
+                  },
                 ),
               ],
             ),
