@@ -4,6 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../attendance/presentation/screens/member_qr_screen.dart';
+import '../../../attendance/presentation/screens/my_attendance_screen.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../classes/presentation/screens/classes_schedule_screen.dart';
 import '../../../members/presentation/providers/members_provider.dart';
@@ -106,6 +107,16 @@ class MemberDashboard extends ConsumerWidget {
                             color: expired ? AppColors.danger : AppColors.success,
                           ),
                         ),
+                        if (!expired) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'باقي ${DateFormatter.daysRemaining(me!.subscriptionEnd!)} يوم',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                            ),
+                          ),
+                        ],
                       ] else
                         const Text('لا يوجد اشتراك حالياً', style: TextStyle(color: AppColors.danger)),
                     ],
@@ -132,6 +143,12 @@ class MemberDashboard extends ConsumerWidget {
                     label: 'حجز كلاس',
                     isDark: isDark,
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ClassesScheduleScreen())),
+                  ),
+                  _MemberAction(
+                    icon: Icons.history,
+                    label: 'سجل حضوري',
+                    isDark: isDark,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyAttendanceScreen())),
                   ),
                 ],
               ),
