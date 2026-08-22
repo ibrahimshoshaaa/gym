@@ -57,7 +57,7 @@ class GymListScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('خطأ: \$err')),
+        error: (err, _) => Center(child: Text('خطأ: $err')),
       ),
     );
   }
@@ -88,17 +88,17 @@ class _GymCard extends ConsumerWidget {
     } else if (gym.isExpiringSoon) {
       statusColor = Colors.orange;
       statusIcon = Icons.warning_amber;
-      statusText = 'قارب ينتهي (\${gym.daysRemaining} يوم)';
+      statusText = 'قارب ينتهي (${gym.daysRemaining} يوم)';
     } else {
       statusColor = AppColors.success;
       statusIcon = Icons.check_circle;
-      statusText = 'ساري (\${gym.daysRemaining} يوم)';
+      statusText = 'ساري (${gym.daysRemaining} يوم)';
     }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () => context.push('/gyms/\${gym.id}/edit'),
+        onTap: () => context.push('/gyms/${gym.id}/edit'),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -142,15 +142,15 @@ class _GymCard extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Text('المالك: \${gym.ownerName}', style: TextStyle(color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary)),
-              Text('التليفون: \${gym.phone}', style: TextStyle(color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary)),
+              Text('المالك: ${gym.ownerName}', style: TextStyle(color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary)),
+              Text('التليفون: ${gym.phone}', style: TextStyle(color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary)),
               const SizedBox(height: 8),
               Row(
                 children: [
                   Icon(Icons.calendar_today, size: 14, color: gold),
                   const SizedBox(width: 4),
                   Text(
-                    'الترخيص: \${dateFormat.format(gym.licenseStart)} → \${dateFormat.format(gym.licenseEnd)}',
+                    'الترخيص: ${dateFormat.format(gym.licenseStart)} → ${dateFormat.format(gym.licenseEnd)}',
                     style: const TextStyle(fontSize: 12),
                   ),
                 ],
@@ -161,7 +161,7 @@ class _GymCard extends ConsumerWidget {
                   Icon(Icons.verified, size: 14, color: gold),
                   const SizedBox(width: 4),
                   Text(
-                    'الخطة: \${gym.plan.label}',
+                    'الخطة: ${gym.plan.label}',
                     style: const TextStyle(fontSize: 12),
                   ),
                 ],
@@ -205,7 +205,7 @@ class _GymCard extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('الترخيص الحالي ينتهي: \${DateFormat('yyyy-MM-dd').format(gym.licenseEnd)}'),
+            Text('الترخيص الحالي ينتهي: ${DateFormat('yyyy-MM-dd').format(gym.licenseEnd)}'),
             const SizedBox(height: 16),
             TextField(
               controller: monthsController,
