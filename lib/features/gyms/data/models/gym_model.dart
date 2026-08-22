@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../entities/gym.dart';
+import '../../domain/entities/gym.dart';
 
 class GymModel extends Gym {
   const GymModel({
