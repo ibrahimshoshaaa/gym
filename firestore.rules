@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// قواعد أمان Firestore لتطبيق إدارة الجيم
+// قواعد أمان Firestore لتطبيق إدارة الجيم - Multi-Tenant
 // انسخ الملف ده وحطه في Firebase Console -> Firestore Database -> Rules
 // أو استخدم Firebase CLI: firebase deploy --only firestore:rules
 
@@ -23,6 +23,10 @@ service cloud.firestore {
       return userDoc().gymId;
     }
 
+    function isSuperAdmin() {
+      return isSignedIn() && getUserRole() == 'superAdmin';
+    }
+
     function isAdmin() {
       return isSignedIn() && getUserRole() == 'admin';
     }
@@ -31,7 +35,7 @@ service cloud.firestore {
       return isSignedIn() && getUserRole() in ['admin', 'staff'];
     }
 
-    // العضو يقدر يشوف/يعدل بياناته الشخصية بس (مش بيانات أعضاء تانيين)
+    // العضو يقدر يشوف/يعدل بياناته الشخصية بس
     function isSelf(memberId) {
       return isSignedIn() && userDoc().memberId == memberId;
     }
@@ -41,50 +45,43 @@ service cloud.firestore {
     }
 
     // ============ users ============
-    // كل مستخدم يقدر يقرأ بياناته بس، والأدمن يقدر يدير الكل
     match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      // الأدمن يقدر ينشئ حساب موظف عادي، والعضو يقدر ينشئ حسابه هو بس
-      // (أول تسجيل دخول) بشرط إن memberId اللي بيحطه فعلاً مطابق للفهرس
-      // phoneIndex بتاع نفس الرقم اللي معاه - يعني مش هيقدر يدّعي إنه
-      // عضو تاني بمجرد ما يبعت memberId مختلف.
-      allow create: if isAdmin() ||
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin() || isSuperAdmin());
+      allow create: if isAdmin() || isSuperAdmin() ||
         (isSignedIn() && request.auth.uid == userId &&
          request.resource.data.role == 'member' &&
          request.resource.data.memberId ==
            get(/databases/$(database)/documents/gyms/$(request.resource.data.gymId)/phoneIndex/$(request.resource.data.phone)).data.memberId);
-      // المستخدم نفسه مسموح له يحدث الـ fcmToken بتاعه (لتفعيل التنبيهات)
-      // وكمان mustChangePassword بس لما يخليها false (بعد ما يغيّر
-      // الباسورد بنجاح) - مينفعش يحطها true بنفسه، ده حق الأدمن بس
-      // (بيتحط true تلقائي وقت إنشاء الحساب)
-      allow update: if isAdmin() ||
+      allow update: if isAdmin() || isSuperAdmin() ||
         (isSignedIn() && request.auth.uid == userId &&
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fcmToken', 'mustChangePassword']) &&
          (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['mustChangePassword']) ||
           request.resource.data.mustChangePassword == false));
-      allow delete: if isAdmin();
+      allow delete: if isSuperAdmin();
     }
 
-    // ============ gyms/{gymId}/... ============
+    // ============ gyms (metadata) ============
     match /gyms/{gymId} {
+      allow read: if isSuperAdmin() || belongsToGym(gymId);
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
 
+    // ============ gyms/{gymId}/subcollections ============
+    match /gyms/{gymId} {
       match /members/{memberId} {
         allow read: if belongsToGym(gymId) && (isStaffOrAdmin() || isSelf(memberId));
         allow create, update: if belongsToGym(gymId) && isStaffOrAdmin();
         allow delete: if belongsToGym(gymId) && isAdmin();
       }
 
-      // فهرس بيربط رقم الموبايل بمعرّف العضو بس (من غير أي بيانات حساسة تانية).
-      // أي حد عامل تسجيل دخول (حتى anonymous) يقدر يقراه عشان يعرف يربط
-      // حسابه بسجل العضو - ده بديل الـ Cloud Function اللي كانت بتعمل نفس
-      // الحاجة عن طريق Admin SDK. الكتابة بس لموظف/أدمن الجيم ده.
       match /phoneIndex/{phone} {
         allow read: if isSignedIn();
         allow write: if belongsToGym(gymId) && isStaffOrAdmin();
       }
 
       match /plans/{planId} {
-        // الكل يقدر يشوف الخطط (حتى الأعضاء عشان يختاروا منها)
         allow read: if belongsToGym(gymId);
         allow write: if belongsToGym(gymId) && isAdmin();
       }
@@ -92,7 +89,7 @@ service cloud.firestore {
       match /subscriptions/{subId} {
         allow read: if belongsToGym(gymId) && isStaffOrAdmin();
         allow create, update: if belongsToGym(gymId) && isStaffOrAdmin();
-        allow delete: if false; // الاشتراكات القديمة لازم تفضل كسجل تاريخي
+        allow delete: if false;
       }
 
       match /attendance/{attendanceId} {
@@ -103,7 +100,6 @@ service cloud.firestore {
       }
 
       match /classes/{classId} {
-        // الأعضاء يقدروا يشوفوا الكلاسات ويحجزوا (update بس للحجز/الإلغاء)
         allow read: if belongsToGym(gymId);
         allow create, delete: if belongsToGym(gymId) && isAdmin();
         allow update: if belongsToGym(gymId) && isSignedIn();
@@ -127,9 +123,6 @@ service cloud.firestore {
 
       match /debts/{debtId} {
         allow read: if belongsToGym(gymId) && isStaffOrAdmin();
-        // create بتحصل تلقائي وقت الاشتراك، update بتحصل وقت التسديد -
-        // الاتنين لازم يقدر يعملهم الموظف عادي (مش أدمن بس) عشان
-        // ده جزء من شغل الاستقبال اليومي
         allow create, update: if belongsToGym(gymId) && isStaffOrAdmin();
         allow delete: if belongsToGym(gymId) && isAdmin();
       }

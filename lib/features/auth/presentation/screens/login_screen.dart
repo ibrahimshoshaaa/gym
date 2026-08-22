@@ -22,13 +22,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
 
   // Member login
   final _memberFormKey = GlobalKey<FormState>();
+  final _gymIdController = TextEditingController();
   final _phoneController = TextEditingController();
   final _memberPasswordController = TextEditingController();
   bool _obscureMemberPassword = true;
   bool _obscureStaffPassword = true;
-
-  // TODO: يتغير حسب طريقة تحديد الجيم (subdomain / اختيار / رابط دعوة)
-  static const String currentGymId = 'default_gym';
 
   @override
   void initState() {
@@ -41,6 +39,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     _tabController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _gymIdController.dispose();
     _phoneController.dispose();
     _memberPasswordController.dispose();
     super.dispose();
@@ -70,7 +69,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             Column(
               children: [
                 const SizedBox(height: 32),
-                // شعار دائري ذهبي بلمسة دمبل - يوحّد الهوية مع أيقونة التطبيق
                 Container(
                   width: 92,
                   height: 92,
@@ -141,7 +139,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                 ),
               ],
             ),
-            // زرار تبديل الوضع (دارك/لايت) في أعلى الشاشة
             Positioned(
               top: 4,
               left: 4,
@@ -217,6 +214,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
           children: [
             const SizedBox(height: 12),
             TextFormField(
+              controller: _gymIdController,
+              decoration: const InputDecoration(
+                labelText: 'كود الجيم *',
+                prefixIcon: Icon(Icons.business_outlined),
+                hintText: 'مثال: abc12345',
+              ),
+              validator: (v) => v?.isEmpty ?? true ? 'مطلوب' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(
@@ -290,7 +297,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     ref.read(authControllerProvider.notifier).signInWithPhone(
           _phoneController.text.trim(),
           _memberPasswordController.text,
-          currentGymId,
+          _gymIdController.text.trim(),
         );
   }
 }
