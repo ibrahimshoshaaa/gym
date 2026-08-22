@@ -35,6 +35,7 @@ class GymController extends StateNotifier<AsyncValue<void>> {
 
   /// إنشاء جيم جديد + أدمن للجيم في خطوة واحدة
   Future<bool> createGymWithAdmin({
+    String? gymId,              // ← كود الجيم (اختياري)
     required String name,
     required String ownerName,
     required String phone,
@@ -52,6 +53,7 @@ class GymController extends StateNotifier<AsyncValue<void>> {
 
     // الخطوة ١: إنشاء الجيم
     final gymResult = await _repository.createGym(
+      gymId: gymId,
       name: name,
       ownerName: ownerName,
       phone: phone,
@@ -99,6 +101,7 @@ class GymController extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<bool> createGym({
+    String? gymId,
     required String name,
     required String ownerName,
     required String phone,
@@ -109,6 +112,7 @@ class GymController extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncLoading();
     final result = await _repository.createGym(
+      gymId: gymId,
       name: name,
       ownerName: ownerName,
       phone: phone,
