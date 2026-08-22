@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/notification_provider.dart';
+import '../../../gyms/domain/repositories/gym_repository.dart';
+import '../../../gyms/presentation/providers/gym_provider.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/app_user.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -15,7 +17,6 @@ final authStateProvider = StreamProvider<AppUser?>((ref) {
 });
 
 /// الدور الحالي - بيتقرأ من authStateProvider
-/// أي شاشة تقدر تستخدمه عشان تعرف تعرض إيه
 final currentUserRoleProvider = Provider<UserRole?>((ref) {
   final userAsync = ref.watch(authStateProvider);
   return userAsync.maybeWhen(
@@ -29,6 +30,32 @@ final currentUserProvider = Provider<AppUser?>((ref) {
   return userAsync.maybeWhen(
     data: (user) => user,
     orElse: () => null,
+  );
+});
+
+/// هل المستخدم الحالي سوبر أدمن؟
+final isSuperAdminProvider = Provider<bool>((ref) {
+  final user = ref.watch(currentUserProvider);
+  return user?.isSuperAdmin ?? false;
+});
+
+/// الجيم الحالي (لو المستخدم مسجل دخول)
+final currentGymProvider = StreamProvider<Gym?>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null || user.gymId.isEmpty) return Stream.value(null);
+  return ref.watch(gymRepositoryProvider).watchGym(user.gymId);
+});
+
+/// هل ترخيص الجيم ساري؟ (مش بيتطبق على السوبر أدمن)
+final isLicenseValidProvider = Provider<bool>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return false;
+  if (user.isSuperAdmin) return true;
+
+  final gymAsync = ref.watch(currentGymProvider);
+  return gymAsync.maybeWhen(
+    data: (gym) => gym?.isLicenseValid ?? false,
+    orElse: () => false,
   );
 });
 
@@ -94,10 +121,6 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<void> signOut() async {
-    // مسح الـ FCM token عملية "تنظيف" بس، مش أساسية. لو فشلت (مشكلة شبكة
-    // مثلاً)، برضو المفروض تسجيل الخروج الفعلي يحصل - قبل كده لو
-    // clearToken فشلت، الدالة كانت بترمي استثناء ومتكملش لسطر الـ signOut
-    // الحقيقي، فزرار "تسجيل خروج" كان ببساطة مش بيعمل حاجة خالص.
     try {
       final currentUser = _ref.read(currentUserProvider);
       if (currentUser != null) {
