@@ -18,6 +18,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
   final _formKey = GlobalKey<FormState>();
 
   // بيانات الجيم
+  final _gymIdController = TextEditingController();
   final _nameController = TextEditingController();
   final _ownerNameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -36,6 +37,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
 
   @override
   void dispose() {
+    _gymIdController.dispose();
     _nameController.dispose();
     _ownerNameController.dispose();
     _phoneController.dispose();
@@ -99,6 +101,19 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+
+              // كود الجيم (اختياري)
+              TextFormField(
+                controller: _gymIdController,
+                decoration: const InputDecoration(
+                  labelText: 'كود الجيم (اختياري)',
+                  prefixIcon: Icon(Icons.key),
+                  hintText: 'مثال: powergym123',
+                  helperText: 'سيبه فاضي لو عايز يتولد تلقائي',
+                ),
+              ),
+              const SizedBox(height: 12),
+
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -279,9 +294,11 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final licenseEnd = DateTime.now().add(Duration(days: _licenseMonths * 30));
+    final customGymId = _gymIdController.text.trim();
 
     ref.read(gymControllerProvider.notifier).createGymWithAdmin(
       // بيانات الجيم
+      gymId: customGymId.isEmpty ? null : customGymId,
       name: _nameController.text.trim(),
       ownerName: _ownerNameController.text.trim(),
       phone: _phoneController.text.trim(),
