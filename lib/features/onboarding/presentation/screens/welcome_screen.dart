@@ -19,7 +19,6 @@ class WelcomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Spacer(),
-              // Logo
               Container(
                 width: 120,
                 height: 120,
@@ -41,7 +40,6 @@ class WelcomeScreen extends StatelessWidget {
                 child: const Icon(Icons.fitness_center, size: 56, color: Colors.black),
               ),
               const SizedBox(height: 32),
-              // Title
               Text(
                 'Golden Gym',
                 style: TextStyle(
@@ -60,7 +58,6 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 48),
-              // Features
               _FeatureItem(
                 icon: Icons.people_outline,
                 text: 'إدارة الأعضاء بسهولة',
@@ -85,7 +82,6 @@ class WelcomeScreen extends StatelessWidget {
                 gold: gold,
               ),
               const Spacer(),
-              // CTA Buttons
               ElevatedButton(
                 onPressed: () => context.push('/signup'),
                 style: ElevatedButton.styleFrom(
