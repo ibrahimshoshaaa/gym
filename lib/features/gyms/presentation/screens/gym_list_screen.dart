@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/gym.dart';
 import '../providers/gym_provider.dart';
 
@@ -25,6 +26,11 @@ class GymListScreen extends ConsumerWidget {
             icon: const Icon(Icons.add),
             onPressed: () => context.push('/gyms/add'),
             tooltip: 'إضافة جيم جديد',
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
+            tooltip: 'تسجيل خروج',
           ),
         ],
       ),
