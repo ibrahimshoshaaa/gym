@@ -82,11 +82,9 @@ class GymController extends StateNotifier<AsyncValue<void>> {
         return adminResult.fold(
           (failure) {
             state = AsyncError(
-              '⚠️ الجيم "${gym.name}" اتضاف بنجاح (كود: ${gym.id})
-'
-              'لكن في مشكلة في إنشاء الأدمن: ${failure.message}
-'
-              'الأدمن ممكن يتضاف يدويًا من Firebase Console.',
+              "⚠️ الجيم \"${gym.name}\" اتضاف بنجاح (كود: ${gym.id})\n"
+              "لكن في مشكلة في إنشاء الأدمن: ${failure.message}\n"
+              "الأدمن ممكن يتضاف يدويًا من Firebase Console.",
               StackTrace.current,
             );
             return false;
