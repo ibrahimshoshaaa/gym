@@ -82,6 +82,68 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   }
 
   @override
+  Future<Either<Failure, AttendanceRecord>> checkInBiometric(String memberId) async {
+    try {
+      final memberRef = _firestore.collection(FirestorePaths.members(gymId)).doc(memberId);
+      final attendanceRef = _attendanceCollection.doc();
+
+      final result = await _firestore.runTransaction<Either<Failure, AttendanceModel>>(
+        (transaction) async {
+          final memberDoc = await transaction.get(memberRef);
+
+          if (!memberDoc.exists) {
+            return const Left(NotFoundFailure('العضو غير موجود'));
+          }
+
+          final data = memberDoc.data()!;
+          final subscriptionStart = (data['subscriptionStart'] as Timestamp?)?.toDate();
+          final subscriptionEnd = (data['subscriptionEnd'] as Timestamp?)?.toDate();
+          final visitsAllowed = data['visitsAllowed'] as int? ?? 0;
+          final visitsUsed = data['visitsUsed'] as int? ?? 0;
+
+          if (subscriptionEnd == null || subscriptionEnd.isBefore(DateTime.now())) {
+            return const Left(ValidationFailure('اشتراك العضو منتهي، لازم يجدد الاشتراك الأول'));
+          }
+
+          if (subscriptionStart != null && subscriptionStart.isAfter(DateTime.now())) {
+            final day = subscriptionStart.day, month = subscriptionStart.month, year = subscriptionStart.year;
+            return Left(ValidationFailure('اشتراك العضو هيبدأ يوم $day/$month/$year، لسه معادُه ما جاش'));
+          }
+
+          if (visitsAllowed > 0 && visitsUsed >= visitsAllowed) {
+            return Left(ValidationFailure(
+                'العضو استنفد عدد أيامه المسموح بها ($visitsUsed/$visitsAllowed)، محتاج يجدد أو يزود خطته'));
+          }
+
+          final now = DateTime.now();
+          final model = AttendanceModel(
+            id: attendanceRef.id,
+            memberId: memberId,
+            memberName: data['name'] as String,
+            checkInTime: now,
+            biometricVerified: true,
+          );
+
+          transaction.set(attendanceRef, model.toMap());
+          transaction.update(memberRef, {'visitsUsed': visitsUsed + 1});
+
+          final subId = data['currentSubscriptionId'] as String?;
+          if (subId != null) {
+            final subRef = _firestore.collection(FirestorePaths.subscriptions(gymId)).doc(subId);
+            transaction.update(subRef, {'visitsUsed': visitsUsed + 1});
+          }
+
+          return Right(model);
+        },
+      );
+
+      return result;
+    } catch (_) {
+      return const Left(ServerFailure());
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> checkOut(String attendanceId) async {
     try {
       await _attendanceCollection.doc(attendanceId).update({

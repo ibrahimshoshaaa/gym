@@ -6,6 +6,7 @@ class AttendanceRecord extends Equatable {
   final String memberName;
   final DateTime checkInTime;
   final DateTime? checkOutTime;
+  final bool biometricVerified;
 
   const AttendanceRecord({
     required this.id,
@@ -13,8 +14,9 @@ class AttendanceRecord extends Equatable {
     required this.memberName,
     required this.checkInTime,
     this.checkOutTime,
+    this.biometricVerified = false,
   });
 
   @override
-  List<Object?> get props => [id, memberId, memberName, checkInTime, checkOutTime];
+  List<Object?> get props => [id, memberId, memberName, checkInTime, checkOutTime, biometricVerified];
 }

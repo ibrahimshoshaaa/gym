@@ -6,6 +6,9 @@ abstract class AttendanceRepository {
   /// تسجيل حضور عضو - بيتحقق الأول إن اشتراكه شغال قبل ما يسجل
   Future<Either<Failure, AttendanceRecord>> checkIn(String memberId);
 
+  /// تسجيل حضور بالبصمة (biometric) - نفس الـ logic بس بيحط biometricVerified = true
+  Future<Either<Failure, AttendanceRecord>> checkInBiometric(String memberId);
+
   Future<Either<Failure, void>> checkOut(String attendanceId);
 
   Stream<List<AttendanceRecord>> watchTodayAttendance();

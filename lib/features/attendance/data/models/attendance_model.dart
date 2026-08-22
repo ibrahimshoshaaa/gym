@@ -8,6 +8,7 @@ class AttendanceModel extends AttendanceRecord {
     required super.memberName,
     required super.checkInTime,
     super.checkOutTime,
+    super.biometricVerified,
   });
 
   factory AttendanceModel.fromMap(Map<String, dynamic> map, String id) {
@@ -17,6 +18,7 @@ class AttendanceModel extends AttendanceRecord {
       memberName: map['memberName'] as String,
       checkInTime: (map['checkInTime'] as Timestamp).toDate(),
       checkOutTime: (map['checkOutTime'] as Timestamp?)?.toDate(),
+      biometricVerified: map['biometricVerified'] as bool? ?? false,
     );
   }
 
@@ -26,6 +28,7 @@ class AttendanceModel extends AttendanceRecord {
       'memberName': memberName,
       'checkInTime': Timestamp.fromDate(checkInTime),
       'checkOutTime': checkOutTime != null ? Timestamp.fromDate(checkOutTime!) : null,
+      'biometricVerified': biometricVerified,
     };
   }
 }
