@@ -10,30 +10,25 @@ final gymRepositoryProvider = Provider<GymRepository>((ref) {
   return GymRepositoryImpl();
 });
 
-/// كل الجيمات (للسوبر أدمن)
 final allGymsProvider = StreamProvider<List<Gym>>((ref) {
   return ref.watch(gymRepositoryProvider).watchAllGyms();
 });
 
-/// جيم واحد بالـ ID
 final gymProvider = StreamProvider.family<Gym?, String>((ref, gymId) {
   return ref.watch(gymRepositoryProvider).watchGym(gymId);
 });
 
-/// جلب Gym مرة واحدة (Future)
 final gymFutureProvider = FutureProvider.family<Gym?, String>((ref, gymId) async {
   final result = await ref.read(gymRepositoryProvider).getGym(gymId);
   return result.fold((l) => null, (r) => r);
 });
 
-/// حالة إدارة الجيمات (loading/error)
 class GymController extends StateNotifier<AsyncValue<void>> {
   final GymRepository _repository;
   final AuthRepository _authRepository;
 
   GymController(this._repository, this._authRepository) : super(const AsyncData(null));
 
-  /// Self Sign Up: العميل يسجل جيمه بنفسه (مع 14 يوم تجربة)
   Future<bool> selfSignUp({
     required String gymName,
     required String gymPhone,
@@ -47,12 +42,11 @@ class GymController extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncLoading();
 
-    // الخطوة ١: إنشاء الجيم مع بيانات التجربة
     final gymResult = await _repository.createGym(
       name: gymName,
       ownerName: adminName,
       phone: gymPhone,
-      licenseEnd: trialEnd, // الترخيص = نهاية التجربة (مؤقت)
+      licenseEnd: trialEnd,
       plan: plan,
       address: gymAddress,
     );
@@ -63,14 +57,12 @@ class GymController extends StateNotifier<AsyncValue<void>> {
         return false;
       },
       (gym) async {
-        // الخطوة ٢: تحديث الجيم بـ isTrial = true
         final updatedGym = gym.copyWith(
           isTrial: true,
           trialEndDate: trialEnd,
         );
         await _repository.updateGym(updatedGym);
 
-        // الخطوة ٣: إنشاء حساب الأدمن
         final adminResult = await _authRepository.registerStaff(
           gymId: gym.id,
           name: adminName,
@@ -83,9 +75,9 @@ class GymController extends StateNotifier<AsyncValue<void>> {
         return adminResult.fold(
           (failure) {
             state = AsyncError(
-              "⚠️ الجيم "${gym.name}" اتسجل بنجاح (كود: ${gym.id})\n"
-              "لكن في مشكلة في إنشاء الأدمن: ${failure.message}\n"
-              "الأدمن ممكن يتضاف يدويًا من Firebase Console.",
+              'ALERT: Gym "' + gym.name + '" registered (ID: ' + gym.id + ')\n'
+              'But admin creation failed: ' + failure.message + '\n'
+              'Admin can be added manually from Firebase Console.',
               StackTrace.current,
             );
             return false;
@@ -99,7 +91,6 @@ class GymController extends StateNotifier<AsyncValue<void>> {
     );
   }
 
-  /// إنشاء جيم جديد + أدمن للجيم في خطوة واحدة (للسوبر أدمن)
   Future<bool> createGymWithAdmin({
     String? gymId,
     required String name,
@@ -145,9 +136,9 @@ class GymController extends StateNotifier<AsyncValue<void>> {
         return adminResult.fold(
           (failure) {
             state = AsyncError(
-              "⚠️ الجيم "${gym.name}" اتضاف بنجاح (كود: ${gym.id})\n"
-              "لكن في مشكلة في إنشاء الأدمن: ${failure.message}\n"
-              "الأدمن ممكن يتضاف يدويًا من Firebase Console.",
+              'ALERT: Gym "' + gym.name + '" created (ID: ' + gym.id + ')\n'
+              'But admin creation failed: ' + failure.message + '\n'
+              'Admin can be added manually from Firebase Console.',
               StackTrace.current,
             );
             return false;
