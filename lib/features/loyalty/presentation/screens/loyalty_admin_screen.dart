@@ -1,0 +1,393 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../data/models/loyalty_model.dart';
+import '../../domain/entities/loyalty_point.dart';
+import '../providers/loyalty_provider.dart';
+
+class LoyaltyAdminScreen extends ConsumerWidget {
+  const LoyaltyAdminScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final rewardsAsync = ref.watch(rewardsProvider);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('إدارة نظام الولاء'),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddRewardDialog(context, ref, isDark),
+        icon: const Icon(Icons.add),
+        label: const Text('هدية جديدة'),
+        backgroundColor: GoldPalette.gold,
+        foregroundColor: Colors.black,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // قواعد جمع النقاط (للعرض فقط)
+          _SectionHeader(title: 'قواعد جمع النقاط', isDark: isDark),
+          const SizedBox(height: 8),
+          _RuleCard(
+            icon: Icons.qr_code_scanner,
+            title: 'تسجيل الحضور',
+            value: '+١٠ نقاط',
+            isDark: isDark,
+          ),
+          _RuleCard(
+            icon: Icons.payments_outlined,
+            title: 'دفع الاشتراك',
+            value: '+١ نقطة / ١٠ ج.م',
+            isDark: isDark,
+          ),
+          _RuleCard(
+            icon: Icons.event_available,
+            title: 'حجز كلاس',
+            value: '+٥ نقاط',
+            isDark: isDark,
+          ),
+          _RuleCard(
+            icon: Icons.person_add,
+            title: 'إحالة صديق',
+            value: '+١٠٠ نقطة',
+            isDark: isDark,
+          ),
+          _RuleCard(
+            icon: Icons.cake,
+            title: 'عيد الميلاد',
+            value: '+٥٠ نقطة',
+            isDark: isDark,
+          ),
+          _RuleCard(
+            icon: Icons.local_fire_department,
+            title: '٣٠ يوم حضور متتالي',
+            value: '+٢٠٠ نقطة',
+            isDark: isDark,
+          ),
+          const SizedBox(height: 24),
+          _SectionHeader(title: 'الهدايا المتاحة', isDark: isDark),
+          const SizedBox(height: 8),
+          rewardsAsync.when(
+            data: (rewards) {
+              if (rewards.isEmpty) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text('لا يوجد هدايا، اضغط + لإضافة هدية'),
+                  ),
+                );
+              }
+              return Column(
+                children: rewards
+                    .map((r) => _AdminRewardTile(
+                          reward: r,
+                          isDark: isDark,
+                          onEdit: () =>
+                              _showAddRewardDialog(context, ref, isDark, reward: r),
+                          onDelete: () =>
+                              _confirmDelete(context, ref, r),
+                          onToggle: () => ref
+                              .read(loyaltyControllerProvider.notifier)
+                              .updateReward(RewardModel(
+                                id: r.id,
+                                title: r.title,
+                                description: r.description,
+                                pointsCost: r.pointsCost,
+                                type: r.type,
+                                isActive: !r.isActive,
+                                discountPercent: r.discountPercent,
+                                freeMonths: r.freeMonths,
+                              )),
+                        ))
+                    .toList(),
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Text('خطأ: $e'),
+          ),
+          const SizedBox(height: 80),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showAddRewardDialog(
+    BuildContext context,
+    WidgetRef ref,
+    bool isDark, {
+    Reward? reward,
+  }) async {
+    final titleCtrl = TextEditingController(text: reward?.title ?? '');
+    final descCtrl = TextEditingController(text: reward?.description ?? '');
+    final pointsCtrl =
+        TextEditingController(text: reward?.pointsCost.toString() ?? '');
+    RewardType selectedType = reward?.type ?? RewardType.physical;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: Text(reward == null ? 'إضافة هدية' : 'تعديل الهدية'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(
+                      labelText: 'اسم الهدية', prefixIcon: Icon(Icons.title)),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descCtrl,
+                  decoration: const InputDecoration(
+                      labelText: 'الوصف (اختياري)',
+                      prefixIcon: Icon(Icons.description)),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: pointsCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                      labelText: 'النقاط المطلوبة',
+                      prefixIcon: Icon(Icons.star)),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<RewardType>(
+                  value: selectedType,
+                  decoration: const InputDecoration(labelText: 'النوع'),
+                  items: RewardType.values
+                      .map((t) => DropdownMenuItem(
+                            value: t,
+                            child: Text(t.label),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() => selectedType = v!),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('إلغاء')),
+            ElevatedButton(
+              onPressed: () async {
+                final title = titleCtrl.text.trim();
+                final points = int.tryParse(pointsCtrl.text.trim()) ?? 0;
+                if (title.isEmpty || points <= 0) return;
+
+                final newReward = RewardModel(
+                  id: reward?.id ?? '',
+                  title: title,
+                  description: descCtrl.text.trim(),
+                  pointsCost: points,
+                  type: selectedType,
+                  isActive: reward?.isActive ?? true,
+                );
+
+                if (reward == null) {
+                  await ref
+                      .read(loyaltyControllerProvider.notifier)
+                      .addReward(newReward);
+                } else {
+                  await ref
+                      .read(loyaltyControllerProvider.notifier)
+                      .updateReward(newReward);
+                }
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text('حفظ'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(
+      BuildContext context, WidgetRef ref, Reward reward) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('حذف الهدية'),
+        content: Text('هتحذف "${reward.title}"، هل أنت متأكد؟'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('إلغاء')),
+          ElevatedButton(
+            style:
+                ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await ref
+          .read(loyaltyControllerProvider.notifier)
+          .deleteReward(reward.id);
+    }
+  }
+}
+
+// ── Widgets ───────────────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final bool isDark;
+  const _SectionHeader({required this.title, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color:
+            isDark ? GoldPalette.darkTextPrimary : GoldPalette.lightTextPrimary,
+      ),
+    );
+  }
+}
+
+class _RuleCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  final bool isDark;
+
+  const _RuleCard(
+      {required this.icon,
+      required this.title,
+      required this.value,
+      required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? GoldPalette.darkSurface : GoldPalette.lightSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+            color: GoldPalette.gold.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: GoldPalette.gold, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark
+                    ? GoldPalette.darkTextPrimary
+                    : GoldPalette.lightTextPrimary,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: AppColors.success,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminRewardTile extends StatelessWidget {
+  final Reward reward;
+  final bool isDark;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onToggle;
+
+  const _AdminRewardTile({
+    required this.reward,
+    required this.isDark,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: isDark ? GoldPalette.darkSurface : GoldPalette.lightSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: reward.isActive
+              ? GoldPalette.gold.withValues(alpha: 0.3)
+              : Colors.grey.withValues(alpha: 0.2),
+        ),
+      ),
+      child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        leading: CircleAvatar(
+          backgroundColor: (reward.isActive ? GoldPalette.gold : Colors.grey)
+              .withValues(alpha: 0.15),
+          child: Icon(Icons.card_giftcard,
+              color: reward.isActive ? GoldPalette.gold : Colors.grey),
+        ),
+        title: Text(
+          reward.title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: reward.isActive
+                ? (isDark
+                    ? GoldPalette.darkTextPrimary
+                    : GoldPalette.lightTextPrimary)
+                : Colors.grey,
+          ),
+        ),
+        subtitle: Text(
+          '${reward.pointsCost} نقطة • ${reward.type.label}',
+          style: TextStyle(
+            color: reward.isActive ? GoldPalette.gold : Colors.grey,
+            fontSize: 12,
+          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Switch(
+              value: reward.isActive,
+              activeColor: GoldPalette.gold,
+              onChanged: (_) => onToggle(),
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 20),
+              onPressed: onEdit,
+              color: isDark
+                  ? GoldPalette.darkTextSecondary
+                  : GoldPalette.lightTextSecondary,
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 20),
+              onPressed: onDelete,
+              color: AppColors.danger,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+

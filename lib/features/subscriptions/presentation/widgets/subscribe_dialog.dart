@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../loyalty/presentation/providers/loyalty_provider.dart';
 import '../../domain/entities/plan.dart';
 import '../providers/subscriptions_provider.dart';
 
@@ -80,6 +81,16 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
         );
       },
       (_) {
+        // إضافة نقاط الدفع (١ نقطة لكل ١٠ ج.م)
+        final paidAmount = double.tryParse(_amountController.text.trim()) ?? 0;
+        final pointsEarned = (paidAmount / 10).floor();
+        if (pointsEarned > 0) {
+          ref.read(loyaltyControllerProvider.notifier).addPoints(
+                memberId: widget.memberId,
+                points: pointsEarned,
+                reason: 'دفع اشتراك (${paidAmount.toStringAsFixed(0)} ج.م)',
+              );
+        }
         Navigator.pop(context, true);
       },
     );

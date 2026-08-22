@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../loyalty/presentation/providers/loyalty_provider.dart';
 import '../providers/attendance_provider.dart';
 
 /// شاشة تسجيل الحضور بمسح QR Code الخاص بالعضو
@@ -78,9 +79,15 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen> {
         );
       },
       (record) {
+        // إضافة نقاط الحضور
+        ref.read(loyaltyControllerProvider.notifier).addPoints(
+              memberId: memberId,
+              points: 10,
+              reason: 'حضور يومي',
+            );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('تم تسجيل حضور ${record.memberName} ✅'),
+            content: Text('تم تسجيل حضور ${record.memberName} ✅  +١٠ نقاط 🌟'),
             backgroundColor: AppColors.success,
           ),
         );

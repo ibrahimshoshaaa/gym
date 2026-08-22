@@ -14,6 +14,7 @@ import '../../../members/presentation/providers/members_provider.dart';
 import '../../../members/presentation/screens/members_list_screen.dart';
 import '../../../payments/presentation/screens/payments_history_screen.dart';
 import '../../../payments/presentation/screens/reports_screen.dart';
+import '../../../loyalty/presentation/screens/loyalty_admin_screen.dart';
 import '../../../subscriptions/presentation/screens/plans_screen.dart';
 
 /// شريط جانبي موحّد - فيه كل الحاجات الموجودة في الصفحة الرئيسية
@@ -106,6 +107,11 @@ class AppDrawer extends ConsumerWidget {
                 icon: Icons.badge,
                 label: 'الموظفين',
                 onTap: () => _navigate(context, const StaffListScreen()),
+              ),
+              _DrawerItem(
+                icon: Icons.star,
+                label: 'نظام الولاء والنقاط',
+                onTap: () => _navigate(context, const LoyaltyAdminScreen()),
               ),
             ],
             const Divider(),

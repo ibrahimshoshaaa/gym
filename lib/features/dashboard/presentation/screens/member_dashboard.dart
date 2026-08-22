@@ -7,6 +7,8 @@ import '../../../attendance/presentation/screens/member_qr_screen.dart';
 import '../../../attendance/presentation/screens/my_attendance_screen.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../classes/presentation/screens/classes_schedule_screen.dart';
+import '../../../loyalty/presentation/providers/loyalty_provider.dart';
+import '../../../loyalty/presentation/screens/my_points_screen.dart';
 import '../../../members/presentation/providers/members_provider.dart';
 
 /// داشبورد العضو - عرض بسيط لحالة اشتراكه، وصول سريع لكوده وحجز الكلاسات
@@ -123,6 +125,79 @@ class MemberDashboard extends ConsumerWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+              // بطاقة النقاط
+              Consumer(
+                builder: (context, ref, _) {
+                  final loyaltyAsync = ref.watch(myLoyaltyProvider);
+                  final points = loyaltyAsync.valueOrNull?.totalPoints ?? 0;
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const MyPointsScreen())),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFFD4A017).withValues(alpha: 0.15),
+                            const Color(0xFFB8860B).withValues(alpha: 0.08),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                            color: GoldPalette.gold.withValues(alpha: 0.35)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.star,
+                              color: GoldPalette.gold, size: 28),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'نقاطي',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark
+                                      ? GoldPalette.darkTextSecondary
+                                      : GoldPalette.lightTextSecondary,
+                                ),
+                              ),
+                              Text(
+                                '$points نقطة',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: GoldPalette.gold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          const Icon(Icons.card_giftcard,
+                              color: GoldPalette.gold),
+                          const SizedBox(width: 4),
+                          Text(
+                            'متجر الهدايا',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark
+                                  ? GoldPalette.darkTextSecondary
+                                  : GoldPalette.lightTextSecondary,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.chevron_right,
+                              color: GoldPalette.gold, size: 20),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
               const SizedBox(height: 20),
               GridView.count(
                 crossAxisCount: 2,
@@ -149,6 +224,12 @@ class MemberDashboard extends ConsumerWidget {
                     label: 'سجل حضوري',
                     isDark: isDark,
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyAttendanceScreen())),
+                  ),
+                  _MemberAction(
+                    icon: Icons.star,
+                    label: 'نقاطي والهدايا',
+                    isDark: isDark,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyPointsScreen())),
                   ),
                 ],
               ),

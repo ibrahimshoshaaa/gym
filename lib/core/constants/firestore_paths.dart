@@ -17,6 +17,12 @@ class FirestorePaths {
   static String debts(String gymId) => 'gyms/$gymId/debts';
   static String expenses(String gymId) => 'gyms/$gymId/expenses';
 
+  static String loyaltySummary(String gymId, String memberId) =>
+      'gyms/$gymId/members/$memberId/loyalty/summary';
+  static String loyaltyTransactions(String gymId, String memberId) =>
+      'gyms/$gymId/members/$memberId/loyalty/summary/transactions';
+  static String rewards(String gymId) => 'gyms/$gymId/rewards';
+
   static String member(String gymId, String memberId) =>
       '${members(gymId)}/$memberId';
   static String subscription(String gymId, String subId) =>
