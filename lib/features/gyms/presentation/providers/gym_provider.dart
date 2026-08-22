@@ -33,9 +33,75 @@ class GymController extends StateNotifier<AsyncValue<void>> {
 
   GymController(this._repository, this._authRepository) : super(const AsyncData(null));
 
-  /// إنشاء جيم جديد + أدمن للجيم في خطوة واحدة
+  /// Self Sign Up: العميل يسجل جيمه بنفسه (مع 14 يوم تجربة)
+  Future<bool> selfSignUp({
+    required String gymName,
+    required String gymPhone,
+    String? gymAddress,
+    required GymPlan plan,
+    required DateTime trialEnd,
+    required String adminName,
+    required String adminEmail,
+    required String adminPassword,
+    required String adminPhone,
+  }) async {
+    state = const AsyncLoading();
+
+    // الخطوة ١: إنشاء الجيم مع بيانات التجربة
+    final gymResult = await _repository.createGym(
+      name: gymName,
+      ownerName: adminName,
+      phone: gymPhone,
+      licenseEnd: trialEnd, // الترخيص = نهاية التجربة (مؤقت)
+      plan: plan,
+      address: gymAddress,
+    );
+
+    return gymResult.fold(
+      (failure) {
+        state = AsyncError(failure.message, StackTrace.current);
+        return false;
+      },
+      (gym) async {
+        // الخطوة ٢: تحديث الجيم بـ isTrial = true
+        final updatedGym = gym.copyWith(
+          isTrial: true,
+          trialEndDate: trialEnd,
+        );
+        await _repository.updateGym(updatedGym);
+
+        // الخطوة ٣: إنشاء حساب الأدمن
+        final adminResult = await _authRepository.registerStaff(
+          gymId: gym.id,
+          name: adminName,
+          email: adminEmail,
+          password: adminPassword,
+          phone: adminPhone,
+          role: UserRole.admin,
+        );
+
+        return adminResult.fold(
+          (failure) {
+            state = AsyncError(
+              "⚠️ الجيم "${gym.name}" اتسجل بنجاح (كود: ${gym.id})\n"
+              "لكن في مشكلة في إنشاء الأدمن: ${failure.message}\n"
+              "الأدمن ممكن يتضاف يدويًا من Firebase Console.",
+              StackTrace.current,
+            );
+            return false;
+          },
+          (_) {
+            state = const AsyncData(null);
+            return true;
+          },
+        );
+      },
+    );
+  }
+
+  /// إنشاء جيم جديد + أدمن للجيم في خطوة واحدة (للسوبر أدمن)
   Future<bool> createGymWithAdmin({
-    String? gymId,              // ← كود الجيم (اختياري)
+    String? gymId,
     required String name,
     required String ownerName,
     required String phone,
@@ -43,7 +109,6 @@ class GymController extends StateNotifier<AsyncValue<void>> {
     required GymPlan plan,
     String? email,
     String? address,
-    // بيانات الأدمن
     required String adminEmail,
     required String adminPassword,
     required String adminName,
@@ -51,7 +116,6 @@ class GymController extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncLoading();
 
-    // الخطوة ١: إنشاء الجيم
     final gymResult = await _repository.createGym(
       gymId: gymId,
       name: name,
@@ -69,7 +133,6 @@ class GymController extends StateNotifier<AsyncValue<void>> {
         return false;
       },
       (gym) async {
-        // الخطوة ٢: إنشاء حساب الأدمن للجيم ده
         final adminResult = await _authRepository.registerStaff(
           gymId: gym.id,
           name: adminName,
@@ -82,7 +145,7 @@ class GymController extends StateNotifier<AsyncValue<void>> {
         return adminResult.fold(
           (failure) {
             state = AsyncError(
-              "⚠️ الجيم \"${gym.name}\" اتضاف بنجاح (كود: ${gym.id})\n"
+              "⚠️ الجيم "${gym.name}" اتضاف بنجاح (كود: ${gym.id})\n"
               "لكن في مشكلة في إنشاء الأدمن: ${failure.message}\n"
               "الأدمن ممكن يتضاف يدويًا من Firebase Console.",
               StackTrace.current,
