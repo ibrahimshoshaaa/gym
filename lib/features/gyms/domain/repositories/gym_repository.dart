@@ -14,6 +14,7 @@ abstract class GymRepository {
 
   /// إنشاء جيم جديد
   Future<Either<Failure, Gym>> createGym({
+    String? gymId,           // ← كود الجيم (اختياري - لو مش مدخل بيتولد تلقائي)
     required String name,
     required String ownerName,
     required String phone,
