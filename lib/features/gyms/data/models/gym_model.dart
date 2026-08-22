@@ -17,6 +17,8 @@ class GymModel extends Gym {
     super.logoUrl,
     super.maxMembers,
     super.maxStaff,
+    super.isTrial,
+    super.trialEndDate,
   });
 
   factory GymModel.fromMap(Map<String, dynamic> map, String id) {
@@ -35,6 +37,10 @@ class GymModel extends Gym {
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       maxMembers: map['maxMembers'],
       maxStaff: map['maxStaff'],
+      isTrial: map['isTrial'] ?? false,
+      trialEndDate: map['trialEndDate'] != null
+          ? (map['trialEndDate'] as Timestamp).toDate()
+          : null,
     );
   }
 
@@ -53,6 +59,8 @@ class GymModel extends Gym {
       'createdAt': Timestamp.fromDate(createdAt),
       'maxMembers': maxMembers,
       'maxStaff': maxStaff,
+      'isTrial': isTrial,
+      'trialEndDate': trialEndDate != null ? Timestamp.fromDate(trialEndDate!) : null,
     };
   }
 
@@ -72,6 +80,8 @@ class GymModel extends Gym {
       createdAt: gym.createdAt,
       maxMembers: gym.maxMembers,
       maxStaff: gym.maxStaff,
+      isTrial: gym.isTrial,
+      trialEndDate: gym.trialEndDate,
     );
   }
 }
