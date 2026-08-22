@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/utils/validators.dart';
@@ -12,7 +13,8 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends ConsumerState<LoginScreen>
+    with SingleTickerProviderStateMixin {
   late final TabController _tabController;
 
   // Staff login
@@ -56,7 +58,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       next.whenOrNull(
         error: (error, _) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error.toString()), backgroundColor: AppColors.danger),
+            SnackBar(
+                content: Text(error.toString()),
+                backgroundColor: AppColors.danger),
           );
         },
       );
@@ -80,10 +84,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                       colors: [GoldPalette.goldLight, GoldPalette.goldDark],
                     ),
                     boxShadow: [
-                      BoxShadow(color: gold.withValues(alpha: 0.35), blurRadius: 24, spreadRadius: 2),
+                      BoxShadow(
+                          color: gold.withValues(alpha: 0.35),
+                          blurRadius: 24,
+                          spreadRadius: 2),
                     ],
                   ),
-                  child: const Icon(Icons.fitness_center, size: 42, color: Colors.black),
+                  child: const Icon(Icons.fitness_center,
+                      size: 42, color: Colors.black),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -92,7 +100,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.5,
-                    color: isDark ? GoldPalette.darkTextPrimary : GoldPalette.lightTextPrimary,
+                    color: isDark
+                        ? GoldPalette.darkTextPrimary
+                        : GoldPalette.lightTextPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -100,7 +110,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                   'إدارة الجيم',
                   style: TextStyle(
                     fontSize: 13,
-                    color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                    color: isDark
+                        ? GoldPalette.darkTextSecondary
+                        : GoldPalette.lightTextSecondary,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -108,7 +120,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                   margin: const EdgeInsets.symmetric(horizontal: 24),
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: isDark ? GoldPalette.darkSurfaceAlt : GoldPalette.lightSurfaceAlt,
+                    color: isDark
+                        ? GoldPalette.darkSurfaceAlt
+                        : GoldPalette.lightSurfaceAlt,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: TabBar(
@@ -120,8 +134,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                     indicatorSize: TabBarIndicatorSize.tab,
                     dividerColor: Colors.transparent,
                     labelColor: Colors.black,
-                    unselectedLabelColor: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
-                    labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                    unselectedLabelColor: isDark
+                        ? GoldPalette.darkTextSecondary
+                        : GoldPalette.lightTextSecondary,
+                    labelStyle:
+                        const TextStyle(fontWeight: FontWeight.bold),
                     tabs: const [
                       Tab(text: 'أدمن / موظف'),
                       Tab(text: 'عضو'),
@@ -132,8 +149,68 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildStaffLoginForm(isLoading, isDark),
+                      _buildStaffLoginForm(isLoading, isDark, gold),
                       _buildMemberLoginForm(isLoading, isDark),
+                    ],
+                  ),
+                ),
+                // ── زرار التسجيل ──
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                              child: Divider(
+                                  color: isDark
+                                      ? GoldPalette.darkTextSecondary
+                                      : GoldPalette.lightTextSecondary)),
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              'ليس لديك حساب؟',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark
+                                    ? GoldPalette.darkTextSecondary
+                                    : GoldPalette.lightTextSecondary,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                              child: Divider(
+                                  color: isDark
+                                      ? GoldPalette.darkTextSecondary
+                                      : GoldPalette.lightTextSecondary)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        onPressed: () => context.push('/signup'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 48),
+                          side: BorderSide(color: gold),
+                          foregroundColor: gold,
+                        ),
+                        child: const Text(
+                          'ابدأ ١٤ يوم مجاني 🎉',
+                          style: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'بدون بطاقة ائتمان',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark
+                              ? GoldPalette.darkTextSecondary
+                              : GoldPalette.lightTextSecondary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -143,9 +220,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
               top: 4,
               left: 4,
               child: IconButton(
-                onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
+                onPressed: () =>
+                    ref.read(themeModeProvider.notifier).toggle(),
                 icon: Icon(
-                  isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                  isDark
+                      ? Icons.light_mode_outlined
+                      : Icons.dark_mode_outlined,
                   color: gold,
                 ),
                 tooltip: isDark ? 'الوضع الفاتح' : 'الوضع الداكن',
@@ -157,7 +237,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     );
   }
 
-  Widget _buildStaffLoginForm(bool isLoading, bool isDark) {
+  Widget _buildStaffLoginForm(bool isLoading, bool isDark, Color gold) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Form(
@@ -183,8 +263,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                 labelText: 'كلمة المرور',
                 prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureStaffPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                  onPressed: () => setState(() => _obscureStaffPassword = !_obscureStaffPassword),
+                  icon: Icon(_obscureStaffPassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined),
+                  onPressed: () => setState(
+                      () => _obscureStaffPassword = !_obscureStaffPassword),
                 ),
               ),
               validator: Validators.password,
@@ -194,8 +277,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
               onPressed: isLoading ? null : _handleStaffLogin,
               child: isLoading
                   ? const SizedBox(
-                      height: 20, width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.black))
                   : const Text('تسجيل الدخول'),
             ),
           ],
@@ -240,8 +325,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                 labelText: 'كلمة المرور',
                 prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureMemberPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                  onPressed: () => setState(() => _obscureMemberPassword = !_obscureMemberPassword),
+                  icon: Icon(_obscureMemberPassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined),
+                  onPressed: () => setState(
+                      () => _obscureMemberPassword = !_obscureMemberPassword),
                 ),
               ),
               validator: Validators.password,
@@ -250,19 +338,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: (isDark ? GoldPalette.gold : GoldPalette.goldDark).withValues(alpha: 0.1),
+                color: (isDark ? GoldPalette.gold : GoldPalette.goldDark)
+                    .withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, size: 16, color: isDark ? GoldPalette.goldLight : GoldPalette.goldDark),
+                  Icon(Icons.info_outline,
+                      size: 16,
+                      color: isDark
+                          ? GoldPalette.goldLight
+                          : GoldPalette.goldDark),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'أول مرة تدخل، كلمة المرور هي رقم موبايلك، وهيطلب منك تغيّرها.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                        color: isDark
+                            ? GoldPalette.darkTextSecondary
+                            : GoldPalette.lightTextSecondary,
                       ),
                     ),
                   ),
@@ -274,8 +369,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
               onPressed: isLoading ? null : _handleMemberLogin,
               child: isLoading
                   ? const SizedBox(
-                      height: 20, width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.black))
                   : const Text('دخول'),
             ),
           ],
