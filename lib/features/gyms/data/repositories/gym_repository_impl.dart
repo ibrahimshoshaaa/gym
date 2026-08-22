@@ -54,6 +54,7 @@ class GymRepositoryImpl implements GymRepository {
 
   @override
   Future<Either<Failure, Gym>> createGym({
+    String? gymId,
     required String name,
     required String ownerName,
     required String phone,
@@ -66,11 +67,12 @@ class GymRepositoryImpl implements GymRepository {
     int? maxStaff,
   }) async {
     try {
-      final gymId = _uuid.v4().substring(0, 8);
+      // لو المستخدم مدخلش كود، نولد واحد تلقائي
+      final id = gymId?.trim().isNotEmpty == true ? gymId!.trim() : _uuid.v4().substring(0, 8);
       final now = DateTime.now();
 
       final gym = GymModel(
-        id: gymId,
+        id: id,
         name: name,
         ownerName: ownerName,
         phone: phone,
@@ -86,7 +88,7 @@ class GymRepositoryImpl implements GymRepository {
         maxStaff: maxStaff ?? _defaultMaxStaff(plan),
       );
 
-      await _gymsCollection.doc(gymId).set(gym.toMap());
+      await _gymsCollection.doc(id).set(gym.toMap());
       return Right(gym);
     } catch (_) {
       return const Left(ServerFailure());
