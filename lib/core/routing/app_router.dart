@@ -45,7 +45,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final authAsync = ref.read(authStateProvider);
       final isLoggingIn = state.matchedLocation == '/login';
       final isSigningUp = state.matchedLocation == '/signup';
-      final isWelcome = state.matchedLocation == '/welcome';
+      final isWelcome = state.matchedLocation == '/welcome'; // legacy
       final isChangingPassword = state.matchedLocation == '/change-password';
       final isLicenseExpired = state.matchedLocation == '/license-expired';
       final isPayment = state.matchedLocation == '/payment';
@@ -60,7 +60,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // لو مش مسجل دخول → روح Welcome (مش Login على طول)
       if (!isLoggedIn) {
         if (isWelcome || isLoggingIn || isSigningUp) return null;
-        return '/welcome';
+        return '/login';
       }
 
       // لو مسجل دخول وعلى شاشات الـ onboarding → روح للرئيسية
