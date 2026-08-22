@@ -16,11 +16,20 @@ class AddGymScreen extends ConsumerStatefulWidget {
 
 class _AddGymScreenState extends ConsumerState<AddGymScreen> {
   final _formKey = GlobalKey<FormState>();
+
+  // بيانات الجيم
   final _nameController = TextEditingController();
   final _ownerNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _addressController = TextEditingController();
+
+  // بيانات الأدمن
+  final _adminNameController = TextEditingController();
+  final _adminEmailController = TextEditingController();
+  final _adminPasswordController = TextEditingController();
+  final _adminPhoneController = TextEditingController();
+  bool _obscureAdminPassword = true;
 
   GymPlan _selectedPlan = GymPlan.basic;
   int _licenseMonths = 12;
@@ -32,6 +41,10 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
     _phoneController.dispose();
     _emailController.dispose();
     _addressController.dispose();
+    _adminNameController.dispose();
+    _adminEmailController.dispose();
+    _adminPasswordController.dispose();
+    _adminPhoneController.dispose();
     super.dispose();
   }
 
@@ -45,15 +58,20 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
       next.whenOrNull(
         error: (error, _) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error.toString()), backgroundColor: AppColors.danger),
+            SnackBar(
+              content: Text(error.toString()),
+              backgroundColor: AppColors.danger,
+              duration: const Duration(seconds: 6),
+            ),
           );
         },
         data: (_) {
           if (previous is AsyncLoading) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('✅ الجيم اتضاف بنجاح!'),
+                content: Text('✅ الجيم والأدمن اتضافوا بنجاح!'),
                 backgroundColor: AppColors.success,
+                duration: Duration(seconds: 3),
               ),
             );
             context.pop();
@@ -71,6 +89,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // ===== بيانات الجيم =====
               Text(
                 'بيانات الجيم',
                 style: TextStyle(
@@ -102,7 +121,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(
-                  labelText: 'رقم التليفون *',
+                  labelText: 'رقم التليفون العام *',
                   prefixIcon: Icon(Icons.phone),
                 ),
                 validator: Validators.phone,
@@ -112,7 +131,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
-                  labelText: 'البريد الإلكتروني (اختياري)',
+                  labelText: 'البريد الإلكتروني العام (اختياري)',
                   prefixIcon: Icon(Icons.email),
                 ),
                 validator: (v) => v?.isEmpty ?? true ? null : Validators.email(v),
@@ -125,7 +144,10 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                   prefixIcon: Icon(Icons.location_on),
                 ),
               ),
+
               const SizedBox(height: 24),
+
+              // ===== الخطة والترخيص =====
               Text(
                 'الخطة والترخيص',
                 style: TextStyle(
@@ -170,6 +192,71 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                   ),
                 ],
               ),
+
+              const SizedBox(height: 32),
+
+              // ===== بيانات الأدمن =====
+              Text(
+                'بيانات أدمن الجيم',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: gold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'هيتم إنشاء حساب أدمن للجيم تلقائيًا',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _adminNameController,
+                decoration: const InputDecoration(
+                  labelText: 'اسم الأدمن *',
+                  prefixIcon: Icon(Icons.person_outline),
+                ),
+                validator: (v) => v?.isEmpty ?? true ? 'مطلوب' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _adminEmailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'إيميل الأدمن *',
+                  prefixIcon: Icon(Icons.email_outlined),
+                  hintText: 'مثال: admin@powergym.com',
+                ),
+                validator: Validators.email,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _adminPasswordController,
+                obscureText: _obscureAdminPassword,
+                decoration: InputDecoration(
+                  labelText: 'باسورد الأدمن *',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureAdminPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                    onPressed: () => setState(() => _obscureAdminPassword = !_obscureAdminPassword),
+                  ),
+                ),
+                validator: Validators.password,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _adminPhoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'تليفون الأدمن *',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                ),
+                validator: Validators.phone,
+              ),
+
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: gymState.isLoading ? null : _submit,
@@ -179,7 +266,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
                       )
-                    : const Text('إنشاء الجيم'),
+                    : const Text('إنشاء الجيم والأدمن'),
               ),
             ],
           ),
@@ -193,7 +280,8 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
 
     final licenseEnd = DateTime.now().add(Duration(days: _licenseMonths * 30));
 
-    ref.read(gymControllerProvider.notifier).createGym(
+    ref.read(gymControllerProvider.notifier).createGymWithAdmin(
+      // بيانات الجيم
       name: _nameController.text.trim(),
       ownerName: _ownerNameController.text.trim(),
       phone: _phoneController.text.trim(),
@@ -201,6 +289,11 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
       plan: _selectedPlan,
       email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
       address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
+      // بيانات الأدمن
+      adminEmail: _adminEmailController.text.trim(),
+      adminPassword: _adminPasswordController.text,
+      adminName: _adminNameController.text.trim(),
+      adminPhone: _adminPhoneController.text.trim(),
     );
   }
 }
