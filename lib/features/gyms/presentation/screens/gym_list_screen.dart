@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -140,6 +141,44 @@ class _GymCard extends ConsumerWidget {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              // كود الجيم مع زرار نسخ
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: gold.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: gold.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.key, size: 14, color: gold),
+                    const SizedBox(width: 6),
+                    Text(
+                      'كود الجيم: ${gym.id}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: gold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: gym.id));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('✅ كود الجيم "${gym.id}" اتنسخ!'),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      child: Icon(Icons.copy, size: 16, color: gold),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 8),
               Text('المالك: ${gym.ownerName}', style: TextStyle(color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary)),
