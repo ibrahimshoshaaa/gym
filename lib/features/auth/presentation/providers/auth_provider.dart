@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/notification_provider.dart';
-import '../../../gyms/domain/repositories/gym_repository.dart';
+import '../../../gyms/domain/entities/gym.dart';
 import '../../../gyms/presentation/providers/gym_provider.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/app_user.dart';
