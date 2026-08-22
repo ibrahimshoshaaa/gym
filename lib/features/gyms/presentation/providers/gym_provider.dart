@@ -222,6 +222,21 @@ class GymController extends StateNotifier<AsyncValue<void>> {
       },
     );
   }
+
+  Future<bool> updateGym(Gym gym) async {
+    state = const AsyncLoading();
+    final result = await _repository.updateGym(gym);
+    return result.fold(
+      (failure) {
+        state = AsyncError(failure.message, StackTrace.current);
+        return false;
+      },
+      (_) {
+        state = const AsyncData(null);
+        return true;
+      },
+    );
+  }
 }
 
 final gymControllerProvider = StateNotifierProvider<GymController, AsyncValue<void>>((ref) {

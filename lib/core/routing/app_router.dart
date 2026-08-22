@@ -10,6 +10,7 @@ import '../../features/dashboard/presentation/screens/member_dashboard.dart';
 import '../../features/dashboard/presentation/screens/staff_dashboard.dart';
 import '../../features/gyms/domain/entities/gym.dart';
 import '../../features/gyms/presentation/screens/add_gym_screen.dart';
+import '../../features/gyms/presentation/screens/edit_gym_screen.dart';
 import '../../features/gyms/presentation/screens/gym_list_screen.dart';
 import '../../features/gyms/presentation/screens/license_expired_screen.dart';
 import '../../features/onboarding/presentation/screens/self_signup_screen.dart';
@@ -130,6 +131,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/gyms/add',
         builder: (context, state) => const AddGymScreen(),
+      ),
+      GoRoute(
+        path: '/gyms/:gymId/edit',
+        builder: (context, state) {
+          final gymId = state.pathParameters['gymId']!;
+          return EditGymScreen(gymId: gymId);
+        },
       ),
       GoRoute(
         path: '/',

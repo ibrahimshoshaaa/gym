@@ -216,23 +216,32 @@ class _GymCard extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => _showExtendDialog(context, ref, gym),
-                      icon: const Icon(Icons.more_time, size: 18),
-                      label: const Text('تمديد'),
+                      onPressed: () => context.push('/gyms/${gym.id}/edit'),
+                      icon: const Icon(Icons.edit, size: 18),
+                      label: const Text('تعديل'),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => _showToggleDialog(context, ref, gym),
-                      icon: Icon(
-                        gym.isActive ? Icons.block : Icons.check_circle,
-                        size: 18,
-                      ),
-                      label: Text(gym.isActive ? 'تعطيل' : 'تفعيل'),
+                      onPressed: () => _showExtendDialog(context, ref, gym),
+                      icon: const Icon(Icons.more_time, size: 18),
+                      label: const Text('تمديد'),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _showToggleDialog(context, ref, gym),
+                  icon: Icon(
+                    gym.isActive ? Icons.block : Icons.check_circle,
+                    size: 18,
+                  ),
+                  label: Text(gym.isActive ? 'تعطيل' : 'تفعيل'),
+                ),
               ),
             ],
           ),
