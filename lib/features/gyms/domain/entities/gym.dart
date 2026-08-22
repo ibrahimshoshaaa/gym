@@ -50,8 +50,10 @@ class Gym extends Equatable {
   final bool isActive;
   final GymPlan plan;
   final DateTime createdAt;
-  final int? maxMembers; // حد أقصى للأعضاء حسب الخطة
-  final int? maxStaff;   // حد أقصى للموظفين
+  final int? maxMembers;
+  final int? maxStaff;
+  final bool isTrial;         // ← هل الجيم في فترة تجريبية؟
+  final DateTime? trialEndDate; // ← نهاية الفترة التجريبية
 
   const Gym({
     required this.id,
@@ -68,15 +70,26 @@ class Gym extends Equatable {
     this.logoUrl,
     this.maxMembers,
     this.maxStaff,
+    this.isTrial = false,
+    this.trialEndDate,
   });
 
   /// هل الترخيص ساري؟
   bool get isLicenseValid {
     final now = DateTime.now();
-    return isActive && 
-           !now.isBefore(licenseStart) && 
+    return isActive &&
+           !now.isBefore(licenseStart) &&
            !now.isAfter(licenseEnd);
   }
+
+  /// هل الفترة التجريبية سارية؟
+  bool get isTrialActive {
+    if (!isTrial || trialEndDate == null) return false;
+    return DateTime.now().isBefore(trialEndDate!);
+  }
+
+  /// هل الجيم شغال (ترخيص ساري أو تجربة سارية)؟
+  bool get isOperational => isLicenseValid || isTrialActive;
 
   /// عدد الأيام المتبقية في الترخيص
   int get daysRemaining {
@@ -85,17 +98,30 @@ class Gym extends Equatable {
     return licenseEnd.difference(now).inDays;
   }
 
+  /// عدد الأيام المتبقية في التجربة
+  int? get trialDaysRemaining {
+    if (!isTrial || trialEndDate == null) return null;
+    if (DateTime.now().isAfter(trialEndDate!)) return 0;
+    return trialEndDate!.difference(DateTime.now()).inDays;
+  }
+
   /// هل الترخيص قارب على الانتهاء (أقل من ٧ أيام)؟
   bool get isExpiringSoon {
     return isLicenseValid && daysRemaining <= 7 && plan != GymPlan.lifetime;
   }
 
-  /// هل الترخيص منتهي؟
-  bool get isExpired {
-    return !isLicenseValid;
+  /// هل التجربة قاربة على الانتهاء (أقل من ٣ أيام)؟
+  bool get isTrialExpiringSoon {
+    if (!isTrialActive) return false;
+    final days = trialDaysRemaining ?? 0;
+    return days > 0 && days <= 3;
   }
 
-  /// نسخة معدلة — مفيدة في الـ copyWith
+  /// هل الترخيص منتهي؟
+  bool get isExpired {
+    return !isOperational;
+  }
+
   Gym copyWith({
     String? id,
     String? name,
@@ -111,6 +137,8 @@ class Gym extends Equatable {
     DateTime? createdAt,
     int? maxMembers,
     int? maxStaff,
+    bool? isTrial,
+    DateTime? trialEndDate,
   }) {
     return Gym(
       id: id ?? this.id,
@@ -127,6 +155,8 @@ class Gym extends Equatable {
       createdAt: createdAt ?? this.createdAt,
       maxMembers: maxMembers ?? this.maxMembers,
       maxStaff: maxStaff ?? this.maxStaff,
+      isTrial: isTrial ?? this.isTrial,
+      trialEndDate: trialEndDate ?? this.trialEndDate,
     );
   }
 
@@ -134,6 +164,6 @@ class Gym extends Equatable {
   List<Object?> get props => [
         id, name, ownerName, phone, email, address, logoUrl,
         licenseStart, licenseEnd, isActive, plan, createdAt,
-        maxMembers, maxStaff,
+        maxMembers, maxStaff, isTrial, trialEndDate,
       ];
 }
