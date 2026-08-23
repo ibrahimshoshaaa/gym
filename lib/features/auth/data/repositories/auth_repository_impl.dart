@@ -293,9 +293,10 @@ class AuthRepositoryImpl implements AuthRepository {
         notes: notes,
       );
 
-      // الكتابة هنا بجلسة الأدمن الأساسية (مش المعزولة) لإن قاعدة الأمان
-      // لسجل موظف بتشترط isAdmin() صراحة
-      await _usersCollection.doc(uid).set(newUser.toMap());
+      // نكتب بالجلسة المعزولة (isolatedAuth) عشان في حالة self signup
+      // مفيش جلسة أدمن أساسية — والـ rule بتسمح لـ uid يكتب سجله هو
+      final isolatedFirestore = FirebaseFirestore.instanceFor(app: isolatedAuth.app);
+      await isolatedFirestore.collection('users').doc(uid).set(newUser.toMap());
       await isolatedAuth.signOut();
       return Right(newUser);
     } on fb.FirebaseAuthException catch (e) {
