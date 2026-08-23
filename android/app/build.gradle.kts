@@ -51,9 +51,25 @@ android {
 
     buildTypes {
         release {
-            // بنستخدم المفتاح الثابت اللي عرفناه فوق (debugFixed) بدل
-            // debug العادي - عشان التوقيع يفضل ثابت بين كل الـ builds
             signingConfig = signingConfigs.getByName("debugFixed")
+
+            // ✅ تصغير الكود وحذف اللي مش محتاجه
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+
+    // ✅ APK منفصل لكل معالج - بيقلل الحجم من 70MB لـ 25-35MB
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = false
         }
     }
 }
