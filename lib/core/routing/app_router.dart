@@ -74,6 +74,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         final gymAsync = ref.read(currentGymProvider);
         final gym = gymAsync.valueOrNull;
 
+        // لو البيانات لسه بتتحمل → استنى ومتعملش redirect
+        if (gymAsync.isLoading) return null;
+
         if (gym == null) {
           if (!isLicenseExpired) return '/license-expired';
           return null;
