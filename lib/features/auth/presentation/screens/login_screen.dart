@@ -67,6 +67,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     });
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Stack(
           children: [
