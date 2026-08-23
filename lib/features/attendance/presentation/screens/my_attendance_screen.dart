@@ -60,7 +60,16 @@ class _HistoryList extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const Center(child: Text('حصلت مشكلة في تحميل السجل')),
+      error: (e, __) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'خطأ: $e',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.red, fontSize: 12),
+          ),
+        ),
+      ),
     );
   }
 }
