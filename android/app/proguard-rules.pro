@@ -2,6 +2,10 @@
 -keep class io.flutter.** { *; }
 -keep class io.flutter.plugins.** { *; }
 
+# Flutter Play Store Split (R8 missing classes fix)
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.** { *; }
+
 # Firebase
 -keep class com.google.firebase.** { *; }
 -keep class com.google.android.gms.** { *; }
@@ -33,6 +37,3 @@
 -keepattributes *Annotation*
 -keepattributes Signature
 -keepattributes Exceptions
-
-# Prevent stripping R8 from removing necessary classes
--dontoptimize
