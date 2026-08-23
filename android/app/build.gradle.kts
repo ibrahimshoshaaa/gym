@@ -62,16 +62,6 @@ android {
             )
         }
     }
-
-    // ✅ APK منفصل لكل معالج - بيقلل الحجم من 70MB لـ 25-35MB
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("arm64-v8a", "armeabi-v7a", "x86_64")
-            isUniversalApk = false
-        }
-    }
 }
 
 kotlin {
