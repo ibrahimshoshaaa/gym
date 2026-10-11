@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -110,7 +111,7 @@ class _AddStaffScreenState extends ConsumerState<AddStaffScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GymScaffold(maxWidth: 720,
       appBar: AppBar(title: Text(widget.isEditMode ? 'تعديل بيانات الموظف' : 'إضافة موظف جديد')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -119,14 +120,16 @@ class _AddStaffScreenState extends ConsumerState<AddStaffScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextFormField(
+              const GymSection(title: 'بيانات فريق العمل', subtitle: 'حدد بيانات الدخول والدور قبل حفظ حساب الموظف.'),
+
+              GymTextField(
                 controller: _nameController,
                 enabled: !widget.isEditMode,
                 decoration: const InputDecoration(labelText: 'الاسم الكامل'),
                 validator: (v) => Validators.required(v, 'الاسم'),
               ),
               const SizedBox(height: 16),
-              TextFormField(
+              GymTextField(
                 controller: _phoneController,
                 enabled: !widget.isEditMode,
                 keyboardType: TextInputType.phone,
@@ -135,14 +138,14 @@ class _AddStaffScreenState extends ConsumerState<AddStaffScreen> {
               ),
               const SizedBox(height: 16),
               if (!widget.isEditMode) ...[
-                TextFormField(
+                GymTextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(labelText: 'البريد الإلكتروني (لتسجيل الدخول)'),
                   validator: Validators.email,
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
+                GymTextField(
                   controller: _passwordController,
                   obscureText: true,
                   decoration: const InputDecoration(labelText: 'كلمة مرور مبدئية'),
@@ -150,6 +153,7 @@ class _AddStaffScreenState extends ConsumerState<AddStaffScreen> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<UserRole>(
+                    isExpanded: true,
                   initialValue: _selectedRole,
                   decoration: const InputDecoration(labelText: 'الدور الوظيفي'),
                   items: const [
@@ -162,18 +166,18 @@ class _AddStaffScreenState extends ConsumerState<AddStaffScreen> {
                 ),
                 const SizedBox(height: 16),
               ],
-              TextFormField(
+              GymTextField(
                 controller: _salaryController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'المرتب الشهري (اختياري)'),
               ),
               const SizedBox(height: 16),
-              TextFormField(
+              GymTextField(
                 controller: _addressController,
                 decoration: const InputDecoration(labelText: 'العنوان (اختياري)'),
               ),
               const SizedBox(height: 16),
-              TextFormField(
+              GymTextField(
                 controller: _notesController,
                 maxLines: 3,
                 decoration: const InputDecoration(labelText: 'ملاحظات (اختياري)'),

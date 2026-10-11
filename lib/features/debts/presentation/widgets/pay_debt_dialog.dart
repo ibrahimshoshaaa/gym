@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -70,7 +71,7 @@ class _PayDebtDialogState extends ConsumerState<PayDebtDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return GymDialog(
       title: Text('تسديد مديونية ${widget.debt.memberName}'),
       content: Form(
         key: _formKey,
@@ -81,7 +82,7 @@ class _PayDebtDialogState extends ConsumerState<PayDebtDialog> {
             Text('المتبقي: ${widget.debt.remainingAmount.toStringAsFixed(0)} ج.م',
                 style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.danger)),
             const SizedBox(height: 16),
-            TextFormField(
+            GymTextField(
               controller: _amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: 'المبلغ المسدد (ج.م)'),
@@ -104,3 +105,4 @@ class _PayDebtDialogState extends ConsumerState<PayDebtDialog> {
     );
   }
 }
+

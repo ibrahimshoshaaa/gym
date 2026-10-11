@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -68,7 +69,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
             showDialog(
               context: context,
               barrierDismissible: false,
-              builder: (context) => AlertDialog(
+              builder: (context) => GymDialog(
                 title: const Row(
                   children: [
                     Icon(Icons.check_circle, color: AppColors.success),
@@ -97,7 +98,12 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
       );
     });
 
-    return Scaffold(
+    if (!const bool.fromEnvironment('ENABLE_SELF_SIGNUP')) {
+      return GymScaffold(maxWidth: 620, appBar: AppBar(title: const Text('إنشاء حساب جيم')),
+        body: GymEmptyState(title: 'خلّينا نجهّز جيمك', message: 'حسابات الجيمات الجديدة بتتفعّل عن طريق إدارة النظام. لو حسابك جاهز، ارجع لتسجيل الدخول.',
+          icon: Icons.apartment_outlined, actionLabel: 'تسجيل الدخول', onAction: () => context.go('/login')));
+    }
+    return GymScaffold(maxWidth: 720,
       appBar: AppBar(
         title: const Text('سجّل جيمك'),
         leading: IconButton(
@@ -112,6 +118,8 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const GymSection(title: 'ابدأ إدارة جيمك', subtitle: 'أكمل بيانات الجيم وحساب الإدارة في الخطوات التالية.'),
+
               // ===== بيانات الجيم =====
               Text(
                 'بيانات الجيم',
@@ -122,7 +130,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              TextFormField(
+              GymTextField(
                 controller: _gymNameController,
                 decoration: const InputDecoration(
                   labelText: 'اسم الجيم *',
@@ -131,7 +139,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 validator: (v) => v?.isEmpty ?? true ? 'مطلوب' : null,
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _gymPhoneController,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(
@@ -141,7 +149,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 validator: Validators.phone,
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _gymAddressController,
                 decoration: const InputDecoration(
                   labelText: 'العنوان (اختياري)',
@@ -186,7 +194,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              TextFormField(
+              GymTextField(
                 controller: _adminNameController,
                 decoration: const InputDecoration(
                   labelText: 'اسمك الكامل *',
@@ -195,7 +203,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 validator: (v) => v?.isEmpty ?? true ? 'مطلوب' : null,
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _adminEmailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
@@ -206,7 +214,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 validator: Validators.email,
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _adminPhoneController,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(
@@ -216,7 +224,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 validator: Validators.phone,
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _adminPasswordController,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
@@ -230,7 +238,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 validator: Validators.password,
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _adminConfirmPasswordController,
                 obscureText: _obscureConfirmPassword,
                 decoration: InputDecoration(
@@ -317,7 +325,7 @@ class _PlanSelector extends StatelessWidget {
         final isSelected = plan == selected;
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
-          color: isSelected ? (isDark ? Colors.amber.withOpacity(0.1) : Colors.amber.withOpacity(0.05)) : null,
+          color: isSelected ? (isDark ? Colors.amber.withValues(alpha: 0.1) : Colors.amber.withValues(alpha: 0.05)) : null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
@@ -368,3 +376,4 @@ class _PlanSelector extends StatelessWidget {
     );
   }
 }
+

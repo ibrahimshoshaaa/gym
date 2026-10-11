@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -138,7 +139,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
     return showDialog<String>(
       context: context,
       builder: (context) {
-        return AlertDialog(
+        return GymDialog(
           title: const Text('اختار العضو'),
           content: SizedBox(
             width: double.maxFinite,
@@ -148,7 +149,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
                 itemCount: members.length,
                 itemBuilder: (context, index) {
                   final member = members[index];
-                  return ListTile(
+                  return GymListTile(
                     leading: CircleAvatar(
                       backgroundImage: member.photoUrl != null
                           ? NetworkImage(member.photoUrl!)
@@ -163,7 +164,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
                   );
                 },
               ),
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const GymLoading(),
               error: (_, __) => const Text('خطأ في تحميل الأعضاء'),
             ),
           ),
@@ -186,7 +187,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GymScaffold(
       appBar: AppBar(
         title: const Text('تسجيل حضور'),
         bottom: TabBar(

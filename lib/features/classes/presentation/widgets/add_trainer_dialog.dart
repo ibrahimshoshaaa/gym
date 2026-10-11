@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -82,7 +83,7 @@ class _AddTrainerDialogState extends ConsumerState<AddTrainerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return GymDialog(
       title: Text(widget.isEditMode ? 'تعديل بيانات المدرب' : 'إضافة مدرب'),
       content: Form(
         key: _formKey,
@@ -90,36 +91,36 @@ class _AddTrainerDialogState extends ConsumerState<AddTrainerDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextFormField(
+              GymTextField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'اسم المدرب'),
                 validator: (v) => Validators.required(v, 'الاسم'),
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(labelText: 'رقم الموبايل'),
                 validator: Validators.phone,
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _specialtyController,
                 decoration: const InputDecoration(labelText: 'التخصص (اختياري)'),
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _salaryController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'المرتب الشهري (اختياري)'),
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _addressController,
                 decoration: const InputDecoration(labelText: 'العنوان (اختياري)'),
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _notesController,
                 maxLines: 2,
                 decoration: const InputDecoration(labelText: 'ملاحظات (اختياري)'),
@@ -142,3 +143,4 @@ class _AddTrainerDialogState extends ConsumerState<AddTrainerDialog> {
     );
   }
 }
+

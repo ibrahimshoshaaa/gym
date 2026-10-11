@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -82,7 +83,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
       );
     });
 
-    return Scaffold(
+    return GymScaffold(maxWidth: 720,
       appBar: AppBar(title: const Text('إضافة جيم جديد')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -91,6 +92,8 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const GymSection(title: 'جيم جديد', subtitle: 'سجّل بيانات الجيم، ثم الترخيص وحساب الإدارة.'),
+
               // ===== بيانات الجيم =====
               Text(
                 'بيانات الجيم',
@@ -103,7 +106,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
               const SizedBox(height: 16),
 
               // كود الجيم (اختياري)
-              TextFormField(
+              GymTextField(
                 controller: _gymIdController,
                 decoration: const InputDecoration(
                   labelText: 'كود الجيم (اختياري)',
@@ -114,7 +117,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
               ),
               const SizedBox(height: 12),
 
-              TextFormField(
+              GymTextField(
                 controller: _nameController,
                 decoration: const InputDecoration(
                   labelText: 'اسم الجيم *',
@@ -123,7 +126,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                 validator: (v) => v?.isEmpty ?? true ? 'مطلوب' : null,
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _ownerNameController,
                 decoration: const InputDecoration(
                   labelText: 'اسم المالك *',
@@ -132,7 +135,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                 validator: (v) => v?.isEmpty ?? true ? 'مطلوب' : null,
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(
@@ -142,7 +145,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                 validator: Validators.phone,
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
@@ -152,7 +155,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                 validator: (v) => v?.isEmpty ?? true ? null : Validators.email(v),
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _addressController,
                 decoration: const InputDecoration(
                   labelText: 'العنوان (اختياري)',
@@ -190,7 +193,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      border: Border.all(color: gold.withOpacity(0.3)),
+                      border: Border.all(color: gold.withValues(alpha: 0.3)),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: DropdownButton<int>(
@@ -228,7 +231,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              TextFormField(
+              GymTextField(
                 controller: _adminNameController,
                 decoration: const InputDecoration(
                   labelText: 'اسم الأدمن *',
@@ -237,7 +240,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                 validator: (v) => v?.isEmpty ?? true ? 'مطلوب' : null,
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _adminEmailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
@@ -248,7 +251,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                 validator: Validators.email,
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _adminPasswordController,
                 obscureText: _obscureAdminPassword,
                 decoration: InputDecoration(
@@ -262,7 +265,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                 validator: Validators.password,
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _adminPhoneController,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(
@@ -330,7 +333,7 @@ class _PlanSelector extends StatelessWidget {
         final isSelected = plan == selected;
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
-          color: isSelected ? (isDark ? Colors.amber.withOpacity(0.1) : Colors.amber.withOpacity(0.05)) : null,
+          color: isSelected ? (isDark ? Colors.amber.withValues(alpha: 0.1) : Colors.amber.withValues(alpha: 0.05)) : null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
@@ -381,3 +384,4 @@ class _PlanSelector extends StatelessWidget {
     );
   }
 }
+

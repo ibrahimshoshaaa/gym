@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -92,7 +93,7 @@ class _AddClassScreenState extends ConsumerState<AddClassScreen> {
   Widget build(BuildContext context) {
     final trainersAsync = ref.watch(trainersStreamProvider);
 
-    return Scaffold(
+    return GymScaffold(maxWidth: 720,
       appBar: AppBar(title: const Text('إضافة كلاس جديد')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -101,7 +102,9 @@ class _AddClassScreenState extends ConsumerState<AddClassScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextFormField(
+              const GymSection(title: 'تفاصيل الحصة', subtitle: 'حدد المدرب والموعد وعدد الأماكن المتاحة للحجز.'),
+
+              GymTextField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'اسم الكلاس (مثال: كروس فيت)'),
                 validator: (v) => Validators.required(v, 'اسم الكلاس'),
@@ -112,7 +115,7 @@ class _AddClassScreenState extends ConsumerState<AddClassScreen> {
                   if (trainers.isEmpty) {
                     return Card(
                       color: AppColors.warning.withValues(alpha: 0.1),
-                      child: ListTile(
+                      child: GymListTile(
                         leading: const Icon(Icons.warning, color: AppColors.warning),
                         title: const Text('لا يوجد مدربين مسجلين بعد'),
                         subtitle: const Text('ضيف مدرب الأول عشان تقدر تعمل كلاس'),
@@ -127,6 +130,7 @@ class _AddClassScreenState extends ConsumerState<AddClassScreen> {
                     );
                   }
                   return DropdownButtonFormField<Trainer>(
+                    isExpanded: true,
                     initialValue: _selectedTrainer,
                     decoration: const InputDecoration(labelText: 'المدرب'),
                     items: trainers
@@ -139,10 +143,10 @@ class _AddClassScreenState extends ConsumerState<AddClassScreen> {
                 error: (_, __) => const Text('حصل خطأ في تحميل المدربين'),
               ),
               const SizedBox(height: 16),
-              Row(
+              GymFormRow(
                 children: [
                   Expanded(
-                    child: TextFormField(
+                    child: GymTextField(
                       controller: _durationController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(labelText: 'المدة (دقيقة)'),
@@ -151,7 +155,7 @@ class _AddClassScreenState extends ConsumerState<AddClassScreen> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: TextFormField(
+                    child: GymTextField(
                       controller: _capacityController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(labelText: 'السعة (عدد الأفراد)'),
@@ -187,3 +191,4 @@ class _AddClassScreenState extends ConsumerState<AddClassScreen> {
     );
   }
 }
+

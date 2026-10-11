@@ -1,3 +1,4 @@
+import '../../features/dashboard/presentation/screens/gym_workspace.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -154,16 +155,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 return const Scaffold(body: Center(child: CircularProgressIndicator()));
               }
 
-              switch (user.role) {
-                case UserRole.superAdmin:
-                  return const GymListScreen();
-                case UserRole.admin:
-                  return const AdminDashboard();
-                case UserRole.staff:
-                  return const StaffDashboard();
-                case UserRole.member:
-                  return const MemberDashboard();
-              }
+              return GymWorkspace(key: ValueKey(user.uid));
             },
           );
         },

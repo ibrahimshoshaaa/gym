@@ -1,3 +1,4 @@
+import 'package:gym_manager/features/attendance/presentation/providers/attendance_provider.dart';
 import 'package:gym_manager/core/theme/app_theme.dart';
 import 'package:gym_manager/features/dashboard/presentation/screens/admin_dashboard.dart';
 import 'package:gym_manager/features/members/presentation/providers/members_provider.dart';
@@ -35,6 +36,7 @@ void main() {
         currentUserProvider.overrideWithValue(AppUser(uid: 'admin', gymId: 'gym', name: 'إبراهيم محمد', phone: '01212345678', role: UserRole.admin, createdAt: DateTime(2026))),
         memberStatsProvider.overrideWithValue(AsyncData(MemberStats(total: 12345, active: 10000, expiringSoon: 345, expired: 2000))),
         openDebtsProvider.overrideWith((ref) => Stream.value([])),
+        todayAttendanceProvider.overrideWith((ref) => Stream.value([])),
       ], child: MaterialApp(theme: AppTheme.darkTheme, builder: (context, child) => MediaQuery(
         data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
         child: Directionality(textDirection: TextDirection.rtl, child: child!),

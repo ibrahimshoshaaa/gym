@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +14,9 @@ import 'features/auth/presentation/providers/auth_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(['Cairo'], await rootBundle.loadString('assets/fonts/OFL-Cairo.txt'));
+  });
   final prefs = await SharedPreferences.getInstance();
   await ApiClient.instance.initialize();
   runApp(ProviderScope(overrides: [sharedPreferencesProvider.overrideWithValue(prefs)], child: const GymManagerApp()));

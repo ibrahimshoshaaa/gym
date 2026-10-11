@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,7 +11,7 @@ class MemberLoginDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return GymDialog(
       scrollable: true,
       title: const Text('حساب العضو جاهز ✓'),
       content: Column(

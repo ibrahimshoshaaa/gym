@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -7,7 +8,8 @@ import '../providers/auth_provider.dart';
 /// شاشة إجبارية بعد الدخول بكلمة مرور مؤقتة - لازم يغيّر الباسورد قبل ما يقدر يوصل لأي حاجة تانية في
 /// التطبيق. الـ Router هو اللي بيوجّه هنا تلقائي (مفيش زرار رجوع)
 class ChangePasswordScreen extends ConsumerStatefulWidget {
-  const ChangePasswordScreen({super.key});
+  final bool requiredChange;
+  const ChangePasswordScreen({super.key, this.requiredChange = true});
 
   @override
   ConsumerState<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
@@ -39,6 +41,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('تم تغيير كلمة المرور ✅'), backgroundColor: AppColors.success),
       );
+      if (!widget.requiredChange && Navigator.canPop(context)) Navigator.pop(context);
       // الـ Router هيلاحظ mustChangePassword بقت false وينقلنا تلقائي
     }
   }
@@ -58,10 +61,10 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       );
     });
 
-    return Scaffold(
+    return GymScaffold(maxWidth: 620,
       appBar: AppBar(
-        title: const Text('تأمين حسابك'),
-        automaticallyImplyLeading: false,
+        title: Text(widget.requiredChange ? 'تأمين حسابك' : 'كلمة المرور'),
+        automaticallyImplyLeading: !widget.requiredChange,
         actions: [
           // نسيب زرار تسجيل خروج بس (مفيش أي طريقة تانية تخرج من الشاشة دي)
           IconButton(
@@ -81,19 +84,19 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 const SizedBox(height: 12),
                 const Icon(Icons.lock_reset, size: 56, color: AppColors.primary),
                 const SizedBox(height: 16),
-                const Text(
-                  'دي أول مرة تدخل بحسابك',
+                Text(
+                  widget.requiredChange ? 'خطوة واحدة لتأمين حسابك' : 'كلمة مرور جديدة',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'عشان حسابك يبقى آمن، لازم تحط كلمة مرور جديدة بدل كلمة المرور المؤقتة',
+                Text(
+                  widget.requiredChange ? 'اختار كلمة مرور مختلفة عن كلمة الدخول الأولى، من ٨ أحرف على الأقل.' : 'اختار كلمة مرور خاصة بيك وسهلة تفتكرها.',
                   style: TextStyle(color: AppColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 28),
-                TextFormField(
+                GymTextField(
                   controller: _newPasswordController,
                   obscureText: _obscure,
                   decoration: InputDecoration(
@@ -103,10 +106,16 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
-                  validator: Validators.password,
+                  validator: (value) {
+                    final validation = Validators.password(value);
+                    if (validation != null) return validation;
+                    final user = ref.read(currentUserProvider);
+                    if (widget.requiredChange && user?.isMember == true && value == user?.phone) return 'اختار كلمة مختلفة عن رقم الموبايل';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
+                GymTextField(
                   controller: _confirmController,
                   obscureText: _obscure,
                   decoration: const InputDecoration(labelText: 'تأكيد كلمة المرور'),

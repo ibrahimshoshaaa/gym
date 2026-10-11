@@ -10,11 +10,11 @@ enum UserRole {
   String get label {
     switch (this) {
       case UserRole.superAdmin:
-        return 'سوبر أدمن';
+        return 'مالك النظام';
       case UserRole.admin:
-        return 'أدمن';
+        return 'إدارة الجيم';
       case UserRole.staff:
-        return 'موظف';
+        return 'الاستقبال';
       case UserRole.member:
         return 'عضو';
     }
@@ -80,3 +80,4 @@ class AppUser extends Equatable {
         memberId, mustChangePassword, salary, address, notes,
       ];
 }
+

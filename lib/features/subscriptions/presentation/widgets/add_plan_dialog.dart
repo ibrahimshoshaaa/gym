@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -83,7 +84,7 @@ class _AddPlanDialogState extends ConsumerState<AddPlanDialog> {
   Future<void> _handleDelete() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => GymDialog(
         title: const Text('حذف الخطة'),
         content: const Text('الخطة هتتخفي من قائمة الخطط المتاحة، بس الاشتراكات القديمة المرتبطة بيها هتفضل زي ما هي.'),
         actions: [
@@ -112,34 +113,34 @@ class _AddPlanDialogState extends ConsumerState<AddPlanDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return GymDialog(
       title: Text(widget.isEditMode ? 'تعديل الخطة' : 'إضافة خطة اشتراك'),
       content: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextFormField(
+            GymTextField(
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'اسم الخطة (مثال: شهري)'),
               validator: (v) => Validators.required(v, 'الاسم'),
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            GymTextField(
               controller: _priceController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: 'السعر (ج.م)'),
               validator: (v) => Validators.positiveNumber(v, 'السعر'),
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            GymTextField(
               controller: _durationController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: 'المدة (بالأيام)'),
               validator: (v) => Validators.positiveNumber(v, 'المدة'),
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            GymTextField(
               controller: _visitsController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
@@ -170,3 +171,4 @@ class _AddPlanDialogState extends ConsumerState<AddPlanDialog> {
     );
   }
 }
+
