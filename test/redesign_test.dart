@@ -93,7 +93,7 @@ Future<void> mount(WidgetTester tester, Widget page, {double width = 320, double
     operationsApiProvider.overrideWithValue(ApiClient(baseUrl:'https://gym.example',client:MockClient((request)async{
       final memberData={'name':member.name,'phone':member.phone,'joinDate':DbTimestamp.fromDate(now).toJson(),'status':'active','subscriptionEnd':DbTimestamp.fromDate(now.add(const Duration(days:30))).toJson(),'visitsAllowed':12,'visitsUsed':4};
       final data=request.url.path=='/api/reports/summary'?{'subscriptionValue':1200,'outstanding':800}:request.url.path=='/api/reception'?{'members':[{'id':'m1','data':memberData}],'next':null}:request.url.path=='/api/notifications'?[{'id':'notice1','title':'اشتراكك قرب يخلص','body':'تذكير التجديد','date':DbTimestamp.fromDate(now).toJson(),'isRead':false}]:[{'id':'sub1','data':{'planName':'اشتراك شهري','paidAmount':400,'startDate':DbTimestamp.fromDate(now).toJson(),'endDate':DbTimestamp.fromDate(now.add(const Duration(days:30))).toJson(),'action':'subscribe','actorName':member.name,'date':DbTimestamp.fromDate(now).toJson()}}];
-      return http.Response(jsonEncode({'data':data}),200,headers:{'Content-Type':'application/json; charset=utf-8'});
+      return http.Response.bytes(utf8.encode(jsonEncode({'data':data})),200,headers:{'content-type':'application/json; charset=utf-8'});
     }))),
     currentUserProvider.overrideWithValue(user(role)),
     authStateProvider.overrideWith((ref) => Stream.value(user(role))),
