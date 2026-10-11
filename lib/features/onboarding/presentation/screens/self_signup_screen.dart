@@ -50,7 +50,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gold = GoldPalette.gold;
+    final gold = Theme.of(context).colorScheme.primary;
     final gymState = ref.watch(gymControllerProvider);
 
     ref.listen<AsyncValue<void>>(gymControllerProvider, (previous, next) {

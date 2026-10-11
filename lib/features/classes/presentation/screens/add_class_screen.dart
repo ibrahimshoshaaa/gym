@@ -181,7 +181,7 @@ class _AddClassScreenState extends ConsumerState<AddClassScreen> {
                 child: _isLoading
                     ? const SizedBox(
                         height: 20, width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : const Text('حفظ الكلاس'),
               ),
             ],

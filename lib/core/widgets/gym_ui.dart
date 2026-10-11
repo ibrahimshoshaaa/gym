@@ -165,7 +165,7 @@ class GymMetric extends StatelessWidget {
     required this.icon, this.color, this.hint, this.onTap});
   @override
   Widget build(BuildContext context) {
-    final tint = color ?? Theme.of(context).colorScheme.primary;
+    final tint = gymTone(context, color ?? Theme.of(context).colorScheme.primary);
     return Card(margin: EdgeInsets.zero, child: InkWell(onTap: onTap,
       borderRadius: BorderRadius.circular(22),
       child: Padding(padding: const EdgeInsets.all(20), child: Column(
@@ -185,7 +185,7 @@ class GymIcon extends StatelessWidget {
   const GymIcon({super.key, required this.icon, this.color});
   @override
   Widget build(BuildContext context) {
-    final tint = color ?? Theme.of(context).colorScheme.primary;
+    final tint = gymTone(context, color ?? Theme.of(context).colorScheme.primary);
     return Container(padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: tint.withValues(alpha: .12), borderRadius: BorderRadius.circular(16)),
       child: Icon(icon, color: tint, size: 24));
@@ -199,8 +199,8 @@ class GymBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-    decoration: BoxDecoration(color: color.withValues(alpha: .12), borderRadius: BorderRadius.circular(12)),
-    child: Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color, fontWeight: FontWeight.w700)),
+    decoration: BoxDecoration(color: gymTone(context, color).withValues(alpha: .12), borderRadius: BorderRadius.circular(12)),
+    child: Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: gymTone(context, color), fontWeight: FontWeight.w700)),
   );
 }
 
@@ -254,7 +254,7 @@ class GymLoading extends StatelessWidget {
   ));
 }
 
-class GymTextField extends StatelessWidget {
+class GymTextField extends StatefulWidget {
   final TextEditingController? controller;
   final InputDecoration decoration;
   final String? initialValue;
@@ -271,18 +271,24 @@ class GymTextField extends StatelessWidget {
     this.enabled = true, this.maxLength, this.maxLines = 1, this.textInputAction,
     this.onFieldSubmitted, this.autofillHints});
   @override
+  State<GymTextField> createState() => _GymTextFieldState();
+}
+
+class _GymTextFieldState extends State<GymTextField> {
+  bool _revealed = false;
+  @override
   Widget build(BuildContext context) {
-    final numeric = keyboardType == TextInputType.phone || keyboardType == TextInputType.number || keyboardType?.index == TextInputType.number.index;
-    final ltr = numeric || keyboardType == TextInputType.emailAddress || obscureText;
-    return TextFormField(controller: controller, initialValue: initialValue,
-      decoration: decoration, keyboardType: keyboardType,
-      validator: validator, obscureText: obscureText, enabled: enabled,
-      maxLength: maxLength, maxLines: maxLines,
+    final numeric = widget.keyboardType == TextInputType.phone || widget.keyboardType == TextInputType.number || widget.keyboardType?.index == TextInputType.number.index;
+    final ltr = numeric || widget.keyboardType == TextInputType.emailAddress || widget.obscureText;
+    return TextFormField(controller: widget.controller, initialValue: widget.initialValue,
+      decoration: widget.obscureText && widget.decoration.suffixIcon == null ? widget.decoration.copyWith(suffixIcon: IconButton(tooltip: _revealed ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور', icon: Icon(_revealed ? Icons.visibility_off_outlined : Icons.visibility_outlined), onPressed: () => setState(() => _revealed = !_revealed))) : widget.decoration, keyboardType: widget.keyboardType,
+      validator: widget.validator, obscureText: widget.obscureText && !_revealed, enabled: widget.enabled,
+      maxLength: widget.maxLength, maxLines: widget.maxLines,
       textDirection: ltr ? TextDirection.ltr : null,
-      textInputAction: textInputAction ?? (maxLines == 1 ? TextInputAction.next : TextInputAction.newline),
-      onFieldSubmitted: onFieldSubmitted,
-      autofillHints: autofillHints,
-      autocorrect: !ltr, enableSuggestions: !obscureText,
+      textInputAction: widget.textInputAction ?? (widget.maxLines == 1 ? TextInputAction.next : TextInputAction.newline),
+      onFieldSubmitted: widget.onFieldSubmitted,
+      autofillHints: widget.autofillHints,
+      autocorrect: !ltr, enableSuggestions: !widget.obscureText,
       autovalidateMode: AutovalidateMode.onUserInteraction,
       onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
     );
@@ -298,4 +304,9 @@ class GymFormRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GymGrid(minWidth: 230, maxColumns: 2,
     children: [for (final child in children) if (child is! SizedBox) child is Expanded ? child.child : child]);
+}
+
+Color gymTone(BuildContext context, Color color) {
+  if (Theme.of(context).brightness == Brightness.dark || color.computeLuminance() < .2) return color;
+  return HSLColor.fromColor(color).withLightness(.32).toColor();
 }

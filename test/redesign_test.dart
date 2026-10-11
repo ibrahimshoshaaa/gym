@@ -108,7 +108,7 @@ Future<void> mount(WidgetTester tester, Widget page, {double width = 320, double
   ], child: MaterialApp(theme: light ? AppTheme.lightTheme : AppTheme.darkTheme,
     builder: (context, child) => MediaQuery(data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)), child: Directionality(textDirection: TextDirection.rtl, child: child!)),
     home: RepaintBoundary(key: capture, child: page))));
-  await tester.pumpAndSettle();
+  await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 5));
 }
 
 Future<void> screenshot(GlobalKey key, String name) async {
@@ -151,7 +151,7 @@ void main() {
         expect(tester.takeException(), isNull, reason: '${entry.key}, light=$light');
         final scrolls = find.byType(Scrollable);
         if (scrolls.evaluate().isNotEmpty) {
-          for (var i = 0; i < 4; i++) { await tester.drag(scrolls.first, const Offset(0, -500)); await tester.pumpAndSettle(); expect(tester.takeException(), isNull, reason: '${entry.key} scrolled, light=$light'); }
+          for (var i = 0; i < 4; i++) { await tester.drag(scrolls.first, const Offset(0, -500)); await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 5)); expect(tester.takeException(), isNull, reason: '${entry.key} scrolled, light=$light'); }
         }
         await tester.pumpWidget(const SizedBox.shrink());
       }
@@ -164,24 +164,24 @@ void main() {
     testWidgets('${entry.key} dialog fits enlarged text with keyboard', (tester) async {
       addTearDown(tester.view.resetPhysicalSize); addTearDown(tester.view.resetDevicePixelRatio); addTearDown(tester.view.resetViewInsets);
       await mount(tester, Scaffold(body: Builder(builder: (context) => TextButton(onPressed: () => showDialog<void>(context: context, builder: (_) => entry.value), child: const Text('open')))));
-      await tester.tap(find.text('open')); await tester.pumpAndSettle(); expect(tester.takeException(), isNull);
-      tester.view.viewInsets = const FakeViewPadding(bottom: 260); await tester.pumpAndSettle(); expect(tester.takeException(), isNull);
+      await tester.tap(find.text('open')); await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 5)); expect(tester.takeException(), isNull);
+      tester.view.viewInsets = const FakeViewPadding(bottom: 260); await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 5)); expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     });
   }
   testWidgets('Member menu hides administration and navigation reaches card', (tester) async {
     addTearDown(tester.view.resetPhysicalSize); addTearDown(tester.view.resetDevicePixelRatio);
     await mount(tester, const GymWorkspace(), role: UserRole.member, width: 390, scale: 1);
-    await tester.tap(find.text('كارت العضوية')); await tester.pumpAndSettle(); expect(find.byType(MemberQrScreen), findsOneWidget);
-    await tester.tap(find.text('المزيد')); await tester.pumpAndSettle();
+    await tester.tap(find.text('كارت العضوية')); await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 5)); expect(find.byType(MemberQrScreen), findsOneWidget);
+    await tester.tap(find.text('المزيد')); await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 5));
     expect(find.text('الموظفون'), findsNothing); expect(find.text('التقارير'), findsNothing); expect(find.text('المصروفات'), findsNothing);
     expect(find.text('نقاطي والهدايا'), findsOneWidget); expect(tester.takeException(), isNull);
   });
   testWidgets('Member search clears and does not leak to the next screen', (tester) async {
     addTearDown(tester.view.resetPhysicalSize); addTearDown(tester.view.resetDevicePixelRatio);
     await mount(tester, const MembersListScreen(), width: 390, scale: 1);
-    await tester.enterText(find.byType(TextField), 'missing'); await tester.pumpAndSettle(); expect(find.text('مفيش نتائج مطابقة'), findsOneWidget);
-    await tester.tap(find.byTooltip('مسح البحث')); await tester.pumpAndSettle(); expect(find.text(member.name), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'missing'); await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 5)); expect(find.text('مفيش نتائج مطابقة'), findsOneWidget);
+    await tester.tap(find.byTooltip('مسح البحث')); await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 5)); expect(find.text(member.name), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
   testWidgets('Visual previews use real Arabic fonts', (tester) async {
@@ -190,7 +190,7 @@ void main() {
       final key = GlobalKey();
       await mount(tester, screens[name]!, width: 390, scale: 1, role: name == 'member' ? UserRole.member : UserRole.admin, capture: key);
       expect(tester.takeException(), isNull);
-      await screenshot(key, name);
+      await tester.runAsync(() => screenshot(key, name));
       await tester.pumpWidget(const SizedBox.shrink());
     }
   });

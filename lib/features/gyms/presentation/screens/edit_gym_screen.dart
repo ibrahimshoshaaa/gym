@@ -86,7 +86,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gold = GoldPalette.gold;
+    final gold = Theme.of(context).colorScheme.primary;
     final gymState = ref.watch(gymControllerProvider);
     final dateFormat = DateFormat('yyyy-MM-dd');
 

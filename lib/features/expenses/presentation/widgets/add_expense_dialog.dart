@@ -122,13 +122,13 @@ class _AddExpenseDialogState extends ConsumerState<AddExpenseDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+        TextButton(onPressed: _isLoading ? null : () => Navigator.pop(context), child: const Text('إلغاء')),
         ElevatedButton(
           onPressed: _isLoading ? null : _handleSave,
           child: _isLoading
               ? const SizedBox(
                   height: 18, width: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  child: CircularProgressIndicator(strokeWidth: 2))
               : const Text('حفظ'),
         ),
       ],

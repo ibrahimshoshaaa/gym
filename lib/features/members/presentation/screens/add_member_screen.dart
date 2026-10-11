@@ -355,7 +355,7 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
                 child: _isLoading
                     ? const SizedBox(
                         height: 20, width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : Text(widget.isEditMode ? 'حفظ التعديلات' : 'حفظ'),
               ),
               if (!widget.isEditMode) ...[
