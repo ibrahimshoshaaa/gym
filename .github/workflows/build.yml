@@ -61,22 +61,30 @@ jobs:
           python -c 'import json,pathlib; paths=["pubspec.lock","windows/flutter/generated_plugin_registrant.cc","windows/flutter/generated_plugins.cmake","macos/Flutter/GeneratedPluginRegistrant.swift","linux/flutter/generated_plugin_registrant.cc","linux/flutter/generated_plugins.cmake"]; print("RESOLVED_FILES="+json.dumps({p:pathlib.Path(p).read_text() for p in paths if pathlib.Path(p).exists()}))'
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - run: flutter test
-      - name: Compile Android for verification
-        run: flutter build apk --debug --dart-define=API_BASE_URL="$API_BASE_URL"
-      - name: Upload test APK
+      - name: Restore private release signing key
+        if: github.event_name != 'pull_request' && env.ANDROID_KEYSTORE_BASE64 != ''
+        run: python -c 'import base64,os,pathlib; pathlib.Path("android/app/release.jks").write_bytes(base64.b64decode(os.environ["ANDROID_KEYSTORE_BASE64"],validate=True))'
+      - name: Compile optimized Android APKs
+        env:
+          ALLOW_UNSIGNED_RELEASE: '1'
+        run: flutter build apk --release --split-per-abi --split-debug-info=build/symbols --dart-define=API_BASE_URL="$API_BASE_URL"
+      - name: Validate release mode and package offline signing tools
+        run: |
+          python scripts/check_release_apks.py
+          mkdir -p build/release-package
+          cp build/app/outputs/flutter-apk/*-release.apk build/release-package/
+          signer_jar="$(find "$ANDROID_HOME/build-tools" -path '*/lib/apksigner.jar' | sort -V | tail -1)"
+          test -n "$signer_jar"
+          cp "$signer_jar" build/release-package/apksigner.jar
+      - name: Upload optimized APKs for offline signing
         uses: actions/upload-artifact@v4
         with:
-          name: gym-manager-test-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: gym-release-build
+          path: build/release-package/
           retention-days: 7
-      - name: Restore private release signing key
-        if: github.event_name != 'pull_request' && env.API_BASE_URL != '' && env.ANDROID_KEYSTORE_BASE64 != ''
-        run: python -c 'import base64,os,pathlib; pathlib.Path("android/app/release.jks").write_bytes(base64.b64decode(os.environ["ANDROID_KEYSTORE_BASE64"],validate=True))'
-      - name: Build configured release
-        if: github.event_name != 'pull_request' && env.API_BASE_URL != '' && env.ANDROID_KEYSTORE_BASE64 != ''
-        run: flutter build apk --release --dart-define=API_BASE_URL="$API_BASE_URL"
-      - uses: actions/upload-artifact@v4
-        if: github.event_name != 'pull_request' && env.API_BASE_URL != '' && env.ANDROID_KEYSTORE_BASE64 != ''
+      - name: Keep crash symbols
+        uses: actions/upload-artifact@v4
         with:
-          name: gym-manager-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: gym-release-symbols
+          path: build/symbols/
+          retention-days: 90

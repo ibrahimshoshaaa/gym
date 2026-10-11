@@ -19,7 +19,7 @@ class AppTheme {
     final base = ThemeData(useMaterial3: true, brightness: brightness, colorScheme: scheme, fontFamily: 'Cairo');
     final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
     final border = dark ? const Color(0xFF303535) : const Color(0xFFE4E3DA);
-    final text = base.textTheme.apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface).copyWith(
+    final text = base.textTheme.copyWith(
       headlineLarge: const TextStyle(fontSize: 34, height: 1.25, fontWeight: FontWeight.w800),
       headlineMedium: const TextStyle(fontSize: 28, height: 1.25, fontWeight: FontWeight.w800),
       headlineSmall: const TextStyle(fontSize: 24, height: 1.4, fontWeight: FontWeight.w700),
@@ -29,7 +29,7 @@ class AppTheme {
       bodyLarge: const TextStyle(fontSize: 16, height: 1.6),
       bodyMedium: const TextStyle(fontSize: 14, height: 1.6),
       bodySmall: TextStyle(fontSize: 12, height: 1.6, color: scheme.onSurfaceVariant),
-    ).apply(fontFamily: 'Cairo');
+    ).apply(fontFamily: 'Cairo', bodyColor: scheme.onSurface, displayColor: scheme.onSurface);
     return base.copyWith(
       scaffoldBackgroundColor: dark ? GoldPalette.darkBg : GoldPalette.lightBg,
       dividerColor: border, textTheme: text,

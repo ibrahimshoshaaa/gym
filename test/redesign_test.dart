@@ -187,6 +187,46 @@ void main() {
     await tester.tap(find.byTooltip('مسح البحث')); await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 5)); expect(find.text(member.name), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Theme changes keep menu titles readable in both directions', (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    for (final light in [false, true, false, true]) {
+      await mount(tester, const WorkspaceMenu(), width: 390, scale: 1, light: light);
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 5000));
+      await tester.pumpAndSettle();
+      final context = tester.element(find.byType(WorkspaceMenu));
+      final theme = Theme.of(context);
+      final foreground = theme.colorScheme.onSurface;
+      for (final style in [theme.textTheme.headlineLarge, theme.textTheme.headlineMedium,
+        theme.textTheme.headlineSmall, theme.textTheme.titleLarge, theme.textTheme.titleMedium,
+        theme.textTheme.titleSmall, theme.textTheme.bodyLarge, theme.textTheme.bodyMedium]) {
+        expect(style!.color, foreground);
+      }
+      for (final label in ['المزيد', 'إدارة الجيم', 'الموظفون', 'حسابك وتفضيلاتك', 'كلمة المرور']) {
+        final finder = ['إدارة الجيم', 'حسابك وتفضيلاتك'].contains(label)
+          ? find.descendant(of: find.byType(GymSection), matching: find.text(label))
+          : find.text(label);
+        if (finder.evaluate().isEmpty) {
+          await tester.scrollUntilVisible(finder, 300);
+          await tester.pumpAndSettle();
+        }
+        expect(finder, findsOneWidget);
+        final paragraph = tester.renderObject<RenderParagraph>(finder);
+        final ink = paragraph.text.style!.color!;
+        final luminance = ink.computeLuminance();
+        final backdrop = theme.scaffoldBackgroundColor.computeLuminance();
+        final contrast = luminance > backdrop ? (luminance + .05) / (backdrop + .05) : (backdrop + .05) / (luminance + .05);
+        expect(contrast, greaterThanOrEqualTo(4.5), reason: '$label light=$light');
+      }
+      final background = theme.scaffoldBackgroundColor.computeLuminance();
+      final text = foreground.computeLuminance();
+      final ratio = (background > text ? (background + .05) / (text + .05) : (text + .05) / (background + .05));
+      expect(ratio, greaterThanOrEqualTo(4.5));
+      expect(tester.takeException(), isNull);
+    }
+  });
+
   testWidgets('Visual previews use real Arabic fonts', (tester) async {
     addTearDown(tester.view.resetPhysicalSize); addTearDown(tester.view.resetDevicePixelRatio);
     for (final name in ['login', 'admin', 'member', 'details']) {
@@ -196,5 +236,10 @@ void main() {
       await tester.runAsync(() => screenshot(key, name));
       await tester.pumpWidget(const SizedBox.shrink());
     }
+    final lightKey = GlobalKey();
+    await mount(tester, const WorkspaceMenu(), width: 390, scale: 1, light: true, capture: lightKey);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -2500));
+    await tester.pumpAndSettle();
+    await tester.runAsync(() => screenshot(lightKey, 'menu_light'));
   });
 }

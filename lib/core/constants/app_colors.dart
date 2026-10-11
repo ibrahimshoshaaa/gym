@@ -4,7 +4,7 @@ class AppColors {
   AppColors._();
 
   static const Color primary = Color(0xFFD9B85F);
-  static const Color primaryDark = Color(0xFF96742D);
+  static const Color primaryDark = Color(0xFF806020);
   static const Color accent = Color(0xFFEBD7A0);
 
   static const Color success = Color(0xFF55B88C);
@@ -28,7 +28,7 @@ class GoldPalette {
 
   static const Color gold = Color(0xFFD9B85F);
   static const Color goldLight = Color(0xFFEBD7A0);
-  static const Color goldDark = Color(0xFF96742D);
+  static const Color goldDark = Color(0xFF806020);
 
   // دارك مود
   static const Color darkBg = Color(0xFF101515);
