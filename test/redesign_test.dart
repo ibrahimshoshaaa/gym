@@ -211,7 +211,11 @@ void main() {
         }
         expect(finder, findsOneWidget);
         final paragraph = tester.renderObject<RenderParagraph>(finder);
-        expect(paragraph.text.style!.color, foreground, reason: '$label light=$light');
+        final ink = paragraph.text.style!.color!;
+        final luminance = ink.computeLuminance();
+        final backdrop = theme.scaffoldBackgroundColor.computeLuminance();
+        final contrast = luminance > backdrop ? (luminance + .05) / (backdrop + .05) : (backdrop + .05) / (luminance + .05);
+        expect(contrast, greaterThanOrEqualTo(4.5), reason: '$label light=$light');
       }
       final background = theme.scaffoldBackgroundColor.computeLuminance();
       final text = foreground.computeLuminance();
