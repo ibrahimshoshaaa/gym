@@ -2,6 +2,17 @@ import { createServer } from 'node:http';
 import { ApiError, requireValue, hash } from './security.js';
 
 async function readBody(request) {
+  // Vercel may parse JSON before invoking the Node request handler.
+  if (request.body !== undefined) {
+    const raw = typeof request.body === 'string' || Buffer.isBuffer(request.body)
+      ? request.body : JSON.stringify(request.body);
+    requireValue(Buffer.byteLength(raw) <= 256 * 1024, 'الطلب أكبر من المسموح', 413);
+    try {
+      const body = JSON.parse(raw);
+      requireValue(body && typeof body === 'object' && !Array.isArray(body), 'طلب غير صحيح');
+      return body;
+    } catch (error) { if (error instanceof ApiError) throw error; throw new ApiError(400, 'طلب غير صحيح'); }
+  }
   let size = 0; const chunks = [];
   for await (const chunk of request) {
     size += chunk.length; requireValue(size <= 256 * 1024, 'الطلب أكبر من المسموح', 413); chunks.push(chunk);
@@ -10,8 +21,11 @@ async function readBody(request) {
   catch (error) { if (error instanceof ApiError) throw error; throw new ApiError(400, 'طلب غير صحيح'); }
 }
 export function createApp(service, options = {}) {
+  return createServer(createHandler(service, options));
+}
+export function createHandler(service, options = {}) {
   const origins = new Set(options.corsOrigins ?? []);
-  return createServer(async (req, res) => {
+  return async (req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -54,5 +68,5 @@ export function createApp(service, options = {}) {
       res.statusCode = status;
       res.end(JSON.stringify({ error: status === 500 ? 'حصل خطأ في الخدمة، حاول تاني' : error.code === '23505' ? 'البيانات مستخدمة بالفعل' : error.message }));
     }
-  });
+  };
 }

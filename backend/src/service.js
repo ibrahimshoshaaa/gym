@@ -37,14 +37,14 @@ export class GymService {
     await store.addSession(hash(token), uid, new Date(Date.now() + 14 * 86400000));
     return { token, user: resultOf(await store.get(`users/${uid}`)) };
   }
-  async bootstrap({ email: address, password, name = 'System owner' }) {
+  async bootstrap({ email: address, password, name = 'System owner', mustChangePassword = false }) {
     if (!address && !password) return;
     const login = email(address);
     const passwordEncoded = await passwordHash(password);
     await this.store.transaction(async tx => {
       if ((await tx.list('users')).some(r => r.data.role === 'superAdmin')) return;
       const uid = randomUUID();
-      await tx.put(`users/${uid}`, { gymId: '', name, phone: '', email: login, role: 'superAdmin', createdAt: stamp(), mustChangePassword: false });
+      await tx.put(`users/${uid}`, { gymId: '', name, phone: '', email: login, role: 'superAdmin', createdAt: stamp(), mustChangePassword });
       await tx.addAccount(uid, login, passwordEncoded);
     });
   }

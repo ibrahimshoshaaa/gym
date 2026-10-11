@@ -2,7 +2,11 @@ import { readFile } from 'node:fs/promises';
 
 export class PostgresStore {
   constructor(pool, connection = pool) { this.pool = pool; this.connection = connection; }
-  async migrate() { await this.pool.query(await readFile(new URL('./schema.sql', import.meta.url), 'utf8')); }
+  async migrate() {
+    const sql = await readFile(new URL('./schema.sql', import.meta.url), 'utf8');
+    // Cold starts can initialize several API replicas at the same time.
+    await this.transaction(tx => tx.connection.query(sql));
+  }
   async health() { await this.pool.query('SELECT 1'); }
   async transaction(work) {
     const client = await this.pool.connect();

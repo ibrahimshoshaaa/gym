@@ -12,6 +12,7 @@
     "migrate": "node src/migrate.js"
   },
   "dependencies": {
+    "@vercel/functions": "^3.9.11",
     "pg": "^8.13.1"
   },
   "devDependencies": {

@@ -44,6 +44,10 @@ node --env-file=.env src/server.js
 
 للنشر على Railway: اختر هذا الريبو لخدمة الباك إند، واجعل Root Directory هو `backend`، وأضف PostgreSQL واربط `DATABASE_URL`، واضبط متغيرات أول مالك النظام. الخدمة تستخدم Dockerfile الموجود داخل `backend`. فعّل public domain واختبر `/health`؛ الرد المطلوب `{"status":"ok"}`. لا تضع رابط قاعدة البيانات في التطبيق.
 
+للنشر على Vercel: أنشئ مشروعًا من الريبو، Root Directory هو `backend`، وFramework Preset هو `Other`. Install Command هو `npm ci --omit=dev`، وBuild Command فارغ. `backend/vercel.json` يوجّه الطلبات إلى مدخل Node ويضم ملف مخطط SQL. استخدم قاعدة Neon في Frankfurt مع المنطقة `fra1` للـ API. مشروع قاعدة الجيم الجديد هو `golden-gym` (`tiny-sun-62505649`)، بقاعدة `gym` وفرع `production`؛ لا يحتوي على البيانات القديمة.
+
+ضع `DATABASE_URL` و`BOOTSTRAP_ADMIN_PASSWORD` في متغيرات Production السرية فقط، واضبط `BOOTSTRAP_ADMIN_EMAIL` و`BOOTSTRAP_ADMIN_NAME` و`ALLOW_SIGNUP=false`. لا تمنح Preview الوصول إلى قاعدة Production؛ استخدم فرع قاعدة مستقل لو احتجت معاينات. مدخل Vercel يفرض تغيير كلمة مرور أول مالك عند أول دخول، ويستخدم pool مشتركًا صغيرًا، ويمنع تعارض تهيئة الجداول عند تشغيل عدة نسخ. إعداد حساب Vercel قد يتطلب صلاحية إنشاء مشروع وربط الريبو.
+
 ## ربط Flutter
 
 ```bash

@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { PostgresStore } from '../src/postgres.js';
 import { GymService } from '../src/service.js';
-import { createApp } from '../src/http.js';
+import { createApp, createHandler } from '../src/http.js';
 import { stamp } from '../src/security.js';
 
 async function database() {
@@ -47,6 +47,22 @@ test('API account, tenant, subscription and money flows', async t => {
   const systemLogin = await call('/api/auth/login', { email: 'owner@example.com', password: 'SystemOwner-password1' });
   assert.equal(systemLogin.status, 200);
   const system = systemLogin.data.token;
+  await t.test('serverless parsed JSON preserves auth and rejects invalid or oversized bodies', async () => {
+    const handler = createHandler(service);
+    async function invoke(body) {
+      const req = { method: 'POST', url: '/api/auth/login', headers: {}, socket: { remoteAddress: 'serverless' }, body };
+      let payload;
+      const res = { statusCode: 200, setHeader() {}, end(value) { payload = JSON.parse(value); } };
+      await handler(req, res);
+      return { status: res.statusCode, ...payload };
+    }
+    const login = await invoke({ email: 'owner@example.com', password: 'SystemOwner-password1' });
+    assert.equal(login.status, 200);
+    assert.ok(login.data.token);
+    assert.equal((await invoke([])).status, 400);
+    assert.equal((await invoke('invalid JSON')).status, 400);
+    assert.equal((await invoke({ email: 'a'.repeat(256 * 1024) })).status, 413);
+  });
   let gymA, gymB, adminA, adminB, memberA, memberB, memberToken, staffToken, staffId, planId, debtId;
 
   await t.test('signup is atomic; clients cannot choose lifetime license or system role', async () => {
