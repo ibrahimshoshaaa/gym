@@ -175,7 +175,9 @@ void main() {
   test('Attendance writes use a server command and return duplicate errors', () async {
     final api = ApiClient(baseUrl: 'https://gym.example', client: MockClient((request) async {
       expect(request.url.path, '/api/commands/check-in');
-      expect(jsonDecode(request.body), {'gymId': 'g1', 'memberId': 'm1'});
+      final body=jsonDecode(request.body) as Map<String,dynamic>;
+      expect(body.remove('requestId'),isA<String>());
+      expect(body, {'gymId': 'g1', 'memberId': 'm1'});
       return http.Response(jsonEncode({'error': 'حضور العضو مسجل النهارده بالفعل'}), 409);
     }));
     final result = await AttendanceRepositoryImpl(gymId: 'g1', store: DocumentStore(api: api)).checkIn('m1');
