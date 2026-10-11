@@ -239,7 +239,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
           },
         ),
         IgnorePointer(child: Center(child: Container(width: 230, height: 230,
-          decoration: BoxDecoration(border: Border.all(color: GoldPalette.goldLight, width: 2), borderRadius: BorderRadius.circular(24))))),
+          decoration: BoxDecoration(border: Border.all(color: GymPalette.primaryLight, width: 2), borderRadius: BorderRadius.circular(24))))),
         Positioned(
           bottom: 24,
           left: 24,

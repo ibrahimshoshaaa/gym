@@ -50,7 +50,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gold = Theme.of(context).colorScheme.primary;
+    final accent = Theme.of(context).colorScheme.primary;
     final gymState = ref.watch(gymControllerProvider);
 
     ref.listen<AsyncValue<void>>(gymControllerProvider, (previous, next) {
@@ -126,7 +126,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: gold,
+                  color: accent,
                 ),
               ),
               const SizedBox(height: 16),
@@ -165,7 +165,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: gold,
+                  color: accent,
                 ),
               ),
               const SizedBox(height: 8),
@@ -173,7 +173,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 '١٤ يوم مجاني على كل الخطط',
                 style: TextStyle(
                   fontSize: 13,
-                  color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                  color: isDark ? GymPalette.darkTextSecondary : GymPalette.lightTextSecondary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -190,7 +190,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: gold,
+                  color: accent,
                 ),
               ),
               const SizedBox(height: 16),
@@ -263,7 +263,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 'بالضغط على "ابدأ مجانًا" أنت توافق على شروط الاستخدام وسياسة الخصوصية.',
                 style: TextStyle(
                   fontSize: 11,
-                  color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                  color: isDark ? GymPalette.darkTextSecondary : GymPalette.lightTextSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -325,11 +325,11 @@ class _PlanSelector extends StatelessWidget {
         final isSelected = plan == selected;
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
-          color: isSelected ? (isDark ? Colors.amber.withValues(alpha: 0.1) : Colors.amber.withValues(alpha: 0.05)) : null,
+          color: isSelected ? (isDark ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05)) : null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: isSelected ? Colors.amber : Colors.transparent,
+              color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
               width: 1.5,
             ),
           ),
@@ -344,7 +344,7 @@ class _PlanSelector extends StatelessWidget {
                     value: plan,
                     groupValue: selected,
                     onChanged: (v) => onChanged(v!),
-                    activeColor: Colors.amber,
+                    activeColor: Theme.of(context).colorScheme.primary,
                   ),
                   Expanded(
                     child: Column(
@@ -361,7 +361,7 @@ class _PlanSelector extends StatelessWidget {
                           plan.description,
                           style: TextStyle(
                             fontSize: 13,
-                            color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                            color: isDark ? GymPalette.darkTextSecondary : GymPalette.lightTextSecondary,
                           ),
                         ),
                       ],

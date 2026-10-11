@@ -23,7 +23,7 @@ class GymScaffold extends StatelessWidget {
       automaticallyImplyLeading: original.automaticallyImplyLeading,
       actions: original.actions,
       bottom: original.bottom,
-      toolbarHeight: 72,
+      toolbarHeight: 64,
       centerTitle: false,
       titleSpacing: 20,
       titleTextStyle: Theme.of(context).textTheme.titleLarge,
@@ -70,7 +70,7 @@ class GymListTile extends StatelessWidget {
     this.trailing, this.onTap, this.contentPadding, this.isThreeLine = false});
   @override
   Widget build(BuildContext context) => InkWell(
-    onTap: onTap, borderRadius: BorderRadius.circular(22),
+    onTap: onTap, borderRadius: BorderRadius.circular(12),
     child: Padding(padding: contentPadding ?? const EdgeInsets.all(18),
       child: LayoutBuilder(builder: (context, constraints) {
         final stacked = constraints.maxWidth < 420 || MediaQuery.textScalerOf(context).scale(14) > 19;
@@ -81,7 +81,7 @@ class GymListTile extends StatelessWidget {
         ]);
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (leading != null) ...[IconTheme.merge(data: const IconThemeData(color: AppColors.primary, size: 24), child: leading!), const SizedBox(width: 14)],
+            if (leading != null) ...[IconTheme.merge(data: IconThemeData(color: Theme.of(context).colorScheme.primary, size: 24), child: leading!), const SizedBox(width: 14)],
             Expanded(child: text),
             if (!stacked && trailing != null) ...[const SizedBox(width: 14), trailing!],
             if (onTap != null && trailing == null) ...[const SizedBox(width: 8), const Icon(Icons.chevron_left_rounded, size: 20)],
@@ -102,26 +102,52 @@ class GymHero extends StatelessWidget {
     required this.subtitle, this.icon = Icons.fitness_center_rounded, this.child});
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    final accent = theme.colorScheme.primary;
     return Container(
-      padding: const EdgeInsets.all(24),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft,
-          colors: dark ? [const Color(0xFF333020), const Color(0xFF191C1C)] : [const Color(0xFFF0E4BE), const Color(0xFFFFFBF0)]),
-        border: Border.all(color: GoldPalette.gold.withValues(alpha: .22)),
+        color: dark ? GymPalette.darkSurface : const Color(0xFFEEF5E8),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent.withValues(alpha: dark ? .3 : .18)),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [Expanded(child: Text(eyebrow, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: dark ? GoldPalette.goldLight : GoldPalette.goldDark))),
-          Icon(icon, color: dark ? GoldPalette.goldLight : GoldPalette.goldDark, size: 28)]),
-        const SizedBox(height: 14),
-        Text(title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 8),
-        Text(subtitle, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-        if (child != null) ...[const SizedBox(height: 20), child!],
-      ]),
+      child: CustomPaint(painter: _GymHeroPattern(accent),
+        child: Padding(padding: const EdgeInsets.all(20),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Container(width: 4, height: 16, color: accent),
+              const SizedBox(width: 8),
+              Expanded(child: Text(eyebrow, style: theme.textTheme.labelLarge?.copyWith(
+                color: accent, fontWeight: FontWeight.w800, letterSpacing: .5))),
+              Icon(icon, color: accent, size: 26),
+            ]),
+            const SizedBox(height: 12),
+            Text(title, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            Text(subtitle, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            if (child != null) ...[const SizedBox(height: 18), child!],
+          ]),
+        ),
+      ),
     );
   }
+}
+
+/// Decorative track lines keep the identity athletic without image downloads.
+class _GymHeroPattern extends CustomPainter {
+  final Color color;
+  const _GymHeroPattern(this.color);
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color.withValues(alpha: .06)..strokeWidth = 12;
+    for (var i = 0; i < 3; i++) {
+      final x = 14.0 + i * 24;
+      canvas.drawLine(Offset(x, 0), Offset(x + 52, size.height), paint);
+    }
+  }
+  @override
+  bool shouldRepaint(_GymHeroPattern oldDelegate) => oldDelegate.color != color;
 }
 
 class GymSection extends StatelessWidget {
@@ -167,11 +193,15 @@ class GymMetric extends StatelessWidget {
   Widget build(BuildContext context) {
     final tint = gymTone(context, color ?? Theme.of(context).colorScheme.primary);
     return Card(margin: EdgeInsets.zero, child: InkWell(onTap: onTap,
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(12),
       child: Padding(padding: const EdgeInsets.all(20), child: Column(
         mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        GymIcon(icon: icon, color: tint), const SizedBox(height: 16),
-        Text(value, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800, color: tint)),
+        Row(children: [
+          Icon(icon, color: tint, size: 24),
+          const Spacer(),
+          Container(width: 32, height: 3, color: tint.withValues(alpha: .65)),
+        ]), const SizedBox(height: 12),
+        Text(value, style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.w800, color: tint)),
         const SizedBox(height: 6), Text(label, style: Theme.of(context).textTheme.titleSmall),
         if (hint != null) ...[const SizedBox(height: 4), Text(hint!, style: Theme.of(context).textTheme.bodySmall)],
       ])),
@@ -186,8 +216,8 @@ class GymIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tint = gymTone(context, color ?? Theme.of(context).colorScheme.primary);
-    return Container(padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: tint.withValues(alpha: .12), borderRadius: BorderRadius.circular(16)),
+    return Container(padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: tint.withValues(alpha: .12), borderRadius: BorderRadius.circular(8)),
       child: Icon(icon, color: tint, size: 24));
   }
 }
@@ -199,7 +229,7 @@ class GymBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-    decoration: BoxDecoration(color: gymTone(context, color).withValues(alpha: .12), borderRadius: BorderRadius.circular(12)),
+    decoration: BoxDecoration(color: gymTone(context, color).withValues(alpha: .12), borderRadius: BorderRadius.circular(6)),
     child: Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: gymTone(context, color), fontWeight: FontWeight.w700)),
   );
 }

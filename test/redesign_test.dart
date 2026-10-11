@@ -229,7 +229,7 @@ void main() {
 
   testWidgets('Visual previews use real Arabic fonts', (tester) async {
     addTearDown(tester.view.resetPhysicalSize); addTearDown(tester.view.resetDevicePixelRatio);
-    for (final name in ['login', 'admin', 'member', 'details']) {
+    for (final name in ['login', 'admin', 'member', 'details', 'qr']) {
       final key = GlobalKey();
       await mount(tester, screens[name]!, width: 390, scale: 1, role: name == 'member' ? UserRole.member : UserRole.admin, capture: key);
       expect(tester.takeException(), isNull);

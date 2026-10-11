@@ -71,11 +71,11 @@ class StaffListScreen extends ConsumerWidget {
                 child: GymListTile(
                   leading: CircleAvatar(
                     backgroundColor: s.isAdmin
-                        ? AppColors.primary.withValues(alpha: 0.15)
+                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)
                         : AppColors.success.withValues(alpha: 0.15),
                     child: Icon(
                       s.isAdmin ? Icons.admin_panel_settings : Icons.badge,
-                      color: s.isAdmin ? AppColors.primary : AppColors.success,
+                      color: s.isAdmin ? Theme.of(context).colorScheme.primary : AppColors.success,
                     ),
                   ),
                   title: Text(s.name + (isMe ? ' (أنت)' : ''),
@@ -132,12 +132,12 @@ class StaffListScreen extends ConsumerWidget {
         error: (err, _) => GymErrorState(onRetry: () => ref.invalidate(staffListProvider)),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primary,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const AddStaffScreen()),
         ),
-        child: const Icon(Icons.person_add, color: Colors.white),
+        child: Icon(Icons.person_add, color: Theme.of(context).colorScheme.onPrimary),
       ),
     );
   }
