@@ -147,7 +147,7 @@ export class GymService {
   async audit(tx, user, gymId, action, body = {}) {
     await tx.put(`gyms/${gymId}/audit/${randomUUID()}`, {
       action, actorUid: user.uid, actorName: user.name, date: stamp(),
-      ...pick(body, ['memberId', 'debtId', 'planId', 'amount', 'paidAmount']),
+      ...pick(body, ['memberId', 'debtId', 'planId', 'amount', 'paidAmount', 'recordPath']),
     });
   }
   async businessTransaction(user, name, body, work) {
@@ -244,8 +244,9 @@ export class GymService {
     // Reject the tenant before querying, even if its collection is empty.
     if (p[0] === 'gyms') requireValue(user.role === 'superAdmin' || p[1] === user.gymId, 'غير مسموح', 403);
     if (p[0] === 'users') requireValue(user.role === 'superAdmin' || user.role === 'admin' || p[1] === user.uid, 'غير مسموح', 403);
+    requireValue(Array.isArray(body.filters ?? []), 'الفلاتر غير صحيحة');
     const filters = [...(body.filters ?? [])];
-    requireValue(Array.isArray(body.filters ?? []) && filters.length <= 12, 'الفلاتر غير صحيحة');
+    requireValue(filters.length <= 12, 'الفلاتر غير صحيحة');
     for (const f of filters) {
       text(f.field, 'الحقل', 100);
       requireValue(['eq', 'gte', 'lte', 'in'].includes(f.op), 'الفِلتر غير صحيح');
@@ -291,6 +292,7 @@ export class GymService {
           if (p[2] === 'expenses') { money(data.amount); date(data.date); data.recordedByUid = user.uid; }
         }
       }
+      if(p[0] === 'gyms' && p.length === 4) await this.audit(tx,user,p[1],`${p[2]}-${body.operation}`,{recordPath:body.path});
       if (body.operation === 'delete') { await tx.remove(body.path); return null; }
       return resultOf(await tx.put(body.path, data));
     });
@@ -432,6 +434,7 @@ export class GymService {
         const booked = row.data.bookedMemberIds ?? [];
         requireValue(date(row.data.dateTime) > new Date(), 'الحصة بدأت بالفعل');
         if (name === 'book-class') {
+          requireValue(member.data.status !== 'frozen', 'الاشتراك مجمد؛ فك التجميد قبل الحجز');
           requireValue(member.data.subscriptionEnd && date(member.data.subscriptionEnd) >= new Date() && (!member.data.subscriptionStart || date(member.data.subscriptionStart) <= new Date()), 'لازم اشتراك ساري عشان تحجز');
           requireValue(!booked.includes(body.memberId), 'محجوز بالفعل', 409);
           requireValue(booked.length < row.data.capacity, 'الحصة مكتملة العدد', 409);
