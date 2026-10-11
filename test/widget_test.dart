@@ -5,6 +5,7 @@ import 'package:gym_manager/features/members/presentation/providers/members_prov
 import 'package:gym_manager/features/debts/presentation/providers/debts_provider.dart';
 import 'package:gym_manager/features/members/presentation/widgets/member_login_dialog.dart';
 import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +27,23 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
+  FlutterSecureStorage.setMockInitialValues({});
+  test('Ambiguous command retries retain the request id until success',()async{
+    final ids=<String>[];
+    var attempts=0;
+    final api=ApiClient(baseUrl:'https://gym.example',client:MockClient((request)async{
+      ids.add((jsonDecode(request.body) as Map)['requestId'] as String);
+      if(attempts++==0)throw http.ClientException('connection lost');
+      return http.Response('{"data":{"paid":true}}',200);
+    }));
+    api.token='same-session';
+    final body={'gymId':'gym1','debtId':'debt1','amount':50};
+    await expectLater(api.request('POST','/api/commands/debt-pay',body),throwsA(isA<ApiException>()));
+    await api.request('POST','/api/commands/debt-pay',body);
+    expect(ids[0],ids[1]);
+    await api.request('POST','/api/commands/debt-pay',body);
+    expect(ids[2],isNot(ids[1]));
+  });
   testWidgets('Dashboard cards fit narrow screens and enlarged Arabic text', (tester) async {
     tester.view.physicalSize = const Size(320, 900);
     tester.view.devicePixelRatio = 1;

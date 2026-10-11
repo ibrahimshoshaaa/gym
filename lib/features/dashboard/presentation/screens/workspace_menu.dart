@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../operations/presentation/operations_screens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/widgets/gym_ui.dart';
 import '../../../../core/providers/theme_provider.dart';
@@ -59,6 +60,9 @@ class WorkspaceMenu extends ConsumerWidget {
         item('سجل الحضور', 'راجع أيام تمرينك', Icons.history_rounded, const MyAttendanceScreen()),
         item('نقاطي والهدايا', 'الرصيد وسجل النقاط والمكافآت', Icons.stars_rounded, const MyPointsScreen()),
       ],
+      if(user?.isSuperAdmin!=true) item('التنبيهات', 'تذكيرات محفوظة ومتابعة القراءة', Icons.notifications_outlined, const OperationRecordsScreen(kind:RecordKind.notifications)),
+      if(user?.isAdmin==true) item('سجل العمليات','مين نفّذ التجديد والتحصيل والتعديلات',Icons.history,const OperationRecordsScreen(kind:RecordKind.audit)),
+      if(user?.isMember!=true && user?.isSuperAdmin!=true) item('الاستقبال السريع','البحث والحضور والتجديد في شاشة واحدة',Icons.desk_outlined,const ReceptionScreen()),
       const GymSection(title: 'حسابك وتفضيلاتك'),
       Card(margin: const EdgeInsets.only(bottom: 8), child: GymListTile(leading: GymIcon(icon: dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
         title: Text(dark ? 'الوضع الداكن' : 'الوضع الفاتح'), subtitle: const Text('اضغط لتغيير مظهر التطبيق'),

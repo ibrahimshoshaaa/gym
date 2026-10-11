@@ -1,3 +1,4 @@
+import { photoUpload, photoDelete } from './photos.js';
 import { createServer } from 'node:http';
 import { ApiError, requireValue, hash } from './security.js';
 
@@ -51,8 +52,14 @@ export function createHandler(service, options = {}) {
           requireValue(!user.mustChangePassword, 'غيّر الباسورد الأول', 403);
           if (req.method === 'POST' && path === '/api/auth/gym-owner') output = await service.signup(body, user);
           else if (req.method === 'POST' && path === '/api/auth/staff') output = await service.createStaff(user, body);
+          else if (req.method === 'POST' && path === '/api/auth/member-reset') output = await service.resetMemberPassword(user, body);
           else if (req.method === 'POST' && path === '/api/auth/member-account') output = await service.createMemberAccount(user, body);
           else if (req.method === 'DELETE' && path.startsWith('/api/auth/staff/')) output = await service.deleteStaff(user, path.split('/').at(-1));
+          else if (req.method === 'POST' && path === '/api/photos/upload') output = await photoUpload(service,user,body);
+          else if (req.method === 'POST' && path === '/api/photos/delete') output = await photoDelete(service,user,body);
+          else if (req.method === 'POST' && path === '/api/reports/summary') output = await service.financialReport(user,body);
+          else if (req.method === 'POST' && path === '/api/reception') output = await service.reception(user, body);
+          else if (req.method === 'POST' && path === '/api/notifications/read') output = await service.markNotificationsRead(user, body);
           else if (req.method === 'POST' && path === '/api/data/read') output = await service.read(user, body.path);
           else if (req.method === 'POST' && path === '/api/data/query') output = await service.query(user, body);
           else if (req.method === 'POST' && path === '/api/data/write') output = await service.write(user, body);

@@ -2,12 +2,13 @@ import { randomUUID, randomBytes } from 'node:crypto';
 import { ApiError, requireValue, text, id, phone, email, money, integer, stamp, date, hash, passwordHash, verifyPassword } from './security.js';
 
 const staffRoles = ['admin', 'staff'];
-const collections = ['members', 'plans', 'subscriptions', 'attendance', 'classes', 'trainers', 'payments', 'debts', 'expenses', 'rewards'];
+const collections = ['members', 'plans', 'subscriptions', 'attendance', 'classes', 'trainers', 'payments', 'debts', 'expenses', 'rewards', 'audit'];
 const managedCollections = ['plans', 'classes', 'trainers', 'rewards'];
 const uidOf = row => row.path.split('/').at(-1);
 const resultOf = row => {
   if (!row) return null;
   let data = row.data;
+  if (data.nextSubscription && date(data.nextSubscription.subscriptionStart) <= new Date()) data = { ...data, ...data.nextSubscription, nextSubscription: null };
   const parts = row.path.split('/');
   if (parts[0] === 'gyms' && parts[2] === 'members' && parts.length === 4 && data.status !== 'frozen') {
     const now = new Date();
@@ -127,6 +128,47 @@ export class GymService {
       return { temporaryPassword: temporary };
     });
   }
+  async resetMemberPassword(user, body) {
+    const gymId = id(body.gymId), memberId = id(body.memberId);
+    return this.store.transaction(async tx => {
+      await this.operational(tx, user, gymId, ['admin']);
+      const member = await tx.get(`gyms/${gymId}/members/${memberId}`);
+      requireValue(member, 'العضو غير موجود', 404);
+      const target = (await tx.list('users')).find(r => r.data.gymId === gymId && r.data.memberId === memberId && r.data.role === 'member');
+      requireValue(target, 'فعّل حساب العضو الأول', 404);
+      const temporary = phone(member.data.phone);
+      await tx.changePassword(uidOf(target), await passwordHash(temporary));
+      await tx.revokeSessions(uidOf(target));
+      await tx.put(target.path, { ...target.data, mustChangePassword: true, initialPasswordScheme: 'phone-v1' });
+      await this.audit(tx, user, gymId, 'member-password-reset', { memberId });
+      return { temporaryPassword: temporary };
+    });
+  }
+  async audit(tx, user, gymId, action, body = {}) {
+    await tx.put(`gyms/${gymId}/audit/${randomUUID()}`, {
+      action, actorUid: user.uid, actorName: user.name, date: stamp(),
+      ...pick(body, ['memberId', 'debtId', 'planId', 'amount', 'paidAmount']),
+    });
+  }
+  async businessTransaction(user, name, body, work) {
+    const gymId = id(body.gymId);
+    return this.store.transaction(async tx => {
+      await this.operational(tx, user, gymId, ['admin', 'staff', 'member']);
+      const key = body.requestId == null ? null : id(body.requestId);
+      const canonical = value => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(k => [k, canonical(value[k])])) : value;
+      const fingerprint = hash(JSON.stringify(canonical({ ...body, name })));
+      const path = key ? `operations/${hash(`${user.uid}:${gymId}:${key}`)}` : null;
+      const previous = path && await tx.get(path);
+      if (previous) {
+        requireValue(previous.data.fingerprint === fingerprint, 'الطلب اتغيّر، ابدأ عملية جديدة', 409);
+        return previous.data.result;
+      }
+      const result = await work(tx);
+      await this.audit(tx, user, gymId, name, body);
+      if (path) await tx.put(path, { fingerprint, result, date: stamp() });
+      return result;
+    });
+  }
   async migratePendingMemberPasswords() {
     await this.store.transaction(async tx => {
       if (await tx.get('system/member-phone-password-v1')) return;
@@ -184,6 +226,7 @@ export class GymService {
     }
     if (user.role !== 'superAdmin' && p[1] !== user.gymId) return false;
     if (p.length === 2) return true;
+    if (p[2] === 'audit') return ['admin', 'superAdmin'].includes(user.role);
     if (user.role !== 'member') return true;
     if (['classes', 'plans', 'trainers', 'rewards'].includes(p[2])) return true;
     if (p[2] === 'members') return p[3] === user.memberId;
@@ -201,29 +244,21 @@ export class GymService {
     // Reject the tenant before querying, even if its collection is empty.
     if (p[0] === 'gyms') requireValue(user.role === 'superAdmin' || p[1] === user.gymId, 'غير مسموح', 403);
     if (p[0] === 'users') requireValue(user.role === 'superAdmin' || user.role === 'admin' || p[1] === user.uid, 'غير مسموح', 403);
-    let rows = (await this.store.list(body.path)).filter(r => this.canRead(user, r.path, r.data));
-    const filters = body.filters ?? [];
-    requireValue(Array.isArray(filters) && filters.length <= 12, 'الفلاتر غير صحيحة');
-    const scalar = value => value?.__type === 'timestamp' ? date(value).getTime() : value;
+    const filters = [...(body.filters ?? [])];
+    requireValue(Array.isArray(body.filters ?? []) && filters.length <= 12, 'الفلاتر غير صحيحة');
     for (const f of filters) {
       text(f.field, 'الحقل', 100);
       requireValue(['eq', 'gte', 'lte', 'in'].includes(f.op), 'الفِلتر غير صحيح');
       if (f.op === 'in') requireValue(Array.isArray(f.value) && f.value.length <= 30, 'الفِلتر غير صحيح');
-      rows = rows.filter(r => {
-        const a = scalar(r.data[f.field]), b = scalar(f.value);
-        if (f.op === 'eq') return a === b;
-        if (f.op === 'gte') return a != null && a >= b;
-        if (f.op === 'lte') return a != null && a <= b;
-        return f.value.includes(a);
-      });
     }
-    if (body.order) {
-      const field = text(body.order.field, 'ترتيب', 100), direction = body.order.descending ? -1 : 1;
-      rows.sort((a, b) => { const x = scalar(a.data[field]), y = scalar(b.data[field]); return direction * (x < y ? -1 : x > y ? 1 : a.path.localeCompare(b.path)); });
-      if (body.startAt?.length) rows = rows.filter(r => scalar(r.data[field]) >= scalar(body.startAt[0]));
-      if (body.endAt?.length) rows = rows.filter(r => scalar(r.data[field]) <= scalar(body.endAt[0]));
-    }
-    if (body.limit != null) rows = rows.slice(0, integer(body.limit, 1, 10000));
+    if (p[0] === 'users' && p.length === 1 && user.role !== 'superAdmin') filters.push({ field: 'gymId', op: 'eq', value: user.gymId });
+    if (p[0] === 'gyms' && p.length > 2 && user.role === 'member' && ['attendance', 'subscriptions', 'debts', 'payments'].includes(p[2])) filters.push({ field: 'memberId', op: 'eq', value: user.memberId });
+    const order = body.order ? { field: text(body.order.field, 'ترتيب', 100), descending: !!body.order.descending } : null;
+    if (order && body.startAt?.length) filters.push({field:order.field,op:'gte',value:body.startAt[0]});
+    if (order && body.endAt?.length) filters.push({field:order.field,op:'lte',value:body.endAt[0]});
+    const limit = body.limit == null ? null : integer(body.limit, 1, 10000);
+    let rows = await this.store.select(body.path, filters, order, limit);
+    rows = rows.filter(r => this.canRead(user, r.path, r.data));
     return rows.map(resultOf);
   }
   async write(user, body) {
@@ -262,7 +297,7 @@ export class GymService {
   }
   async command(user, name, body) {
     const gymId = id(body.gymId);
-    return this.store.transaction(async tx => {
+    return this.businessTransaction(user, name, body, async tx => {
       const memberCommands = ['book-class', 'cancel-booking', 'redeem'];
       const gym = await this.operational(tx, user, gymId, memberCommands.includes(name) ? [...staffRoles, 'member'] : staffRoles);
       const root = `gyms/${gymId}`;
@@ -270,6 +305,8 @@ export class GymService {
         const row = await tx.get(`${root}/members/${id(memberId)}`);
         requireValue(row, 'العضو غير موجود', 404);
         if (user.role === 'member') requireValue(user.memberId === memberId, 'غير مسموح', 403);
+        const resolved = resultOf(row).data;
+        if (row.data.nextSubscription && !resolved.nextSubscription) return tx.put(row.path, resolved);
         return row;
       };
       if (name === 'member-save') {
@@ -303,20 +340,52 @@ export class GymService {
         await tx.remove(member.path);
         return { deleted: true };
       }
+      if (['subscription-freeze', 'subscription-resume'].includes(name)) {
+        requireValue(['admin', 'superAdmin'].includes(user.role), 'غير مسموح', 403);
+        const member = await loadMember(body.memberId), m = member.data, now = new Date();
+        requireValue(m.currentSubscriptionId && m.subscriptionEnd, 'مفيش اشتراك حالي');
+        const sub = await tx.get(`${root}/subscriptions/${m.currentSubscriptionId}`);
+        requireValue(sub, 'بيانات الاشتراك غير مكتملة', 409);
+        let changes;
+        if (name === 'subscription-freeze') {
+          requireValue(!m.nextSubscription, 'في تجديد قادم؛ راجع موعده قبل التجميد');
+          requireValue(m.status !== 'frozen' && date(m.subscriptionEnd) > now && (!m.subscriptionStart || date(m.subscriptionStart) <= now), 'محتاج اشتراك نشط غير مجمد');
+          changes = { status: 'frozen', frozenAt: stamp(now), freezeReason: text(body.reason, 'سبب التجميد', 500) };
+        } else {
+          requireValue(m.status === 'frozen' && m.frozenAt, 'الاشتراك مش مجمد');
+          const elapsed = Math.max(0, now - date(m.frozenAt));
+          changes = { status: 'active', frozenAt: null, freezeReason: null, subscriptionEnd: stamp(new Date(date(m.subscriptionEnd).getTime() + elapsed)) };
+        }
+        await tx.put(member.path, { ...m, ...changes });
+        await tx.put(sub.path, { ...sub.data, frozenAt: changes.frozenAt, freezeReason: changes.freezeReason, ...(changes.subscriptionEnd ? { endDate: changes.subscriptionEnd } : {}) });
+        return resultOf(await tx.get(member.path));
+      }
       if (name === 'subscribe') {
         const member = await loadMember(body.memberId);
         const plan = await tx.get(`${root}/plans/${id(body.planId)}`);
         requireValue(plan && plan.data.isActive !== false, 'الخطة غير موجودة أو متوقفة', 404);
         const paid = money(body.paidAmount, true), price = money(plan.data.price);
         requireValue(paid <= price, 'المدفوع أكبر من سعر الخطة');
-        const now = new Date(), start = body.startDate ? date(body.startDate) : now;
+        const now = new Date();
+        requireValue(member.data.status !== 'frozen', 'فك تجميد الاشتراك قبل التجديد');
+        requireValue(!member.data.nextSubscription, 'في تجديد قادم مسجل بالفعل', 409);
+        const oldEnd = member.data.subscriptionEnd ? date(member.data.subscriptionEnd) : null;
+        const start = body.startAfterCurrent && oldEnd && oldEnd > now ? oldEnd : body.startDate ? date(body.startDate) : now;
         const end = new Date(start.getTime() + integer(plan.data.durationDays, 1, 3650) * 86400000);
         const subId = randomUUID();
-        const subscription = { memberId: body.memberId, planId: body.planId, startDate: stamp(start), endDate: stamp(end), paidAmount: paid, createdAt: stamp(now), visitsAllowed: plan.data.visitsAllowed ?? 0, visitsUsed: 0, recordedByUid: user.uid };
+        const subscription = { memberId: body.memberId, planId: body.planId, startDate: stamp(start), endDate: stamp(end), paidAmount: paid, createdAt: stamp(now), visitsAllowed: plan.data.visitsAllowed ?? 0, visitsUsed: 0, planName: plan.data.name, price, recordedByUid: user.uid };
         await tx.put(`${root}/subscriptions/${subId}`, subscription);
-        await tx.put(member.path, { ...member.data, currentPlanId: body.planId, currentSubscriptionId: subId, subscriptionStart: stamp(start), subscriptionEnd: stamp(end), visitsAllowed: subscription.visitsAllowed, visitsUsed: 0, status: start > now ? 'pending' : end < now ? 'expired' : 'active' });
-        if (paid > 0) await tx.put(`${root}/payments/${randomUUID()}`, { memberId: body.memberId, memberName: member.data.name, amount: paid, date: stamp(now), method: 'cash', recordedBy: user.uid, relatedSubscriptionId: subId });
+        const next = { currentPlanId: body.planId, currentSubscriptionId: subId, subscriptionStart: stamp(start), subscriptionEnd: stamp(end), visitsAllowed: subscription.visitsAllowed, visitsUsed: 0, status: start > now ? 'pending' : end < now ? 'expired' : 'active' };
+        await tx.put(member.path, start > now && oldEnd && oldEnd > now ? { ...member.data, nextSubscription: next } : { ...member.data, ...next, nextSubscription: null });
+        if (paid > 0) await tx.put(`${root}/payments/${randomUUID()}`, { memberId: body.memberId, memberName: member.data.name, amount: paid, date: stamp(now), receiptNumber: `GG-${randomUUID().slice(0, 8).toUpperCase()}`, method: 'cash', recordedBy: user.uid, relatedSubscriptionId: subId });
         if (paid < price) await tx.put(`${root}/debts/${randomUUID()}`, { memberId: body.memberId, memberName: member.data.name, totalAmount: price, paidAmount: paid, createdAt: stamp(now), relatedSubscriptionId: subId, planName: plan.data.name, recordedByUid: user.uid, isPaid: false });
+        const earned = body.requestId ? Math.floor(paid / 10) : 0;
+        if (earned > 0) {
+          const path = `${root}/members/${body.memberId}/loyalty/summary`;
+          const points = (await tx.get(path))?.data ?? { totalPoints: 0, lifetimePoints: 0 };
+          await tx.put(path, { totalPoints: points.totalPoints + earned, lifetimePoints: points.lifetimePoints + earned });
+          await tx.put(`${path}/transactions/${randomUUID()}`, { points: earned, reason: 'دفع اشتراك', date: stamp(now), recordedByUid: user.uid });
+        }
         return resultOf(await tx.get(`${root}/subscriptions/${subId}`));
       }
       if (name === 'debt-pay') {
@@ -326,7 +395,7 @@ export class GymService {
         requireValue(amount <= remaining, 'المبلغ أكبر من المتبقي الحالي', 409);
         const newPaid = money(debt.data.paidAmount + amount, true);
         await tx.put(debt.path, { ...debt.data, paidAmount: newPaid, isPaid: newPaid >= debt.data.totalAmount });
-        await tx.put(`${root}/payments/${randomUUID()}`, { memberId: debt.data.memberId, memberName: debt.data.memberName, amount, date: stamp(), method: 'cash', recordedBy: user.uid, relatedSubscriptionId: debt.data.relatedSubscriptionId });
+        await tx.put(`${root}/payments/${randomUUID()}`, { memberId: debt.data.memberId, memberName: debt.data.memberName, amount, date: stamp(), receiptNumber: `GG-${randomUUID().slice(0, 8).toUpperCase()}`, method: 'cash', recordedBy: user.uid, relatedSubscriptionId: debt.data.relatedSubscriptionId });
         return { paid: true };
       }
       if (name === 'check-in') {
@@ -393,12 +462,51 @@ export class GymService {
       throw new ApiError(404, 'العملية غير موجودة');
     });
   }
+  async financialReport(user,body) {
+    const gymId=id(body.gymId);
+    await this.operational(this.store,user,gymId,['admin']);
+    const from=body.from==null?null:date(body.from).toISOString(),to=body.to==null?null:date(body.to).toISOString();
+    requireValue(!from || !to || from<to,'فترة التقرير غير صحيحة');
+    return this.store.financialSummary(gymId,from,to);
+  }
+  async reception(user, body) {
+    const gymId = id(body.gymId);
+    await this.operational(this.store, user, gymId);
+    const search = typeof body.search === 'string' ? body.search.trim().slice(0, 100) : '';
+    const after = body.after ? `gyms/${gymId}/members/${id(body.after)}` : '';
+    const rows = await this.store.searchMembers(gymId, search, after);
+    const page = rows.slice(0, 25);
+    return { members: page.map(resultOf), next: rows.length > 25 ? uidOf(page.at(-1)) : null };
+  }
+  async markNotificationsRead(user, body) {
+    requireValue(Array.isArray(body.ids) && body.ids.length <= 50, 'الطلبات غير صحيحة');
+    await this.store.transaction(async tx => {
+      for (const value of body.ids) {
+        const path = `users/${user.uid}/notifications/${id(value)}`, row = await tx.get(path);
+        if (row) await tx.put(path, { ...row.data, isRead: true });
+      }
+    });
+    return { saved: true };
+  }
   async notifications(user) {
     if (!user.gymId) return [];
-    const members = (await this.store.list(`gyms/${user.gymId}/members`)).filter(r => r.data.subscriptionEnd && date(r.data.subscriptionEnd).getTime() >= Date.now() && date(r.data.subscriptionEnd).getTime() <= Date.now() + 3 * 86400000);
-    const relevant = user.role === 'member' ? members.filter(r => uidOf(r) === user.memberId) : members;
-    if (!relevant.length) return [];
-    const notificationId = `${cairoDay()}-expiry`;
-    return [{ id: notificationId, title: 'اشتراكات قربت تخلص', body: user.role === 'member' ? 'اشتراكك هيخلص خلال 3 أيام، تواصل مع الجيم للتجديد.' : `${relevant.length} عضو اشتراكهم هيخلص خلال 3 أيام` }];
+    const end = stamp(new Date(Date.now() + 3 * 86400000));
+    const filters = [{field:'subscriptionEnd',op:'gte',value:stamp()},{field:'subscriptionEnd',op:'lte',value:end}];
+    if (user.role === 'member') {
+      const row = await this.store.get(`gyms/${user.gymId}/members/${user.memberId}`);
+      if (row && row.data.subscriptionEnd && date(row.data.subscriptionEnd) >= new Date() && date(row.data.subscriptionEnd) <= date(end)) {
+        await this.store.transaction(async tx => {
+          const path = `users/${user.uid}/notifications/${cairoDay()}-expiry`;
+          if (!await tx.get(path)) await tx.put(path, { title:'اشتراكك قرب يخلص',body:'اشتراكك هيخلص خلال 3 أيام، تواصل مع الجيم للتجديد.',date:stamp(),isRead:false });
+        });
+      }
+    } else {
+      const members = await this.store.select(`gyms/${user.gymId}/members`, filters);
+      if (members.length) await this.store.transaction(async tx => {
+        const path = `users/${user.uid}/notifications/${cairoDay()}-expiry`;
+        if (!await tx.get(path)) await tx.put(path,{title:'اشتراكات قربت تخلص',body:`${members.length} عضو اشتراكهم هيخلص خلال 3 أيام`,date:stamp(),isRead:false});
+      });
+    }
+    return (await this.store.select(`users/${user.uid}/notifications`, [], {field:'date',descending:true}, 50)).map(row => ({id:uidOf(row),...row.data}));
   }
 }

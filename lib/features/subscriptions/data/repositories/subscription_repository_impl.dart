@@ -79,12 +79,12 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
   @override
   Future<Either<Failure, Subscription>> subscribeMember({
     required String memberId, required Plan plan, required double paidAmount,
-    required String recordedByUid, DateTime? startDate,
+    required String recordedByUid, DateTime? startDate, bool startAfterCurrent = false,
   }) async {
     try {
       final row = await _store.command('subscribe', {
         'gymId': gymId, 'memberId': memberId, 'planId': plan.id,
-        'paidAmount': paidAmount,
+        'paidAmount': paidAmount, 'startAfterCurrent': startAfterCurrent,
         if (startDate != null) 'startDate': DbTimestamp.fromDate(startDate),
       }) as Map<String, dynamic>;
       return Right(SubscriptionModel.fromMap(Map<String, dynamic>.from(row['data'] as Map), row['id'] as String));

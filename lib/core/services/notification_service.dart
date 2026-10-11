@@ -24,7 +24,7 @@ class NotificationService {
       final notifications = await api.request('GET', '/api/notifications') as List<dynamic>;
       if (_uid != uid) return;
       for (final item in notifications) {
-        if (_shown.add(item['id'] as String)) _events.add('${item['title']}\n${item['body']}');
+        if (item['isRead'] != true && _shown.add(item['id'] as String)) _events.add('${item['title']}\n${item['body']}');
       }
     } catch (_) { /* Failed reminders must not prevent sign-in. */ }
     finally { _busy = false; }

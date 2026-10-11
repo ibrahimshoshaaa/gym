@@ -1,7 +1,7 @@
 name: gym_manager
 description: "Gym Management System - Admin, Staff & Member roles"
 publish_to: 'none'
-version: 2.2.0+5
+version: 2.3.0+6
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -46,6 +46,7 @@ dependencies:
   equatable: ^2.0.5
   dartz: ^0.10.1
   uuid: ^4.4.0
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

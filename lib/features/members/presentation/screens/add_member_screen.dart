@@ -59,7 +59,7 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
   }
 
   Future<void> _pickPhoto() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70, maxWidth: 1024, maxHeight: 1024);
     if (picked != null) {
       setState(() => _pickedPhoto = File(picked.path));
     }
