@@ -27,7 +27,7 @@ android {
         }
     }
     if (gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }) {
-        require(hasReleaseKey) { "Release builds require a private release.jks and ANDROID signing environment variables" }
+        require(hasReleaseKey || System.getenv("ALLOW_UNSIGNED_RELEASE") == "1") { "Release builds require a private key, or explicit ALLOW_UNSIGNED_RELEASE=1 for offline signing" }
     }
 
     defaultConfig {
