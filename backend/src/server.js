@@ -8,6 +8,7 @@ const store = new PostgresStore(pool);
 await store.migrate();
 const service = new GymService(store, { allowSignup: process.env.ALLOW_SIGNUP !== 'false' });
 await service.bootstrap({ email: process.env.BOOTSTRAP_ADMIN_EMAIL, password: process.env.BOOTSTRAP_ADMIN_PASSWORD, name: process.env.BOOTSTRAP_ADMIN_NAME });
+await service.migratePendingMemberPasswords();
 const server = createApp(service, { corsOrigins: (process.env.CORS_ORIGINS ?? '').split(',').filter(Boolean) });
 const cleanup = setInterval(() => store.cleanup().catch(() => console.error('Session cleanup failed')), 3600000);
 cleanup.unref();

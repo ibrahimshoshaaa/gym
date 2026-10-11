@@ -1,3 +1,8 @@
+import 'package:gym_manager/core/theme/app_theme.dart';
+import 'package:gym_manager/features/dashboard/presentation/screens/admin_dashboard.dart';
+import 'package:gym_manager/features/members/presentation/providers/members_provider.dart';
+import 'package:gym_manager/features/debts/presentation/providers/debts_provider.dart';
+import 'package:gym_manager/features/members/presentation/widgets/member_login_dialog.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -20,6 +25,46 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
+  testWidgets('Dashboard cards fit narrow screens and enlarged Arabic text', (tester) async {
+    tester.view.physicalSize = const Size(320, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    for (final scale in [1.0, 1.5, 2.0]) {
+      await tester.pumpWidget(ProviderScope(overrides: [
+        currentUserProvider.overrideWithValue(AppUser(uid: 'admin', gymId: 'gym', name: 'إبراهيم محمد', phone: '01212345678', role: UserRole.admin, createdAt: DateTime(2026))),
+        memberStatsProvider.overrideWithValue(AsyncData(MemberStats(total: 12345, active: 10000, expiringSoon: 345, expired: 2000))),
+        openDebtsProvider.overrideWith((ref) => Stream.value([])),
+      ], child: MaterialApp(theme: AppTheme.darkTheme, builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
+        child: Directionality(textDirection: TextDirection.rtl, child: child!),
+      ), home: const AdminDashboard())));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'Text scale $scale');
+      await tester.drag(find.byType(ListView).first, const Offset(0, -1600));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }
+  });
+  testWidgets('Member login details stay readable on a small screen', (tester) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(MaterialApp(theme: AppTheme.darkTheme,
+      builder: (context, child) => MediaQuery(data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(1.5)), child: Directionality(textDirection: TextDirection.rtl, child: child!)),
+      home: Scaffold(body: Builder(builder: (context) => TextButton(onPressed: () => showDialog<void>(context: context, builder: (_) => const MemberLoginDialog(gymId: '2511', phone: '01212345678', password: '01212345678')), child: const Text('open')))),
+    ));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    expect(find.text('01212345678'), findsNWidgets(2));
+    expect(find.text('نسخ البيانات'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('تم'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MemberLoginDialog), findsNothing);
+  });
   test('Gym queries wait for an authorized profile after password change', () async {
     var queries = 0;
     final api = ApiClient(baseUrl: 'https://gym.example', client: MockClient((request) async {

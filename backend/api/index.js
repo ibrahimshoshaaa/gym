@@ -15,6 +15,7 @@ function handler() {
     await store.migrate();
     const service = new GymService(store, { allowSignup: process.env.ALLOW_SIGNUP === 'true' });
     await service.bootstrap({ email: process.env.BOOTSTRAP_ADMIN_EMAIL, password: process.env.BOOTSTRAP_ADMIN_PASSWORD, name: process.env.BOOTSTRAP_ADMIN_NAME, mustChangePassword: true });
+    await service.migratePendingMemberPasswords();
     await store.cleanup();
     return createHandler(service, { corsOrigins: (process.env.CORS_ORIGINS ?? '').split(',').filter(Boolean) });
   })().catch(error => { initializing = undefined; throw error; });

@@ -7,6 +7,7 @@ import '../../../debts/presentation/screens/debts_list_screen.dart';
 import '../../../members/presentation/providers/members_provider.dart';
 import '../../../members/presentation/screens/members_list_screen.dart';
 import '../widgets/app_drawer.dart';
+import '../../../members/presentation/screens/add_member_screen.dart';
 
 class AdminDashboard extends ConsumerWidget {
   const AdminDashboard({super.key});
@@ -33,16 +34,20 @@ class AdminDashboard extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           _GreetingHeader(name: user?.name ?? '', isDark: isDark),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () => _push(context, const AddMemberScreen()),
+            icon: const Icon(Icons.person_add_alt_1),
+            label: const Text('إضافة عضو جديد'),
+          ),
           const SizedBox(height: 20),
+          Text('نظرة على الاشتراكات', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
           statsAsync.when(
-            data: (stats) => GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.5,
-              children: [
+            data: (stats) => LayoutBuilder(builder: (context, constraints) {
+              final columns = constraints.maxWidth < 280 || MediaQuery.textScalerOf(context).scale(14) > 22 ? 1 : constraints.maxWidth > 700 ? 4 : 2;
+              final width = (constraints.maxWidth - 12 * (columns - 1)) / columns;
+              final cards = <Widget>[
                 _StatCard(
                   label: 'إجمالي الأعضاء',
                   value: '${stats.total}',
@@ -89,10 +94,21 @@ class AdminDashboard extends ConsumerWidget {
                     );
                   },
                 ),
-              ],
-            ),
+              ];
+              return Wrap(
+                spacing: 12, runSpacing: 12,
+                children: [for (var i = 0; i < cards.length; i++)
+                  SizedBox(width: i == cards.length - 1 ? constraints.maxWidth : width, child: cards[i])],
+              );
+            }),
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (_, __) => Card(child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(children: [
+                const Text('تعذّر تحميل الإحصائيات'),
+                TextButton.icon(onPressed: () => ref.invalidate(membersStreamProvider), icon: const Icon(Icons.refresh), label: const Text('حاول تاني')),
+              ]),
+            )),
           ),
         ],
       ),
@@ -188,6 +204,7 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -195,7 +212,7 @@ class _StatCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
@@ -205,7 +222,9 @@ class _StatCard extends StatelessWidget {
                 ),
                 child: Icon(icon, color: color, size: 20),
               ),
+              const SizedBox(height: 12),
               Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+              const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
@@ -220,3 +239,4 @@ class _StatCard extends StatelessWidget {
     );
   }
 }
+

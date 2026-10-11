@@ -122,18 +122,34 @@ test('API account, tenant, subscription and money flows', async t => {
     const records = await store.list(`gyms/${gymA}/attendance`);
     assert.equal(records.length, 1); assert.equal(records[0].data.biometricVerified, false);
   });
-  await t.test('member account has random temporary password and forced server-side change', async () => {
+  await t.test('member account uses stored phone and requires a different password', async () => {
     const account = await call('/api/auth/member-account', { gymId: gymA, memberId: memberA, phone: '01599999999' }, adminA);
     assert.equal(account.status, 200);
-    assert.notEqual(account.data.temporaryPassword, '01212345678');
+    assert.equal(account.data.temporaryPassword, '01212345678');
     const login = await call('/api/auth/login', { gymId: gymA, phone: '01212345678', password: account.data.temporaryPassword });
     assert.equal(login.status, 200); memberToken = login.data.token;
     assert.equal((await call('/api/data/read', { path: `gyms/${gymA}/members/${memberA}` }, memberToken)).status, 403);
+    assert.equal((await call('/api/auth/password', { password: '01212345678' }, memberToken)).status, 400);
     assert.equal((await call('/api/auth/password', { password: 'Member-password1' }, memberToken)).status, 200);
     const history = await call('/api/data/query', { path: `gyms/${gymA}/attendance`, filters: [{ field: 'memberId', op: 'eq', value: memberA }] }, memberToken);
     assert.equal(history.status, 200); assert.equal(history.data.length, 1);
     assert.equal((await call('/api/data/read', { path: `gyms/${gymB}/members/${memberB}` }, memberToken)).status, 403);
     assert.equal((await call('/api/data/query', { path: `gyms/${gymA}/expenses` }, memberToken)).data.length, 0);
+  });
+  await t.test('phone migration only changes legacy pending members and runs once', async () => {
+    const { passwordHash, verifyPassword } = await import('../src/security.js');
+    await store.put('users/legacy-member', { role: 'member', phone: '01012345678', gymId: gymA, mustChangePassword: true });
+    await store.addAccount('legacy-member', `member:${gymA}:01012345678`, await passwordHash('Old-random-password'));
+    await store.addSession('legacy-session', 'legacy-member', new Date(Date.now() + 86400000));
+    await service.migratePendingMemberPasswords();
+    assert.equal(await verifyPassword('01012345678', (await store.account(`member:${gymA}:01012345678`)).password_hash), true);
+    assert.equal(await store.session('legacy-session'), null);
+    assert.equal((await store.get('users/legacy-member')).data.mustChangePassword, true);
+    assert.equal(await verifyPassword('Member-password1', (await store.account(`member:${gymA}:01212345678`)).password_hash), true);
+    await store.changePassword('legacy-member', await passwordHash('New-user-password'));
+    await service.migratePendingMemberPasswords();
+    assert.equal(await verifyPassword('New-user-password', (await store.account(`member:${gymA}:01012345678`)).password_hash), true);
+    await store.remove('users/legacy-member');
   });
   await t.test('booking validates member ownership, capacity and preserves class metadata', async () => {
     const row = await call('/api/data/write', { path: `gyms/${gymA}/classes/class1`, operation: 'set', data: { name: 'Training', trainerId: 'trainer', trainerName: 'Coach', dateTime: stamp(new Date(Date.now() + 86400000)), capacity: 1, durationMinutes: 60 } }, adminA);
