@@ -88,7 +88,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'عشان حسابك يبقى آمن، لازم تحط كلمة مرور جديدة بدل رقم موبايلك',
+                  'عشان حسابك يبقى آمن، لازم تحط كلمة مرور جديدة بدل كلمة المرور المؤقتة',
                   style: TextStyle(color: AppColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),

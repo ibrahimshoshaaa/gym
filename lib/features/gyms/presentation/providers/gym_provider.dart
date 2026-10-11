@@ -1,5 +1,6 @@
 import 'package:gym_manager/core/network/api_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/repositories/gym_repository_impl.dart';
 import '../../domain/entities/gym.dart';
 import '../../domain/repositories/gym_repository.dart';
@@ -8,7 +9,11 @@ final gymRepositoryProvider = Provider<GymRepository>((ref) {
   return GymRepositoryImpl();
 });
 
-final allGymsProvider = StreamProvider<List<Gym>>((ref) {
+final allGymsProvider = StreamProvider.autoDispose<List<Gym>>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null || !user.isSuperAdmin || user.mustChangePassword) {
+    return const Stream.empty();
+  }
   return ref.watch(gymRepositoryProvider).watchAllGyms();
 });
 
