@@ -193,6 +193,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     for (final light in [false, true, false, true]) {
       await mount(tester, const WorkspaceMenu(), width: 390, scale: 1, light: light);
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 5000));
+      await tester.pumpAndSettle();
       final context = tester.element(find.byType(WorkspaceMenu));
       final theme = Theme.of(context);
       final foreground = theme.colorScheme.onSurface;
@@ -228,5 +230,10 @@ void main() {
       await tester.runAsync(() => screenshot(key, name));
       await tester.pumpWidget(const SizedBox.shrink());
     }
+    final lightKey = GlobalKey();
+    await mount(tester, const WorkspaceMenu(), width: 390, scale: 1, light: true, capture: lightKey);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -2500));
+    await tester.pumpAndSettle();
+    await tester.runAsync(() => screenshot(lightKey, 'menu_light'));
   });
 }
