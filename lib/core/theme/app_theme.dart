@@ -42,13 +42,13 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(style: ElevatedButton.styleFrom(
         backgroundColor: primary, foregroundColor: scheme.onPrimary, elevation: 0,
         minimumSize: const Size(48, 52), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        shape: shape, textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700))),
+        shape: shape, textStyle: const TextStyle(fontFamily: 'Cairo', fontSize: 14, fontWeight: FontWeight.w700))),
       filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(
         minimumSize: const Size(48, 52), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14), shape: shape,
-        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700))),
+        textStyle: const TextStyle(fontFamily: 'Cairo', fontSize: 14, fontWeight: FontWeight.w700))),
       outlinedButtonTheme: OutlinedButtonThemeData(style: OutlinedButton.styleFrom(
         minimumSize: const Size(48, 52), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        side: BorderSide(color: border), shape: shape, textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600))),
+        side: BorderSide(color: border), shape: shape, textStyle: const TextStyle(fontFamily: 'Cairo', fontSize: 14, fontWeight: FontWeight.w600))),
       textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(minimumSize: const Size(48, 48), shape: shape)),
       inputDecorationTheme: InputDecorationTheme(
         filled: true, fillColor: dark ? GoldPalette.darkSurfaceAlt : Colors.white,
@@ -66,7 +66,7 @@ class AppTheme {
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28)))),
       snackBarTheme: SnackBarThemeData(behavior: SnackBarBehavior.floating, shape: shape,
         backgroundColor: dark ? const Color(0xFF333A38) : const Color(0xFF202826),
-        contentTextStyle: const TextStyle(color: Colors.white, fontSize: 14, height: 1.5)),
+        contentTextStyle: const TextStyle(fontFamily: 'Cairo', color: Colors.white, fontSize: 14, height: 1.5)),
       navigationBarTheme: NavigationBarThemeData(backgroundColor: scheme.surface,
         indicatorColor: primary.withValues(alpha: .16), elevation: 0, height: 76,
         labelTextStyle: WidgetStatePropertyAll(text.labelMedium)),
@@ -76,7 +76,7 @@ class AppTheme {
       floatingActionButtonTheme: FloatingActionButtonThemeData(backgroundColor: primary,
         foregroundColor: scheme.onPrimary, elevation: 2, shape: shape),
       tabBarTheme: TabBarThemeData(labelColor: primary, unselectedLabelColor: scheme.onSurfaceVariant,
-        indicatorColor: primary, dividerColor: border, labelStyle: const TextStyle(fontWeight: FontWeight.w700)),
+        indicatorColor: primary, dividerColor: border, labelStyle: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w700)),
       progressIndicatorTheme: ProgressIndicatorThemeData(color: primary),
       pageTransitionsTheme: PageTransitionsTheme(builders: {
         ...base.pageTransitionsTheme.builders,

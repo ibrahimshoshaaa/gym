@@ -130,6 +130,9 @@ void main() {
     font.addFont(rootBundle.load('assets/fonts/Cairo-Regular.ttf'));
     font.addFont(rootBundle.load('assets/fonts/Cairo-Bold.ttf'));
     await font.load();
+    final icons = FontLoader('MaterialIcons');
+    icons.addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
+    await icons.load();
   });
   final screens = <String, Widget>{
     'login': const LoginScreen(), 'admin': const AdminDashboard(), 'staff': const StaffDashboard(), 'member': const MemberDashboard(),
