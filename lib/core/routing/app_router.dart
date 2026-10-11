@@ -72,6 +72,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/';
       }
 
+      if (user.mustChangePassword) {
+        return isChangingPassword ? null : '/change-password';
+      }
+      if (isChangingPassword) return '/';
+
       // التحقق من الترخيص / التجربة (مش للسوبر أدمن)
       if (isLoggedIn && !user.isSuperAdmin) {
         final gymAsync = ref.read(currentGymProvider);
@@ -101,12 +106,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         if (isLicenseExpired || isPayment) return '/';
       }
 
-      if (isLoggedIn && user.mustChangePassword && !isChangingPassword) {
-        return '/change-password';
-      }
-      if (isLoggedIn && !user.mustChangePassword && isChangingPassword) {
-        return '/';
-      }
       return null;
     },
     routes: [

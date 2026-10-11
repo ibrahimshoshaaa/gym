@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gym_manager/core/providers/shared_preferences_provider.dart';
 import 'package:gym_manager/features/auth/domain/entities/app_user.dart';
 import 'package:gym_manager/features/auth/presentation/providers/auth_provider.dart';
+import 'package:gym_manager/features/gyms/domain/entities/gym.dart';
 import 'package:gym_manager/main.dart';
 import 'package:gym_manager/core/network/api_client.dart';
 import 'package:gym_manager/core/network/document_store.dart';
@@ -26,6 +27,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(TabBar), findsOneWidget);
     expect(find.text('Golden Gym'), findsWidgets);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+  testWidgets('Temporary-password accounts reach password change before license checks', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final user = AppUser(uid: 'u1', gymId: 'g1', name: 'Member', phone: '01212345678', role: UserRole.member, createdAt: DateTime.now(), memberId: 'm1', mustChangePassword: true);
+    await tester.pumpWidget(ProviderScope(overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      authStateProvider.overrideWith((ref) => Stream<AppUser?>.value(user)),
+      currentGymProvider.overrideWith((ref) => Stream<Gym?>.value(null)),
+    ], child: const GymManagerApp()));
+    await tester.pumpAndSettle();
+    expect(find.text('تأمين حسابك'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });

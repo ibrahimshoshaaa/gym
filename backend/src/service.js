@@ -5,7 +5,17 @@ const staffRoles = ['admin', 'staff'];
 const collections = ['members', 'plans', 'subscriptions', 'attendance', 'classes', 'trainers', 'payments', 'debts', 'expenses', 'rewards'];
 const managedCollections = ['plans', 'classes', 'trainers', 'rewards'];
 const uidOf = row => row.path.split('/').at(-1);
-const resultOf = row => row && ({ id: uidOf(row), data: row.data, version: Number(row.version) });
+const resultOf = row => {
+  if (!row) return null;
+  let data = row.data;
+  const parts = row.path.split('/');
+  if (parts[0] === 'gyms' && parts[2] === 'members' && parts.length === 4 && data.status !== 'frozen') {
+    const now = new Date();
+    const status = data.subscriptionStart && date(data.subscriptionStart) > now ? 'pending' : !data.subscriptionEnd || date(data.subscriptionEnd) < now ? 'expired' : 'active';
+    data = { ...data, status };
+  }
+  return { id: uidOf(row), data, version: Number(row.version) };
+};
 const memberLogin = (p, gymId) => `member:${id(gymId)}:${phone(p)}`;
 const limits = plan => ({ maxMembers: plan === 'basic' ? 200 : plan === 'pro' ? 500 : 9999, maxStaff: plan === 'basic' ? 3 : plan === 'pro' ? 10 : 50 });
 const profileFields = ['name', 'phone', 'photoUrl', 'notes', 'gender', 'nationalId', 'dateOfBirth', 'occupation'];
@@ -308,6 +318,7 @@ export class GymService {
       }
       if (name === 'check-in') {
         const member = await loadMember(body.memberId), m = member.data, now = new Date();
+        requireValue(m.status !== 'frozen', 'اشتراك العضو مجمد');
         requireValue(m.subscriptionEnd && date(m.subscriptionEnd) >= now, 'اشتراك العضو منتهي');
         requireValue(!m.subscriptionStart || date(m.subscriptionStart) <= now, 'تاريخ بداية الاشتراك لسه ما جاش');
         requireValue(!m.visitsAllowed || (m.visitsUsed ?? 0) < m.visitsAllowed, 'العضو استنفد عدد أيامه');

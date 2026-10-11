@@ -52,12 +52,7 @@ class MemberModel extends Member {
   }
 
   static MemberStatus _statusFromDates(Map<String, dynamic> map) {
-    final now = DateTime.now();
-    final start = (map['subscriptionStart'] as DbTimestamp?)?.toDate();
-    final end = (map['subscriptionEnd'] as DbTimestamp?)?.toDate();
-    if (start != null && start.isAfter(now)) return MemberStatus.pending;
-    if (end == null || end.isBefore(now)) return MemberStatus.expired;
-    return MemberStatus.active;
+    return MemberStatus.values.firstWhere((status) => status.name == map['status'], orElse: () => MemberStatus.expired);
   }
 
   Map<String, dynamic> toMap() {

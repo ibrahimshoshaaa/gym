@@ -1,7 +1,7 @@
 name: Verify application
 on:
   push:
-    branches: [main, 'codex/**']
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -55,7 +55,10 @@ jobs:
           channel: stable
           flutter-version: '3.47.7'
           cache: true
-      - run: flutter pub get
+      - name: Resolve dependencies
+        run: |
+          flutter pub get
+          python -c 'import json,pathlib; paths=["pubspec.lock","windows/flutter/generated_plugin_registrant.cc","windows/flutter/generated_plugins.cmake","macos/Flutter/GeneratedPluginRegistrant.swift","linux/flutter/generated_plugin_registrant.cc","linux/flutter/generated_plugins.cmake"]; print("RESOLVED_FILES="+json.dumps({p:pathlib.Path(p).read_text() for p in paths if pathlib.Path(p).exists()}))'
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - run: flutter test
       - name: Compile Android for verification
