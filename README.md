@@ -50,6 +50,8 @@ node --env-file=.env src/server.js
 
 ## ربط Flutter
 
+الخدمة المنشورة: `https://golden-gym-api.vercel.app`. هذا هو الرابط الافتراضي للتطبيق؛ `API_BASE_URL` يسمح باستخدام خدمة أخرى للتطوير. اختبار `/health` على الخدمة المنشورة أعاد `{"status":"ok"}`. بناء CI يرفع APK debug للتجربة باسم `gym-manager-test-apk` مرتبطًا بهذه الخدمة؛ هذه ليست نسخة إصدار نهائية.
+
 ```bash
 flutter pub get
 flutter run --dart-define=API_BASE_URL=https://YOUR-API-DOMAIN
@@ -75,7 +77,7 @@ flutter run --dart-define=API_BASE_URL=https://YOUR-API-DOMAIN
 flutter build apk --release --dart-define=API_BASE_URL=https://YOUR-API-DOMAIN
 ```
 
-في GitHub Actions: أضف Repository Variable باسم `GYM_API_BASE_URL` ورابط الخدمة. أضف Secrets باسم `ANDROID_KEYSTORE_BASE64` والمتغيرات الثلاثة الخاصة بالتوقيع أعلاه. بدون رابط حقيقي ومفتاح خاص، workflow يتحقق من البناء فقط ولا يرفع APK إصدار للاستخدام.
+في GitHub Actions: يمكن تغيير رابط الخدمة باستخدام Repository Variable باسم `GYM_API_BASE_URL`؛ الافتراضي هو الخدمة المنشورة أعلاه. أضف Secrets باسم `ANDROID_KEYSTORE_BASE64` والمتغيرات الثلاثة الخاصة بالتوقيع أعلاه لإنتاج APK release. بدون مفتاح خاص، workflow يرفع APK debug للتجربة فقط.
 
 ## التحقق
 

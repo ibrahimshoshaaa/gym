@@ -14,7 +14,9 @@ class ApiException implements Exception {
 /// Only the API URL is shipped in the app. Database credentials stay on the server.
 class ApiClient {
   static final instance = ApiClient();
-  static const configuredUrl = String.fromEnvironment('API_BASE_URL');
+  static const configuredUrl = String.fromEnvironment(
+    'API_BASE_URL', defaultValue: 'https://golden-gym-api.vercel.app',
+  );
   final http.Client client;
   final FlutterSecureStorage storage;
   final String baseUrl;
