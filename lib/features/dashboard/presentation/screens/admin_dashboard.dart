@@ -26,7 +26,7 @@ class AdminDashboard extends ConsumerWidget {
           children: [
             Icon(Icons.fitness_center, color: GoldPalette.gold, size: 20),
             const SizedBox(width: 8),
-            const Text('Golden Gym'),
+            const Flexible(child: Text('Golden Gym', maxLines: 1, overflow: TextOverflow.ellipsis)),
           ],
         ),
       ),
