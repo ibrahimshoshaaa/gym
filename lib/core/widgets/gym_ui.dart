@@ -248,7 +248,7 @@ class GymLoading extends StatelessWidget {
         const LinearProgressIndicator(minHeight: 3), const SizedBox(height: 24),
         for (final width in [.9, .65, .8]) Padding(padding: const EdgeInsets.only(bottom: 12),
           child: FractionallySizedBox(widthFactor: width, child: Container(height: 18,
-            decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8))))],
+            decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)))))],
       ),
     ),
   ));

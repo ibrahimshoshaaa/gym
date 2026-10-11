@@ -31,6 +31,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
   DateTime? _licenseEnd;
   bool _isLoading = true;
   Gym? _gym;
+  String? _loadError;
 
   @override
   void initState() {
@@ -38,22 +39,19 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
     _loadGym();
   }
 
-  void _loadGym() {
-    ref.read(gymFutureProvider(widget.gymId).future).then((gym) {
-      if (gym == null || !mounted) return;
+  Future<void> _loadGym() async {
+    try {
+      final gym = await ref.read(gymFutureProvider(widget.gymId).future);
+      if (!mounted) return;
+      if (gym == null) { setState(() { _isLoading = false; _loadError = 'الجيم غير موجود'; }); return; }
       setState(() {
         _gym = gym;
-        _nameController.text = gym.name;
-        _ownerNameController.text = gym.ownerName;
-        _phoneController.text = gym.phone;
-        _emailController.text = gym.email ?? '';
-        _addressController.text = gym.address ?? '';
-        _selectedPlan = gym.plan;
-        _licenseStart = gym.licenseStart;
-        _licenseEnd = gym.licenseEnd;
-        _isLoading = false;
+        _nameController.text = gym.name; _ownerNameController.text = gym.ownerName;
+        _phoneController.text = gym.phone; _emailController.text = gym.email ?? ''; _addressController.text = gym.address ?? '';
+        _selectedPlan = gym.plan; _licenseStart = gym.licenseStart; _licenseEnd = gym.licenseEnd;
+        _isLoading = false; _loadError = null;
       });
-    });
+    } catch (_) { if (mounted) setState(() { _isLoading = false; _loadError = 'تعذّر تحميل بيانات الجيم'; }); }
   }
 
   @override
@@ -122,7 +120,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
       appBar: AppBar(title: const Text('تعديل بيانات الجيم')),
       body: _isLoading
           ? const GymLoading()
-          : SingleChildScrollView(
+          : _loadError != null ? GymErrorState(message: _loadError!, onRetry: () { ref.invalidate(gymFutureProvider(widget.gymId)); setState(() => _isLoading = true); _loadGym(); }) : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Form(
                 key: _formKey,
@@ -210,7 +208,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Row(
+                    GymFormRow(
                       children: [
                         Expanded(
                           child: InkWell(

@@ -78,9 +78,9 @@ class AppTheme {
       tabBarTheme: TabBarThemeData(labelColor: primary, unselectedLabelColor: scheme.onSurfaceVariant,
         indicatorColor: primary, dividerColor: border, labelStyle: const TextStyle(fontWeight: FontWeight.w700)),
       progressIndicatorTheme: ProgressIndicatorThemeData(color: primary),
-      pageTransitionsTheme: const PageTransitionsTheme(builders: {
-        TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
-        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      pageTransitionsTheme: PageTransitionsTheme(builders: {
+        ...base.pageTransitionsTheme.builders,
+        TargetPlatform.android: const FadeForwardsPageTransitionsBuilder(),
       }),
     );
   }

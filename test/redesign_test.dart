@@ -1,3 +1,4 @@
+import 'package:gym_manager/features/attendance/presentation/screens/checkin_screen.dart';
 import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -138,7 +139,7 @@ void main() {
     'plans': const PlansScreen(), 'debts': const DebtsListScreen(), 'expenses': const ExpensesScreen(), 'reports': const ReportsScreen(),
     'payments': const PaymentsHistoryScreen(), 'gyms': const GymListScreen(), 'add-gym': const AddGymScreen(), 'edit-gym': const EditGymScreen(gymId: 'gym1'),
     'points': const MyPointsScreen(), 'rewards': const RewardsStoreScreen(), 'loyalty': const LoyaltyAdminScreen(), 'qr': const MemberQrScreen(),
-    'attendance': const MyAttendanceScreen(), 'welcome': const WelcomeScreen(), 'signup': const SelfSignUpScreen(),
+    'attendance': const MyAttendanceScreen(), 'checkin-confirm': const CheckinScreen(initialTab: 1), 'welcome': const WelcomeScreen(), 'signup': const SelfSignUpScreen(),
     'license': const LicenseExpiredScreen(), 'renewal': PaymentScreen(gym: gym), 'menu': const WorkspaceMenu(),
   };
   for (final entry in screens.entries) {
