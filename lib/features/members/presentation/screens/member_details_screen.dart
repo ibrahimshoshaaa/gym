@@ -13,6 +13,7 @@ import '../../../debts/presentation/widgets/pay_debt_dialog.dart';
 import '../../domain/entities/member.dart';
 import '../providers/members_provider.dart';
 import 'add_member_screen.dart';
+import '../widgets/member_login_dialog.dart';
 
 class MemberDetailsScreen extends ConsumerWidget {
   final String memberId;
@@ -103,19 +104,19 @@ class MemberDetailsScreen extends ConsumerWidget {
               Center(
                 child: CircleAvatar(
                   radius: 40,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                  backgroundColor: GoldPalette.gold.withValues(alpha: 0.1),
                   backgroundImage: member.photoUrl != null ? NetworkImage(member.photoUrl!) : null,
                   child: member.photoUrl == null
                       ? Text(
                           member.name.isNotEmpty ? member.name[0] : '?',
-                          style: const TextStyle(fontSize: 32, color: AppColors.primary),
+                          style: const TextStyle(fontSize: 32, color: GoldPalette.gold),
                         )
                       : null,
                 ),
               ),
               const SizedBox(height: 12),
               Center(
-                child: Text(member.name,
+                child: Text(member.name, textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 24),
@@ -163,7 +164,7 @@ class MemberDetailsScreen extends ConsumerWidget {
                   child: ListTile(
                     leading: const Icon(Icons.lock_outline, color: AppColors.warning),
                     title: const Text('العضو ده لسه معندوش حساب دخول'),
-                    subtitle: const Text('دوس عشان تفعّله وتستلم كلمة مرور مؤقتة'),
+                    subtitle: const Text('كلمة المرور الأولى هي رقم موبايله، وهيغيّرها أول ما يدخل'),
                     trailing: TextButton(
                       onPressed: () async {
                         final gymId = ref.read(currentUserProvider)?.gymId ?? 'default_gym';
@@ -180,11 +181,7 @@ class MemberDetailsScreen extends ConsumerWidget {
                           ),
                           (password) => showDialog<void>(
                             context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('تم تفعيل حساب الدخول'),
-                              content: SelectableText('كود الجيم: $gymId\nالموبايل: ${member.phone}\nكلمة المرور المؤقتة: $password\n\nاحفظها وابعتهاله. لازم يغيّرها أول ما يدخل.'),
-                              actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('تم'))],
-                            ),
+                            builder: (context) => MemberLoginDialog(gymId: gymId, phone: member.phone, password: password),
                           ),
                         );
                       },
@@ -200,10 +197,10 @@ class MemberDetailsScreen extends ConsumerWidget {
                   ),
                 ),
               const SizedBox(height: 24),
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
+                  ElevatedButton.icon(
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -212,11 +209,9 @@ class MemberDetailsScreen extends ConsumerWidget {
                       ),
                       icon: const Icon(Icons.refresh),
                       label: const Text('تجديد الاشتراك'),
-                    ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
                       onPressed: () async {
                         final result = await ref.read(attendanceRepositoryProvider).checkIn(member.id);
                         if (!context.mounted) return;
@@ -234,7 +229,6 @@ class MemberDetailsScreen extends ConsumerWidget {
                       },
                       icon: const Icon(Icons.login),
                       label: const Text('تسجيل حضور'),
-                    ),
                   ),
                 ],
               ),
@@ -345,8 +339,13 @@ class _InfoTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
-        leading: Icon(icon, color: AppColors.primary),
-        title: Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(color: GoldPalette.gold.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+          child: Icon(icon, color: GoldPalette.gold, size: 22),
+        ),
+        title: Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
         subtitle: Text(
           value,
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: valueColor),

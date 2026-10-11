@@ -1,5 +1,5 @@
 import { randomUUID, randomBytes } from 'node:crypto';
-import { ApiError, requireValue, text, id, phone, email, money, integer, stamp, date, hash, passwordHash, verifyPassword, temporaryPassword } from './security.js';
+import { ApiError, requireValue, text, id, phone, email, money, integer, stamp, date, hash, passwordHash, verifyPassword } from './security.js';
 
 const staffRoles = ['admin', 'staff'];
 const collections = ['members', 'plans', 'subscriptions', 'attendance', 'classes', 'trainers', 'payments', 'debts', 'expenses', 'rewards'];
@@ -112,19 +112,31 @@ export class GymService {
   }
   async createMemberAccount(user, body) {
     const gymId = id(body.gymId), memberId = id(body.memberId);
-    const temporary = temporaryPassword();
-    const encoded = await passwordHash(temporary);
     return this.store.transaction(async tx => {
       await this.operational(tx, user, gymId);
       const member = await tx.get(`gyms/${gymId}/members/${memberId}`);
       requireValue(member, 'العضو غير موجود', 404);
-      const login = memberLogin(member.data.phone, gymId);
+      const temporary = phone(member.data.phone);
+      const encoded = await passwordHash(temporary);
+      const login = memberLogin(temporary, gymId);
       requireValue(!await tx.account(login), 'حساب العضو مفعّل بالفعل', 409);
       const uid = randomUUID();
-      await tx.put(`users/${uid}`, { gymId, name: member.data.name, phone: member.data.phone, email: null, role: 'member', memberId, mustChangePassword: true, createdAt: stamp() });
+      await tx.put(`users/${uid}`, { gymId, name: member.data.name, phone: member.data.phone, email: null, role: 'member', memberId, initialPasswordScheme: 'phone-v1', mustChangePassword: true, createdAt: stamp() });
       await tx.addAccount(uid, login, encoded);
       await tx.put(member.path, { ...member.data, hasLoginAccount: true });
       return { temporaryPassword: temporary };
+    });
+  }
+  async migratePendingMemberPasswords() {
+    await this.store.transaction(async tx => {
+      if (await tx.get('system/member-phone-password-v1')) return;
+      for (const row of await tx.list('users')) {
+        if (row.data.role !== 'member' || !row.data.mustChangePassword || row.data.initialPasswordScheme === 'phone-v1') continue;
+        await tx.changePassword(uidOf(row), await passwordHash(phone(row.data.phone)));
+        await tx.revokeSessions(uidOf(row));
+        await tx.put(row.path, { ...row.data, initialPasswordScheme: 'phone-v1' });
+      }
+      await tx.put('system/member-phone-password-v1', { completedAt: stamp() });
     });
   }
   async changePassword(user, body) {
@@ -132,6 +144,7 @@ export class GymService {
     await this.store.transaction(async tx => {
       const row = await tx.get(`users/${user.uid}`);
       requireValue(row, 'الحساب غير موجود', 401);
+      requireValue(!(row.data.role === 'member' && row.data.mustChangePassword && body.password === phone(row.data.phone)), 'اختار كلمة مرور جديدة مختلفة عن رقم الموبايل');
       await tx.changePassword(user.uid, encoded);
       await tx.revokeSessions(user.uid, user.tokenHash);
       await tx.put(row.path, { ...row.data, mustChangePassword: false });
