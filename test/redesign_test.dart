@@ -182,6 +182,12 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
   }
+  testWidgets('Reception displays returned members, not a swallowed parsing error',(tester)async{
+    addTearDown(tester.view.resetPhysicalSize);addTearDown(tester.view.resetDevicePixelRatio);
+    await mount(tester,const ReceptionScreen(),width:390,scale:1);
+    expect(find.text(member.name),findsOneWidget);
+    expect(find.byType(GymErrorState),findsNothing);
+  });
   testWidgets('Member menu hides administration and navigation reaches card', (tester) async {
     addTearDown(tester.view.resetPhysicalSize); addTearDown(tester.view.resetDevicePixelRatio);
     await mount(tester, const GymWorkspace(), role: UserRole.member, width: 390, scale: 1);
