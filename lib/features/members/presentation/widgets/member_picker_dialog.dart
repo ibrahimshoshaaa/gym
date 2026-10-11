@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -22,7 +23,7 @@ class _MemberPickerDialogState extends ConsumerState<MemberPickerDialog> {
   Widget build(BuildContext context) {
     final membersAsync = ref.watch(membersStreamProvider);
 
-    return AlertDialog(
+    return GymDialog(
       title: const Text('اختر العضو'),
       contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       content: SizedBox(
@@ -49,13 +50,13 @@ class _MemberPickerDialogState extends ConsumerState<MemberPickerDialog> {
                               m.name.toLowerCase().contains(_query) || m.phone.contains(_query))
                           .toList();
                   if (filtered.isEmpty) {
-                    return const Center(child: Text('لا يوجد أعضاء مطابقين'));
+                    return const GymEmptyState(title: 'لا يوجد أعضاء مطابقين');
                   }
                   return ListView.builder(
                     itemCount: filtered.length,
                     itemBuilder: (context, i) {
                       final member = filtered[i];
-                      return ListTile(
+                      return GymListTile(
                         leading: CircleAvatar(
                           backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                           backgroundImage:
@@ -72,7 +73,7 @@ class _MemberPickerDialogState extends ConsumerState<MemberPickerDialog> {
                     },
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const GymLoading(),
                 error: (err, _) => Center(child: Text('حصل خطأ: $err')),
               ),
             ),
@@ -94,3 +95,4 @@ Future<Member?> pickMember(BuildContext context) {
     builder: (_) => const MemberPickerDialog(),
   );
 }
+

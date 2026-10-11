@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -12,12 +13,12 @@ class TrainersListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final trainersAsync = ref.watch(trainersStreamProvider);
 
-    return Scaffold(
+    return GymScaffold(
       appBar: AppBar(title: const Text('المدربين')),
       body: trainersAsync.when(
         data: (trainers) {
           if (trainers.isEmpty) {
-            return const Center(child: Text('لا يوجد مدربين مسجلين بعد'));
+            return const GymEmptyState(title: 'لا يوجد مدربين مسجلين بعد');
           }
           return ListView.builder(
             padding: const EdgeInsets.all(12),
@@ -25,7 +26,7 @@ class TrainersListScreen extends ConsumerWidget {
             itemBuilder: (context, i) {
               final t = trainers[i];
               return Card(
-                child: ListTile(
+                child: GymListTile(
                   leading: const CircleAvatar(
                     backgroundColor: AppColors.primary,
                     child: Icon(Icons.sports_gymnastics, color: Colors.white),
@@ -68,7 +69,7 @@ class TrainersListScreen extends ConsumerWidget {
                         onPressed: () async {
                           final confirmed = await showDialog<bool>(
                             context: context,
-                            builder: (_) => AlertDialog(
+                            builder: (_) => GymDialog(
                               title: const Text('حذف المدرب'),
                               content: Text('متأكد إنك عايز تحذف ${t.name}؟'),
                               actions: [
@@ -92,8 +93,8 @@ class TrainersListScreen extends ConsumerWidget {
             },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('حصل خطأ: $err')),
+        loading: () => const GymLoading(),
+        error: (err, _) => GymErrorState(onRetry: () => ref.invalidate(trainersStreamProvider)),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primary,
@@ -103,3 +104,4 @@ class TrainersListScreen extends ConsumerWidget {
     );
   }
 }
+

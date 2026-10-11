@@ -1,3 +1,5 @@
+import '../../../members/presentation/widgets/member_picker_dialog.dart';
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -14,7 +16,8 @@ import '../providers/attendance_provider.dart';
 /// - QR: مسح QR Code الخاص بالعضو بالكاميرا
 /// - بصمة: اختيار العضو من list + biometric authentication
 class CheckinScreen extends ConsumerStatefulWidget {
-  const CheckinScreen({super.key});
+  final int initialTab;
+  const CheckinScreen({super.key, this.initialTab = 0});
 
   @override
   ConsumerState<CheckinScreen> createState() => _CheckinScreenState();
@@ -36,14 +39,25 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, initialIndex: widget.initialTab, vsync: this);
+    _tabController.addListener(_syncCamera);
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_syncCamera);
     _tabController.dispose();
     _scannerController.dispose();
     super.dispose();
+  }
+
+  Future<void> _syncCamera() async {
+    if (!mounted) return;
+    setState(() {});
+    try {
+      if (_tabController.index == 0) { await _scannerController.start(); }
+      else { await _scannerController.stop(); }
+    } catch (_) {}
   }
 
   Future<void> _restartCamera() async {
@@ -56,7 +70,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
   String _describeError(MobileScannerException error) {
     switch (error.errorCode) {
       case MobileScannerErrorCode.permissionDenied:
-        return 'صلاحية الكاميرا مرفوضة. روح إعدادات الموبايل → التطبيقات → gym_manager → الصلاحيات → فعّل الكاميرا يدوياً';
+        return 'صلاحية الكاميرا مرفوضة. روح إعدادات الموبايل → التطبيقات → Golden Gym → الصلاحيات → فعّل الكاميرا يدوياً';
       case MobileScannerErrorCode.unsupported:
         return 'الجهاز ده مش بيدعم قراءة QR';
       default:
@@ -132,45 +146,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
     setState(() => _isProcessing = false);
   }
 
-  Future<String?> _showMemberSelectorDialog() async {
-    final membersAsync = ref.read(filteredMembersProvider);
-
-    return showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('اختار العضو'),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: 400,
-            child: membersAsync.when(
-              data: (members) => ListView.builder(
-                itemCount: members.length,
-                itemBuilder: (context, index) {
-                  final member = members[index];
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundImage: member.photoUrl != null
-                          ? NetworkImage(member.photoUrl!)
-                          : null,
-                      child: member.photoUrl == null
-                          ? Text(member.name[0])
-                          : null,
-                    ),
-                    title: Text(member.name),
-                    subtitle: Text(member.phone),
-                    onTap: () => Navigator.pop(context, member.id),
-                  );
-                },
-              ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => const Text('خطأ في تحميل الأعضاء'),
-            ),
-          ),
-        );
-      },
-    );
-  }
+  Future<String?> _showMemberSelectorDialog() async => (await pickMember(context))?.id;
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -186,14 +162,16 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GymScaffold(
       appBar: AppBar(
         title: const Text('تسجيل حضور'),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           tabs: const [
-            Tab(icon: Icon(Icons.qr_code_scanner), text: 'QR'),
-            Tab(icon: Icon(Icons.fingerprint), text: 'تأكيد الموظف'),
+            Tab(text: 'مسح الكود'),
+            Tab(text: 'تأكيد الموظف'),
           ],
         ),
       ),
@@ -202,7 +180,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
           TabBarView(
             controller: _tabController,
             children: [
-              _buildQrTab(),
+              _tabController.index == 0 ? _buildQrTab() : const SizedBox.shrink(),
               _buildBiometricTab(),
             ],
           ),
@@ -260,6 +238,8 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
             );
           },
         ),
+        IgnorePointer(child: Center(child: Container(width: 230, height: 230,
+          decoration: BoxDecoration(border: Border.all(color: GoldPalette.goldLight, width: 2), borderRadius: BorderRadius.circular(24))))),
         Positioned(
           bottom: 24,
           left: 24,
@@ -280,48 +260,10 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
     );
   }
 
-  Widget _buildBiometricTab() {
-    final gold = GoldPalette.gold;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.fingerprint, size: 100, color: gold),
-            const SizedBox(height: 32),
-            const Text(
-              'تأكيد الحضور بقفل جهاز الموظف',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'الموظف يختار العضو ويؤكد العملية بقفل جهازه. التحقق ده مش إثبات لبصمة العضو.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? GoldPalette.darkTextSecondary
-                    : GoldPalette.lightTextSecondary,
-              ),
-            ),
-            const SizedBox(height: 48),
-            ElevatedButton.icon(
-              onPressed: _isProcessing ? null : _handleBiometricCheckIn,
-              icon: const Icon(Icons.fingerprint, size: 28),
-              label: const Text(
-                'تأكيد وتسجيل الحضور',
-                style: TextStyle(fontSize: 16),
-              ),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _buildBiometricTab() => ListView(padding: const EdgeInsets.all(24), children: [
+    const GymHero(eyebrow: 'تأكيد الموظف', title: 'حضور بخطوة مؤكدة', subtitle: 'اختار العضو وأكد تسجيل الحضور بقفل جهاز الموظف.', icon: Icons.fingerprint_rounded),
+    const GymSection(title: 'قبل ما تبدأ', subtitle: 'التحقق بقفل الجهاز بيأكد عملية الموظف، وليس هوية العضو ببصمته.'),
+    FilledButton.icon(onPressed: _isProcessing ? null : _handleBiometricCheckIn,
+      icon: const Icon(Icons.fingerprint_rounded), label: const Text('اختيار العضو وتأكيد الحضور')),
+  ]);
 }
-

@@ -2,326 +2,88 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../core/widgets/gym_ui.dart';
+import '../../../../core/utils/date_formatter.dart';
 import '../../domain/entities/gym.dart';
 import '../providers/gym_provider.dart';
 
-class GymListScreen extends ConsumerWidget {
+class GymListScreen extends ConsumerStatefulWidget {
   const GymListScreen({super.key});
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final gymsAsync = ref.watch(allGymsProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gold = GoldPalette.gold;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('إدارة الجيمات'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => context.push('/gyms/add'),
-            tooltip: 'إضافة جيم جديد',
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
-            tooltip: 'تسجيل خروج',
-          ),
-        ],
-      ),
-      body: gymsAsync.when(
-        data: (gyms) {
-          if (gyms.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.fitness_center, size: 64, color: gold.withOpacity(0.3)),
-                  const SizedBox(height: 16),
-                  const Text('مفيش جيمات مسجلة لسه'),
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    onPressed: () => context.push('/gyms/add'),
-                    icon: const Icon(Icons.add),
-                    label: const Text('أضف أول جيم'),
-                  ),
-                ],
-              ),
-            );
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: gyms.length,
-            itemBuilder: (context, index) {
-              final gym = gyms[index];
-              return _GymCard(gym: gym);
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('خطأ: $err')),
-      ),
-    );
-  }
+  ConsumerState<GymListScreen> createState() => _GymListScreenState();
 }
-
-class _GymCard extends ConsumerWidget {
-  final Gym gym;
-  const _GymCard({required this.gym});
-
+class _GymListScreenState extends ConsumerState<GymListScreen> {
+  final _search = TextEditingController();
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gold = GoldPalette.gold;
-    final dateFormat = DateFormat('yyyy-MM-dd');
-
-    Color statusColor;
-    IconData statusIcon;
-    String statusText;
-
-    if (!gym.isActive) {
-      statusColor = Colors.grey;
-      statusIcon = Icons.block;
-      statusText = 'معطل';
-    } else if (gym.isExpired) {
-      statusColor = AppColors.danger;
-      statusIcon = Icons.cancel;
-      statusText = 'منتهي';
-    } else if (gym.isExpiringSoon) {
-      statusColor = Colors.orange;
-      statusIcon = Icons.warning_amber;
-      statusText = 'قارب ينتهي (${gym.daysRemaining} يوم)';
-    } else {
-      statusColor = AppColors.success;
-      statusIcon = Icons.check_circle;
-      statusText = 'ساري (${gym.daysRemaining} يوم)';
-    }
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: () => context.push('/gyms/${gym.id}/edit'),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      gym.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: statusColor.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(statusIcon, size: 14, color: statusColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          statusText,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: statusColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // كود الجيم مع زرار نسخ
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: gold.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: gold.withOpacity(0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.key, size: 14, color: gold),
-                    const SizedBox(width: 6),
-                    Text(
-                      'كود الجيم: ${gym.id}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: gold,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap: () {
-                        Clipboard.setData(ClipboardData(text: gym.id));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('✅ كود الجيم "${gym.id}" اتنسخ!'),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                      child: Icon(Icons.copy, size: 16, color: gold),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text('المالك: ${gym.ownerName}', style: TextStyle(color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary)),
-              Text('التليفون: ${gym.phone}', style: TextStyle(color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary)),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.calendar_today, size: 14, color: gold),
-                  const SizedBox(width: 4),
-                  Text(
-                    'الترخيص: ${dateFormat.format(gym.licenseStart)} → ${dateFormat.format(gym.licenseEnd)}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(Icons.verified, size: 14, color: gold),
-                  const SizedBox(width: 4),
-                  Text(
-                    'الخطة: ${gym.plan.label}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => context.push('/gyms/${gym.id}/edit'),
-                      icon: const Icon(Icons.edit, size: 18),
-                      label: const Text('تعديل'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showExtendDialog(context, ref, gym),
-                      icon: const Icon(Icons.more_time, size: 18),
-                      label: const Text('تمديد'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _showToggleDialog(context, ref, gym),
-                  icon: Icon(
-                    gym.isActive ? Icons.block : Icons.check_circle,
-                    size: 18,
-                  ),
-                  label: Text(gym.isActive ? 'تعطيل' : 'تفعيل'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  void dispose() { _search.dispose(); super.dispose(); }
+  Future<void> _extend(Gym gym) async {
+    final controller = TextEditingController(text: '1');
+    final form = GlobalKey<FormState>();
+    bool busy = false;
+    try {
+      await showDialog<void>(context: context, builder: (context) => StatefulBuilder(builder: (context, update) => GymDialog(
+        title: Text('تجديد ترخيص ${gym.name}'), content: Form(key: form, child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('الترخيص الحالي ينتهي ${DateFormatter.toDisplayDate(gym.licenseEnd)}'), const SizedBox(height: 16),
+          GymTextField(controller: controller, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'عدد الشهور'),
+            validator: (value) { final months = int.tryParse(value ?? ''); return months == null || months < 1 || months > 120 ? 'اختار من ١ إلى ١٢٠ شهر' : null; }),
+        ])), actions: [TextButton(onPressed: busy ? null : () => Navigator.pop(context), child: const Text('إلغاء')),
+          FilledButton(onPressed: busy ? null : () async {
+            if (form.currentState?.validate() != true) return;
+            update(() => busy = true);
+            final start = gym.licenseEnd.isAfter(DateTime.now()) ? gym.licenseEnd : DateTime.now();
+            await ref.read(gymControllerProvider.notifier).extendLicense(gymId: gym.id, newLicenseEnd: start.add(Duration(days: int.parse(controller.text) * 30)));
+            if (!context.mounted) return;
+            if (!ref.read(gymControllerProvider).hasError) Navigator.pop(context); else update(() => busy = false);
+          }, child: Text(busy ? 'جاري الحفظ' : 'تأكيد التجديد'))],
+      )));
+    } finally { controller.dispose(); }
   }
-
-  void _showExtendDialog(BuildContext context, WidgetRef ref, Gym gym) {
-    final monthsController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تمديد الترخيص'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('الترخيص الحالي ينتهي: ${DateFormat('yyyy-MM-dd').format(gym.licenseEnd)}'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: monthsController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'عدد الأشهر الإضافية',
-                prefixIcon: Icon(Icons.calendar_month),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final months = int.tryParse(monthsController.text) ?? 0;
-              if (months > 0) {
-                final newEnd = gym.licenseEnd.add(Duration(days: months * 30));
-                ref.read(gymControllerProvider.notifier).extendLicense(
-                  gymId: gym.id,
-                  newLicenseEnd: newEnd,
-                );
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('تمديد'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _toggle(Gym gym) async {
+    final ok = await showDialog<bool>(context: context, builder: (context) => GymDialog(title: Text(gym.isActive ? 'تعطيل الجيم؟' : 'تفعيل الجيم؟'),
+      content: Text(gym.isActive ? 'الحسابات التابعة للجيم مش هتقدر تستخدم التطبيق لحد ما تفعّله تاني.' : 'هيتم تفعيل الجيم، مع استمرار التحقق من صلاحية الترخيص.'),
+      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+        FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('تأكيد'))]));
+    if (ok == true && mounted) await ref.read(gymControllerProvider.notifier).toggleGymActive(gym.id, !gym.isActive);
   }
-
-  void _showToggleDialog(BuildContext context, WidgetRef ref, Gym gym) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(gym.isActive ? 'تعطيل الجيم؟' : 'تفعيل الجيم؟'),
-        content: Text(
-          gym.isActive
-              ? 'الجيم هيتعطل ومحدش هيقدر يستخدمه. متأكد؟'
-              : 'الجيم هيتفعل تاني. متأكد؟',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              ref.read(gymControllerProvider.notifier).toggleGymActive(
-                gym.id,
-                !gym.isActive,
-              );
-              Navigator.pop(context);
-            },
-            child: const Text('تأكيد'),
-          ),
-        ],
-      ),
-    );
+  @override
+  Widget build(BuildContext context) {
+    final gyms = ref.watch(allGymsProvider);
+    final busy = ref.watch(gymControllerProvider).isLoading;
+    ref.listen<AsyncValue<void>>(gymControllerProvider, (previous, next) {
+      next.whenOrNull(error: (error, _) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString()))),
+        data: (_) { if (previous?.isLoading == true) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحديث بيانات الجيم'))); });
+    });
+    return GymScaffold(appBar: AppBar(title: const Text('إدارة الجيمات')),
+      floatingActionButton: FloatingActionButton.extended(onPressed: () => context.push('/gyms/add'), icon: const Icon(Icons.add_rounded), label: const Text('جيم جديد')),
+      body: gyms.when(data: (all) {
+        final query = _search.text.trim().toLowerCase();
+        final list = all.where((g) => query.isEmpty || g.name.toLowerCase().contains(query) || g.id.toLowerCase().contains(query) || g.ownerName.toLowerCase().contains(query)).toList();
+        return ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), children: [
+          GymHero(eyebrow: 'إدارة النظام', title: '${all.length} جيم في مكان واحد', subtitle: 'راجع التراخيص والبيانات وتحكّم في إتاحة كل جيم.', icon: Icons.apartment_rounded),
+          const SizedBox(height: 20),
+          TextField(controller: _search, onChanged: (_) => setState(() {}), onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+            decoration: const InputDecoration(hintText: 'ابحث بالاسم أو كود الجيم', prefixIcon: Icon(Icons.search_rounded))),
+          const GymSection(title: 'الجيمات المسجّلة'),
+          if (list.isEmpty) GymEmptyState(title: all.isEmpty ? 'ابدأ بأول جيم' : 'مفيش نتائج مطابقة', message: all.isEmpty ? 'سجّل بيانات الجيم والترخيص وحساب الإدارة.' : 'جرّب اسم أو كود تاني.',
+            actionLabel: all.isEmpty ? 'إضافة جيم' : null, onAction: all.isEmpty ? () => context.push('/gyms/add') : null, icon: Icons.apartment_outlined),
+          for (final gym in list) Card(margin: const EdgeInsets.only(bottom: 12), child: Padding(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            GymListTile(contentPadding: EdgeInsets.zero, leading: const GymIcon(icon: Icons.fitness_center_rounded), title: Text(gym.name), subtitle: Text('${gym.ownerName}\n${gym.phone}'),
+              onTap: () => context.push('/gyms/${gym.id}/edit')),
+            const SizedBox(height: 16), Wrap(spacing: 8, runSpacing: 8, children: [
+              GymBadge(label: !gym.isActive ? 'متوقف' : gym.isExpired ? 'ترخيص منتهي' : 'ترخيص ساري', color: !gym.isActive || gym.isExpired ? AppColors.danger : AppColors.success),
+              GymBadge(label: gym.plan.label), GymBadge(label: 'حتى ${DateFormatter.toDisplayDate(gym.licenseEnd)}'),
+            ]),
+            const SizedBox(height: 12), OutlinedButton.icon(onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: gym.id));
+              if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم نسخ كود الجيم')));
+            }, icon: const Icon(Icons.copy_outlined), label: Text('كود الجيم: ${gym.id}')),
+            const SizedBox(height: 12), Wrap(spacing: 8, runSpacing: 8, children: [
+              FilledButton.icon(onPressed: busy ? null : () => _extend(gym), icon: const Icon(Icons.autorenew_rounded), label: const Text('تجديد الترخيص')),
+              OutlinedButton.icon(onPressed: busy ? null : () => _toggle(gym), icon: Icon(gym.isActive ? Icons.pause_circle_outline : Icons.play_circle_outline), label: Text(gym.isActive ? 'تعطيل' : 'تفعيل')),
+            ]),
+          ]))),
+        ]);
+      }, loading: () => const GymLoading(), error: (_, __) => GymErrorState(onRetry: () => ref.invalidate(allGymsProvider))));
   }
 }

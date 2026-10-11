@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -13,7 +14,7 @@ class LoyaltyAdminScreen extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final rewardsAsync = ref.watch(rewardsProvider);
 
-    return Scaffold(
+    return GymScaffold(
       appBar: AppBar(
         title: const Text('إدارة نظام الولاء'),
       ),
@@ -25,59 +26,15 @@ class LoyaltyAdminScreen extends ConsumerWidget {
         foregroundColor: Colors.black,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
         children: [
-          // قواعد جمع النقاط (للعرض فقط)
-          _SectionHeader(title: 'قواعد جمع النقاط', isDark: isDark),
-          const SizedBox(height: 8),
-          _RuleCard(
-            icon: Icons.qr_code_scanner,
-            title: 'تسجيل الحضور',
-            value: '+١٠ نقاط',
-            isDark: isDark,
-          ),
-          _RuleCard(
-            icon: Icons.payments_outlined,
-            title: 'دفع الاشتراك',
-            value: '+١ نقطة / ١٠ ج.م',
-            isDark: isDark,
-          ),
-          _RuleCard(
-            icon: Icons.event_available,
-            title: 'حجز كلاس',
-            value: '+٥ نقاط',
-            isDark: isDark,
-          ),
-          _RuleCard(
-            icon: Icons.person_add,
-            title: 'إحالة صديق',
-            value: '+١٠٠ نقطة',
-            isDark: isDark,
-          ),
-          _RuleCard(
-            icon: Icons.cake,
-            title: 'عيد الميلاد',
-            value: '+٥٠ نقطة',
-            isDark: isDark,
-          ),
-          _RuleCard(
-            icon: Icons.local_fire_department,
-            title: '٣٠ يوم حضور متتالي',
-            value: '+٢٠٠ نقطة',
-            isDark: isDark,
-          ),
-          const SizedBox(height: 24),
-          _SectionHeader(title: 'الهدايا المتاحة', isDark: isDark),
-          const SizedBox(height: 8),
+          const GymHero(eyebrow: 'إدارة المكافآت', title: 'خلي كل نقطة ليها قيمة', subtitle: 'أضف الهدايا وحدد تكلفة استبدالها وإتاحتها للأعضاء.', icon: Icons.stars_rounded),
+          const GymSection(title: 'نقاط الاشتراك', subtitle: 'نقطة واحدة لكل ١٠ ج.م مدفوعة عند تسجيل الاشتراك.'),
+          const GymSection(title: 'الهدايا والمكافآت'),
           rewardsAsync.when(
             data: (rewards) {
               if (rewards.isEmpty) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text('لا يوجد هدايا، اضغط + لإضافة هدية'),
-                  ),
-                );
+                return const GymEmptyState(title: 'ابدأ بأول مكافأة', message: 'أضف هدية وحدد عدد النقاط المطلوب لاستبدالها.', icon: Icons.card_giftcard_outlined);
               }
               return Column(
                 children: rewards
@@ -104,8 +61,8 @@ class LoyaltyAdminScreen extends ConsumerWidget {
                     .toList(),
               );
             },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Text('خطأ: $e'),
+            loading: () => const GymLoading(),
+            error: (_, __) => GymErrorState(onRetry: () => ref.invalidate(rewardsProvider)),
           ),
           const SizedBox(height: 80),
         ],
@@ -128,7 +85,7 @@ class LoyaltyAdminScreen extends ConsumerWidget {
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
+        builder: (ctx, setState) => GymDialog(
           title: Text(reward == null ? 'إضافة هدية' : 'تعديل الهدية'),
           content: SingleChildScrollView(
             child: Column(
@@ -156,6 +113,7 @@ class LoyaltyAdminScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<RewardType>(
+                    isExpanded: true,
                   value: selectedType,
                   decoration: const InputDecoration(labelText: 'النوع'),
                   items: RewardType.values
@@ -211,7 +169,7 @@ class LoyaltyAdminScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref, Reward reward) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => GymDialog(
         title: const Text('حذف الهدية'),
         content: Text('هتحذف "${reward.title}"، هل أنت متأكد؟'),
         actions: [
@@ -336,7 +294,7 @@ class _AdminRewardTile extends StatelessWidget {
               : Colors.grey.withValues(alpha: 0.2),
         ),
       ),
-      child: ListTile(
+      child: GymListTile(
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         leading: CircleAvatar(
@@ -389,5 +347,6 @@ class _AdminRewardTile extends StatelessWidget {
     );
   }
 }
+
 
 

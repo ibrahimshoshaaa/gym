@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -30,6 +31,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
   DateTime? _licenseEnd;
   bool _isLoading = true;
   Gym? _gym;
+  String? _loadError;
 
   @override
   void initState() {
@@ -37,22 +39,19 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
     _loadGym();
   }
 
-  void _loadGym() {
-    ref.read(gymFutureProvider(widget.gymId).future).then((gym) {
-      if (gym == null || !mounted) return;
+  Future<void> _loadGym() async {
+    try {
+      final gym = await ref.read(gymFutureProvider(widget.gymId).future);
+      if (!mounted) return;
+      if (gym == null) { setState(() { _isLoading = false; _loadError = 'الجيم غير موجود'; }); return; }
       setState(() {
         _gym = gym;
-        _nameController.text = gym.name;
-        _ownerNameController.text = gym.ownerName;
-        _phoneController.text = gym.phone;
-        _emailController.text = gym.email ?? '';
-        _addressController.text = gym.address ?? '';
-        _selectedPlan = gym.plan;
-        _licenseStart = gym.licenseStart;
-        _licenseEnd = gym.licenseEnd;
-        _isLoading = false;
+        _nameController.text = gym.name; _ownerNameController.text = gym.ownerName;
+        _phoneController.text = gym.phone; _emailController.text = gym.email ?? ''; _addressController.text = gym.address ?? '';
+        _selectedPlan = gym.plan; _licenseStart = gym.licenseStart; _licenseEnd = gym.licenseEnd;
+        _isLoading = false; _loadError = null;
       });
-    });
+    } catch (_) { if (mounted) setState(() { _isLoading = false; _loadError = 'تعذّر تحميل بيانات الجيم'; }); }
   }
 
   @override
@@ -87,7 +86,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gold = GoldPalette.gold;
+    final gold = Theme.of(context).colorScheme.primary;
     final gymState = ref.watch(gymControllerProvider);
     final dateFormat = DateFormat('yyyy-MM-dd');
 
@@ -117,17 +116,19 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
       );
     });
 
-    return Scaffold(
+    return GymScaffold(maxWidth: 720,
       appBar: AppBar(title: const Text('تعديل بيانات الجيم')),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+          ? const GymLoading()
+          : _loadError != null ? GymErrorState(message: _loadError!, onRetry: () { ref.invalidate(gymFutureProvider(widget.gymId)); setState(() => _isLoading = true); _loadGym(); }) : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+              const GymSection(title: 'إدارة بيانات الجيم', subtitle: 'راجع بيانات الجيم والترخيص واحفظ التغييرات.'),
+
                     Text(
                       'بيانات الجيم',
                       style: TextStyle(
@@ -139,7 +140,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
                     const SizedBox(height: 16),
 
                     // كود الجيم (غير قابل للتعديل)
-                    TextFormField(
+                    GymTextField(
                       initialValue: widget.gymId,
                       enabled: false,
                       decoration: const InputDecoration(
@@ -149,7 +150,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    TextFormField(
+                    GymTextField(
                       controller: _nameController,
                       decoration: const InputDecoration(
                         labelText: 'اسم الجيم *',
@@ -158,7 +159,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
                       validator: (v) => v?.isEmpty ?? true ? 'مطلوب' : null,
                     ),
                     const SizedBox(height: 12),
-                    TextFormField(
+                    GymTextField(
                       controller: _ownerNameController,
                       decoration: const InputDecoration(
                         labelText: 'اسم المالك *',
@@ -167,7 +168,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
                       validator: (v) => v?.isEmpty ?? true ? 'مطلوب' : null,
                     ),
                     const SizedBox(height: 12),
-                    TextFormField(
+                    GymTextField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
                       decoration: const InputDecoration(
@@ -177,7 +178,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
                       validator: Validators.phone,
                     ),
                     const SizedBox(height: 12),
-                    TextFormField(
+                    GymTextField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
@@ -187,7 +188,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
                       validator: (v) => v?.isEmpty ?? true ? null : Validators.email(v),
                     ),
                     const SizedBox(height: 12),
-                    TextFormField(
+                    GymTextField(
                       controller: _addressController,
                       decoration: const InputDecoration(
                         labelText: 'العنوان (اختياري)',
@@ -207,7 +208,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Row(
+                    GymFormRow(
                       children: [
                         Expanded(
                           child: InkWell(
@@ -333,7 +334,7 @@ class _PlanSelector extends StatelessWidget {
         final isSelected = plan == selected;
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
-          color: isSelected ? (isDark ? Colors.amber.withOpacity(0.1) : Colors.amber.withOpacity(0.05)) : null,
+          color: isSelected ? (isDark ? Colors.amber.withValues(alpha: 0.1) : Colors.amber.withValues(alpha: 0.05)) : null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
@@ -384,3 +385,4 @@ class _PlanSelector extends StatelessWidget {
     );
   }
 }
+

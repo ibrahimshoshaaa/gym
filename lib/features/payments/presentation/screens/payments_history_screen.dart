@@ -1,64 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/gym_ui.dart';
 import '../../../../core/utils/date_formatter.dart';
+import '../../domain/entities/payment.dart';
 import '../providers/payments_provider.dart';
 
 class PaymentsHistoryScreen extends ConsumerWidget {
   const PaymentsHistoryScreen({super.key});
-
+  String _method(PaymentMethod method) => switch (method) { PaymentMethod.cash => 'نقدي', PaymentMethod.card => 'بطاقة', PaymentMethod.transfer => 'تحويل' };
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final paymentsAsync = ref.watch(allPaymentsProvider);
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('سجل المدفوعات')),
-      body: paymentsAsync.when(
-        data: (payments) {
-          if (payments.isEmpty) {
-            return const Center(child: Text('لا توجد مدفوعات بعد'));
-          }
-          final total = payments.fold<double>(0, (sum, p) => sum + p.amount);
-
-          return Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                color: AppColors.primary.withValues(alpha: 0.08),
-                child: Column(
-                  children: [
-                    const Text('إجمالي آخر 100 معاملة', style: TextStyle(color: AppColors.textSecondary)),
-                    Text(
-                      '${total.toStringAsFixed(0)} ج.م',
-                      style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.primary),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: payments.length,
-                  itemBuilder: (context, i) {
-                    final p = payments[i];
-                    return ListTile(
-                      leading: const Icon(Icons.payments, color: AppColors.success),
-                      title: Text(p.memberName.isNotEmpty ? p.memberName : p.memberId),
-                      subtitle: Text(DateFormatter.toDisplayDateTime(p.date)),
-                      trailing: Text(
-                        '${p.amount.toStringAsFixed(0)} ج.م',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('حصل خطأ: $err')),
-      ),
-    );
-  }
+  Widget build(BuildContext context, WidgetRef ref) => GymScaffold(appBar: AppBar(title: const Text('المدفوعات')),
+    body: ref.watch(allPaymentsProvider).when(data: (payments) {
+      if (payments.isEmpty) return const GymEmptyState(title: 'لسه مفيش مدفوعات', message: 'مدفوعات الاشتراكات وتسديد المديونيات هتظهر هنا.', icon: Icons.payments_outlined);
+      return ListView(padding: const EdgeInsets.all(20), children: [
+        GymHero(eyebrow: 'سجل التحصيل', title: '${gymAmount(payments.fold<double>(0, (sum, p) => sum + p.amount))} ج.م', subtitle: '${payments.length} عملية تحصيل مسجّلة.', icon: Icons.payments_outlined),
+        const GymSection(title: 'المعاملات'),
+        for (final payment in payments) Card(margin: const EdgeInsets.only(bottom: 10), child: GymListTile(
+          leading: const GymIcon(icon: Icons.arrow_downward_rounded, color: AppColors.success), title: Text(payment.memberName),
+          subtitle: Text('${DateFormatter.toDisplayDateTime(payment.date)} · ${_method(payment.method)}'),
+          trailing: GymBadge(label: '${gymAmount(payment.amount)} ج.م', color: AppColors.success))),
+      ]);
+    }, loading: () => const GymLoading(), error: (_, __) => GymErrorState(onRetry: () => ref.invalidate(allPaymentsProvider))));
 }

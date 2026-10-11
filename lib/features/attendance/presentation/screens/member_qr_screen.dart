@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -100,6 +101,8 @@ class _MemberQrScreenState extends ConsumerState<MemberQrScreen> {
     Member? m = widget.member;
     if (m == null) {
       final ownMemberAsync = ref.watch(currentMemberProvider);
+      if (ownMemberAsync.isLoading) return GymScaffold(maxWidth: 620,appBar: AppBar(title: const Text('كارت العضوية')), body: const GymLoading());
+      if (ownMemberAsync.hasError || ownMemberAsync.valueOrNull == null) return GymScaffold(maxWidth: 620,appBar: AppBar(title: const Text('كارت العضوية')), body: GymErrorState(onRetry: () => ref.invalidate(currentMemberProvider)));
       m = ownMemberAsync.valueOrNull;
     }
 
@@ -109,7 +112,7 @@ class _MemberQrScreenState extends ConsumerState<MemberQrScreen> {
     final start = m?.subscriptionStart;
     final end = m?.subscriptionEnd;
 
-    return Scaffold(
+    return GymScaffold(maxWidth: 620,
       appBar: AppBar(title: const Text('كارت العضوية')),
       body: Center(
         child: SingleChildScrollView(
@@ -117,6 +120,7 @@ class _MemberQrScreenState extends ConsumerState<MemberQrScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const GymSection(title: 'كارتك جاهز للدخول', subtitle: 'اعرض الكود عند الاستقبال، أو شارك نسخة من كارتك.'),
               RepaintBoundary(
                 key: _cardKey,
                 child: MemberIdCardWidget(
@@ -127,8 +131,10 @@ class _MemberQrScreenState extends ConsumerState<MemberQrScreen> {
                   subscriptionEnd: end,
                 ),
               ),
-              const SizedBox(height: 28),
-              Row(
+              const SizedBox(height: 20),
+              Card(margin: EdgeInsets.zero, child: GymListTile(leading: const GymIcon(icon: Icons.person_outline_rounded), title: Text(name), subtitle: Text(phone, textDirection: TextDirection.ltr))),
+              const SizedBox(height: 20),
+              GymFormRow(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Expanded(
@@ -159,3 +165,4 @@ class _MemberQrScreenState extends ConsumerState<MemberQrScreen> {
     );
   }
 }
+

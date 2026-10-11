@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -71,7 +72,7 @@ class _AddExpenseDialogState extends ConsumerState<AddExpenseDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return GymDialog(
       title: const Text('إضافة مصروف'),
       content: Form(
         key: _formKey,
@@ -81,6 +82,7 @@ class _AddExpenseDialogState extends ConsumerState<AddExpenseDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DropdownButtonFormField<ExpenseCategory>(
+                    isExpanded: true,
                 initialValue: _category,
                 decoration: const InputDecoration(labelText: 'نوع المصروف'),
                 items: ExpenseCategory.values
@@ -92,7 +94,7 @@ class _AddExpenseDialogState extends ConsumerState<AddExpenseDialog> {
                 },
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _amountController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'المبلغ (ج.م)'),
@@ -110,7 +112,7 @@ class _AddExpenseDialogState extends ConsumerState<AddExpenseDialog> {
                 ),
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              GymTextField(
                 controller: _notesController,
                 maxLines: 2,
                 decoration: const InputDecoration(labelText: 'ملاحظات (اختياري)'),
@@ -120,16 +122,17 @@ class _AddExpenseDialogState extends ConsumerState<AddExpenseDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+        TextButton(onPressed: _isLoading ? null : () => Navigator.pop(context), child: const Text('إلغاء')),
         ElevatedButton(
           onPressed: _isLoading ? null : _handleSave,
           child: _isLoading
               ? const SizedBox(
                   height: 18, width: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  child: CircularProgressIndicator(strokeWidth: 2))
               : const Text('حفظ'),
         ),
       ],
     );
   }
 }
+

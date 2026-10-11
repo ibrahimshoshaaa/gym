@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/gym_ui.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../auth/domain/entities/app_user.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -8,113 +9,53 @@ import '../../../auth/presentation/widgets/role_guard.dart';
 import '../providers/classes_provider.dart';
 import 'add_class_screen.dart';
 
-class ClassesScheduleScreen extends ConsumerWidget {
+class ClassesScheduleScreen extends ConsumerStatefulWidget {
   const ClassesScheduleScreen({super.key});
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final classesAsync = ref.watch(upcomingClassesProvider);
-    final user = ref.watch(currentUserProvider);
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('جدول الكلاسات')),
-      body: classesAsync.when(
-        data: (classes) {
-          if (classes.isEmpty) {
-            return const Center(child: Text('لا توجد كلاسات قادمة'));
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: classes.length,
-            itemBuilder: (context, i) {
-              final c = classes[i];
-              final isBooked = user != null && c.isBookedBy(user.memberId ?? user.uid);
-
-              return Card(
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                    child: const Icon(Icons.event, color: AppColors.primary),
-                  ),
-                  title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(
-                    '${c.trainerName} • ${DateFormatter.toDisplayDateTime(c.dateTime)}\n'
-                    '${c.availableSpots} مكان متاح من ${c.capacity}',
-                  ),
-                  isThreeLine: true,
-                  trailing: user?.role == UserRole.member
-                      ? _BookButton(
-                          isBooked: isBooked,
-                          isFull: c.isFull,
-                          onPressed: () => _handleBooking(context, ref, c.id, user!, isBooked),
-                        )
-                      : null,
-                ),
-              );
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('حصل خطأ: $err')),
-      ),
-      floatingActionButton: RoleGuard(
-        allowedRoles: const [UserRole.admin],
-        child: FloatingActionButton(
-          backgroundColor: AppColors.primary,
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddClassScreen()),
-          ),
-          child: const Icon(Icons.add, color: Colors.white),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handleBooking(
-    BuildContext context,
-    WidgetRef ref,
-    String classId,
-    dynamic user,
-    bool isBooked,
-  ) async {
+  ConsumerState<ClassesScheduleScreen> createState() => _ClassesScheduleScreenState();
+}
+class _ClassesScheduleScreenState extends ConsumerState<ClassesScheduleScreen> {
+  final _busy = <String>{};
+  bool _bookedOnly = false;
+  Future<void> _book(String classId, AppUser user, bool booked) async {
+    if (_busy.contains(classId)) return;
+    setState(() => _busy.add(classId));
     final repo = ref.read(classRepositoryProvider);
     final memberId = user.memberId ?? user.uid;
-
-    final result = isBooked
-        ? await repo.cancelBooking(classId: classId, memberId: memberId)
-        : await repo.bookClass(classId: classId, memberId: memberId);
-
-    if (!context.mounted) return;
-    result.fold(
-      (failure) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(failure.message), backgroundColor: AppColors.danger),
-      ),
-      (_) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isBooked ? 'تم إلغاء الحجز' : 'تم الحجز بنجاح ✅'),
-          backgroundColor: AppColors.success,
-        ),
-      ),
-    );
+    final result = booked ? await repo.cancelBooking(classId: classId, memberId: memberId) : await repo.bookClass(classId: classId, memberId: memberId);
+    if (!mounted) return;
+    setState(() => _busy.remove(classId));
+    result.fold((f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(f.message))),
+      (_) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(booked ? 'تم إلغاء الحجز' : 'حجزك اتأكد'))));
   }
-}
-
-class _BookButton extends StatelessWidget {
-  final bool isBooked;
-  final bool isFull;
-  final VoidCallback onPressed;
-
-  const _BookButton({required this.isBooked, required this.isFull, required this.onPressed});
-
   @override
   Widget build(BuildContext context) {
-    if (isBooked) {
-      return OutlinedButton(onPressed: onPressed, child: const Text('إلغاء'));
-    }
-    if (isFull) {
-      return const Text('مكتمل', style: TextStyle(color: AppColors.danger));
-    }
-    return ElevatedButton(onPressed: onPressed, child: const Text('احجز'));
+    final classes = ref.watch(upcomingClassesProvider);
+    final user = ref.watch(currentUserProvider);
+    return GymScaffold(appBar: AppBar(title: const Text('جدول الحصص')),
+      floatingActionButton: RoleGuard(allowedRoles: const [UserRole.admin], child: FloatingActionButton.extended(
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddClassScreen())), icon: const Icon(Icons.add_rounded), label: const Text('حصة جديدة'))),
+      body: classes.when(data: (all) {
+        final list = _bookedOnly ? all.where((c) => c.isBookedBy(user?.memberId ?? '')).toList() : all;
+        return ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), children: [
+          const GymHero(eyebrow: 'جدول التمرين', title: 'اختار وقتك وابدأ', subtitle: 'المواعيد والمدرب والأماكن المتاحة لكل حصة.', icon: Icons.event_available_outlined),
+          if (user?.isMember == true) ...[const SizedBox(height: 16), Wrap(spacing: 8, runSpacing: 8, children: [
+            ChoiceChip(label: const Text('كل الحصص'), selected: !_bookedOnly, onSelected: (_) => setState(() => _bookedOnly = false)),
+            ChoiceChip(label: const Text('حجوزاتي'), selected: _bookedOnly, onSelected: (_) => setState(() => _bookedOnly = true)),
+          ])],
+          const GymSection(title: 'الحصص القادمة'),
+          if (list.isEmpty) GymEmptyState(title: _bookedOnly ? 'لسه محجزتش حصة' : 'مفيش حصص قادمة', message: _bookedOnly ? 'اعرض كل الحصص واختار الميعاد المناسب ليك.' : 'الحصص الجديدة هتظهر هنا بمجرد تسجيلها.', icon: Icons.event_note_outlined),
+          for (final c in list) Card(margin: const EdgeInsets.only(bottom: 12), child: Padding(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            GymListTile(contentPadding: EdgeInsets.zero, leading: const GymIcon(icon: Icons.fitness_center_rounded), title: Text(c.name), subtitle: Text(c.trainerName)),
+            const SizedBox(height: 16),
+            Wrap(spacing: 8, runSpacing: 8, children: [GymBadge(label: DateFormatter.toDisplayDateTime(c.dateTime)),
+              GymBadge(label: c.isFull ? 'مكتملة' : '${c.availableSpots} مكان متاح', color: c.isFull ? AppColors.warning : AppColors.success),
+              GymBadge(label: '${c.durationMinutes} دقيقة')]),
+            if (user?.isMember == true) ...[const SizedBox(height: 16),
+              FilledButton(onPressed: _busy.contains(c.id) || c.isFull && !c.isBookedBy(user!.memberId ?? '') ? null : () => _book(c.id, user!, c.isBookedBy(user.memberId ?? '')),
+                child: Text(_busy.contains(c.id) ? 'جاري تأكيد العملية' : c.isBookedBy(user!.memberId ?? '') ? 'إلغاء حجزي' : c.isFull ? 'الحصة مكتملة' : 'احجز مكانك'))],
+          ]))),
+        ]);
+      }, loading: () => const GymLoading(), error: (_, __) => GymErrorState(onRetry: () => ref.invalidate(upcomingClassesProvider))));
   }
 }

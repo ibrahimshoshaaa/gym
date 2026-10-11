@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -228,7 +229,7 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GymScaffold(maxWidth: 720,
       appBar: AppBar(title: Text(widget.isEditMode ? 'تعديل بيانات العضو' : 'إضافة عضو جديد')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -237,6 +238,8 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const GymSection(title: 'بيانات العضو', subtitle: 'ابدأ بالاسم والموبايل، وأضف باقي التفاصيل حسب احتياجك.'),
+
               // الصورة أول حاجة - زي ما اتفقنا
               Center(
                 child: GestureDetector(
@@ -274,7 +277,7 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
               const SizedBox(height: 24),
 
               // الاسم الكامل
-              TextFormField(
+              GymTextField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'الاسم الكامل'),
                 validator: (v) => Validators.required(v, 'الاسم'),
@@ -282,7 +285,7 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
               const SizedBox(height: 16),
 
               // رقم الموبايل
-              TextFormField(
+              GymTextField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(labelText: 'رقم الموبايل'),
@@ -304,7 +307,7 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
               const SizedBox(height: 16),
 
               // الرقم القومي (اختياري)
-              TextFormField(
+              GymTextField(
                 controller: _nationalIdController,
                 keyboardType: TextInputType.number,
                 maxLength: 14,
@@ -335,13 +338,13 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
               const SizedBox(height: 16),
 
               // الوظيفة (اختياري)
-              TextFormField(
+              GymTextField(
                 controller: _occupationController,
                 decoration: const InputDecoration(labelText: 'الوظيفة (اختياري)'),
               ),
               const SizedBox(height: 16),
 
-              TextFormField(
+              GymTextField(
                 controller: _notesController,
                 maxLines: 3,
                 decoration: const InputDecoration(labelText: 'ملاحظات (اختياري)'),
@@ -352,7 +355,7 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
                 child: _isLoading
                     ? const SizedBox(
                         height: 20, width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : Text(widget.isEditMode ? 'حفظ التعديلات' : 'حفظ'),
               ),
               if (!widget.isEditMode) ...[

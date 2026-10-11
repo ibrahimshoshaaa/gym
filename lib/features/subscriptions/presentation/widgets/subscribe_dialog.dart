@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -102,7 +103,7 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
         _startDate.month == DateTime.now().month &&
         _startDate.day == DateTime.now().day;
 
-    return AlertDialog(
+    return GymDialog(
       title: Text('اشتراك ${widget.memberName}'),
       content: Form(
         key: _formKey,
@@ -112,7 +113,7 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
           children: [
             Text('الخطة: ${widget.plan.name} — ${widget.plan.durationDays} يوم'),
             const SizedBox(height: 16),
-            TextFormField(
+            GymTextField(
               controller: _amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: 'المبلغ المدفوع (ج.م)'),
@@ -141,13 +142,13 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+        TextButton(onPressed: _isLoading ? null : () => Navigator.pop(context), child: const Text('إلغاء')),
         ElevatedButton(
           onPressed: _isLoading ? null : _handleConfirm,
           child: _isLoading
               ? const SizedBox(
                   height: 18, width: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  child: CircularProgressIndicator(strokeWidth: 2))
               : const Text('تأكيد'),
         ),
       ],
@@ -156,3 +157,4 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
 
   DateTime _endDatePreview() => _startDate.add(Duration(days: widget.plan.durationDays));
 }
+

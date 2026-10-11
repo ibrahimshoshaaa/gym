@@ -1,145 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/gym_ui.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../domain/entities/expense.dart';
 import '../providers/expenses_provider.dart';
 import '../widgets/add_expense_dialog.dart';
 
-/// شاشة المصروفات - بتجمع كل حاجة اتصرفت (مرتبات + إيجار + فواتير +
-/// صيانة + أي مصروف تاني) في مكان واحد، ومربوطة بالتقارير المالية
-class ExpensesScreen extends ConsumerWidget {
+class ExpensesScreen extends ConsumerStatefulWidget {
   const ExpensesScreen({super.key});
-
-  IconData _categoryIcon(ExpenseCategory c) {
-    switch (c) {
-      case ExpenseCategory.salary:
-        return Icons.badge;
-      case ExpenseCategory.rent:
-        return Icons.home_work_outlined;
-      case ExpenseCategory.bills:
-        return Icons.receipt_long;
-      case ExpenseCategory.maintenance:
-        return Icons.build_outlined;
-      case ExpenseCategory.supplies:
-        return Icons.shopping_bag_outlined;
-      case ExpenseCategory.other:
-        return Icons.more_horiz;
-    }
-  }
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final expensesAsync = ref.watch(expensesStreamProvider);
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('المصروفات')),
-      body: expensesAsync.when(
-        data: (expenses) {
-          if (expenses.isEmpty) {
-            return const Center(child: Text('لسه مفيش مصروفات مسجلة'));
-          }
-          final now = DateTime.now();
-          final monthTotal = expenses
-              .where((e) => e.date.year == now.year && e.date.month == now.month)
-              .fold<double>(0, (sum, e) => sum + e.amount);
-          final allTotal = expenses.fold<double>(0, (sum, e) => sum + e.amount);
-
-          return Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _TotalCard(
-                      label: 'مصروفات الشهر',
-                      value: monthTotal,
-                      color: AppColors.danger,
-                    ),
-                  ),
-                  Expanded(
-                    child: _TotalCard(
-                      label: 'إجمالي المصروفات',
-                      value: allTotal,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: expenses.length,
-                  itemBuilder: (context, i) {
-                    final e = expenses[i];
-                    return Card(
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: AppColors.danger.withValues(alpha: 0.1),
-                          child: Icon(_categoryIcon(e.category), color: AppColors.danger, size: 20),
-                        ),
-                        title: Text(
-                          e.relatedPersonName != null
-                              ? '${e.category.label} — ${e.relatedPersonName}'
-                              : e.category.label,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text(
-                          e.notes != null && e.notes!.isNotEmpty
-                              ? '${DateFormatter.toDisplayDate(e.date)} · ${e.notes}'
-                              : DateFormatter.toDisplayDate(e.date),
-                        ),
-                        trailing: Text(
-                          '-${e.amount.toStringAsFixed(0)} ج.م',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.danger),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('حصل خطأ: $err')),
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primary,
-        onPressed: () => showDialog(context: context, builder: (_) => const AddExpenseDialog()),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-    );
-  }
+  ConsumerState<ExpensesScreen> createState() => _ExpensesScreenState();
 }
-
-class _TotalCard extends StatelessWidget {
-  final String label;
-  final double value;
-  final Color color;
-
-  const _TotalCard({required this.label, required this.value, required this.color});
-
+class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
+  ExpenseCategory? _category;
+  bool _thisMonth = true;
+  void _add() => showDialog(context: context, builder: (_) => const AddExpenseDialog());
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: Card(
-        color: color.withValues(alpha: 0.08),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${value.toStringAsFixed(0)} ج.م',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
-              ),
-              const SizedBox(height: 4),
-              Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-            ],
-          ),
-        ),
-      ),
-    );
+    final expenses = ref.watch(expensesStreamProvider);
+    return GymScaffold(appBar: AppBar(title: const Text('المصروفات')),
+      floatingActionButton: FloatingActionButton.extended(onPressed: _add, icon: const Icon(Icons.add_rounded), label: const Text('مصروف جديد')),
+      body: expenses.when(data: (all) {
+        final now = DateTime.now();
+        final filtered = all.where((e) => (_category == null || e.category == _category) && (!_thisMonth || e.date.year == now.year && e.date.month == now.month)).toList();
+        final total = filtered.fold<double>(0, (sum, e) => sum + e.amount);
+        return ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), children: [
+          GymHero(eyebrow: 'تشغيل الجيم', title: '${gymAmount(total)} ج.م', subtitle: '${filtered.length} مصروف في الفترة والتصنيف المختارين.', icon: Icons.receipt_long_outlined),
+          const GymSection(title: 'فلترة المصروفات'),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            ChoiceChip(label: const Text('هذا الشهر'), selected: _thisMonth, onSelected: (_) => setState(() => _thisMonth = true)),
+            ChoiceChip(label: const Text('كل الفترات'), selected: !_thisMonth, onSelected: (_) => setState(() => _thisMonth = false)),
+          ]),
+          const SizedBox(height: 12),
+          SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
+            Padding(padding: const EdgeInsetsDirectional.only(end: 8), child: ChoiceChip(label: const Text('كل التصنيفات'), selected: _category == null, onSelected: (_) => setState(() => _category = null))),
+            for (final category in ExpenseCategory.values) Padding(padding: const EdgeInsetsDirectional.only(end: 8), child: ChoiceChip(label: Text(category.label), selected: _category == category, onSelected: (_) => setState(() => _category = category))),
+          ])),
+          const GymSection(title: 'سجل المصروفات'),
+          if (filtered.isEmpty) GymEmptyState(title: 'مفيش مصروفات في الاختيار ده', message: 'غيّر الفترة أو التصنيف، أو سجّل مصروف جديد.', actionLabel: 'إضافة مصروف', onAction: _add),
+          for (final expense in filtered) Card(margin: const EdgeInsets.only(bottom: 10), child: GymListTile(
+            leading: const GymIcon(icon: Icons.receipt_long_outlined, color: AppColors.danger),
+            title: Text(expense.relatedPersonName == null ? expense.category.label : '${expense.category.label} · ${expense.relatedPersonName}'),
+            subtitle: Text('${DateFormatter.toDisplayDate(expense.date)}${expense.notes?.isNotEmpty == true ? '\n${expense.notes}' : ''}'),
+            trailing: GymBadge(label: '${gymAmount(expense.amount)} ج.م', color: AppColors.danger))),
+        ]);
+      }, loading: () => const GymLoading(), error: (_, __) => GymErrorState(onRetry: () => ref.invalidate(expensesStreamProvider))));
   }
 }

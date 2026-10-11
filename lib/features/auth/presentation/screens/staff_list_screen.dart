@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -20,7 +21,7 @@ class StaffListScreen extends ConsumerWidget {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => GymDialog(
         title: const Text('حذف الموظف'),
         content: Text('متأكد إنك عايز تحذف ${staff.name}؟ مش هيقدر يدخل التطبيق تاني بعدها.'),
         actions: [
@@ -53,12 +54,12 @@ class StaffListScreen extends ConsumerWidget {
     final staffAsync = ref.watch(staffListProvider);
     final currentUser = ref.watch(currentUserProvider);
 
-    return Scaffold(
+    return GymScaffold(
       appBar: AppBar(title: const Text('الموظفين')),
       body: staffAsync.when(
         data: (staff) {
           if (staff.isEmpty) {
-            return const Center(child: Text('لا يوجد موظفين مسجلين بعد'));
+            return const GymEmptyState(title: 'لا يوجد موظفين مسجلين بعد');
           }
           return ListView.builder(
             padding: const EdgeInsets.all(12),
@@ -67,7 +68,7 @@ class StaffListScreen extends ConsumerWidget {
               final s = staff[i];
               final isMe = s.uid == currentUser?.uid;
               return Card(
-                child: ListTile(
+                child: GymListTile(
                   leading: CircleAvatar(
                     backgroundColor: s.isAdmin
                         ? AppColors.primary.withValues(alpha: 0.15)
@@ -127,8 +128,8 @@ class StaffListScreen extends ConsumerWidget {
             },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('حصل خطأ: $err')),
+        loading: () => const GymLoading(),
+        error: (err, _) => GymErrorState(onRetry: () => ref.invalidate(staffListProvider)),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primary,
@@ -141,3 +142,4 @@ class StaffListScreen extends ConsumerWidget {
     );
   }
 }
+

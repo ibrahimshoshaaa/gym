@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -79,21 +80,21 @@ class _PaySalaryDialogState extends ConsumerState<PaySalaryDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return GymDialog(
       title: Text('دفع مرتب ${widget.personName}'),
       content: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextFormField(
+            GymTextField(
               controller: _amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: 'المبلغ (ج.م)'),
               validator: (v) => Validators.positiveNumber(v, 'المبلغ'),
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            GymTextField(
               controller: _notesController,
               decoration: const InputDecoration(labelText: 'ملاحظات (اختياري)'),
             ),
@@ -101,16 +102,17 @@ class _PaySalaryDialogState extends ConsumerState<PaySalaryDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+        TextButton(onPressed: _isLoading ? null : () => Navigator.pop(context), child: const Text('إلغاء')),
         ElevatedButton(
           onPressed: _isLoading ? null : _handleConfirm,
           child: _isLoading
               ? const SizedBox(
                   height: 18, width: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  child: CircularProgressIndicator(strokeWidth: 2))
               : const Text('تأكيد الدفع'),
         ),
       ],
     );
   }
 }
+

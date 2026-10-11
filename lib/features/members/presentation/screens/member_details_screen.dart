@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -22,7 +23,7 @@ class MemberDetailsScreen extends ConsumerWidget {
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref, Member member) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => GymDialog(
         title: const Text('حذف العضو'),
         content: Text('متأكد إنك عايز تحذف ${member.name}؟ الإجراء ده لا يمكن التراجع عنه.'),
         actions: [
@@ -57,7 +58,7 @@ class MemberDetailsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final membersAsync = ref.watch(membersStreamProvider);
 
-    return Scaffold(
+    return GymScaffold(
       appBar: AppBar(
         title: const Text('بيانات العضو'),
         actions: [
@@ -96,107 +97,14 @@ class MemberDetailsScreen extends ConsumerWidget {
         data: (members) {
           final member = members.where((m) => m.id == memberId).firstOrNull;
           if (member == null) {
-            return const Center(child: Text('العضو غير موجود'));
+            return const GymEmptyState(title: 'العضو غير موجود');
           }
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Center(
-                child: CircleAvatar(
-                  radius: 40,
-                  backgroundColor: GoldPalette.gold.withValues(alpha: 0.1),
-                  backgroundImage: member.photoUrl != null ? NetworkImage(member.photoUrl!) : null,
-                  child: member.photoUrl == null
-                      ? Text(
-                          member.name.isNotEmpty ? member.name[0] : '?',
-                          style: const TextStyle(fontSize: 32, color: GoldPalette.gold),
-                        )
-                      : null,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Center(
-                child: Text(member.name, textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(height: 24),
-              _InfoTile(icon: Icons.phone, label: 'الموبايل', value: member.phone),
-              if (member.gender != null)
-                _InfoTile(icon: Icons.wc, label: 'النوع', value: member.gender!.label),
-              if (member.dateOfBirth != null)
-                _InfoTile(
-                  icon: Icons.cake,
-                  label: 'تاريخ الميلاد',
-                  value: member.age != null
-                      ? '${DateFormatter.toDisplayDate(member.dateOfBirth!)} (${member.age} سنة)'
-                      : DateFormatter.toDisplayDate(member.dateOfBirth!),
-                ),
-              if (member.occupation != null && member.occupation!.isNotEmpty)
-                _InfoTile(icon: Icons.work_outline, label: 'الوظيفة', value: member.occupation!),
-              if (member.nationalId != null && member.nationalId!.isNotEmpty)
-                _InfoTile(icon: Icons.badge_outlined, label: 'الرقم القومي', value: member.nationalId!),
-              _InfoTile(
-                icon: Icons.calendar_today,
-                label: 'تاريخ التسجيل',
-                value: DateFormatter.toDisplayDate(member.joinDate),
-              ),
-              _InfoTile(
-                icon: Icons.event_available,
-                label: 'نهاية الاشتراك',
-                value: member.subscriptionEnd != null
-                    ? DateFormatter.toDisplayDate(member.subscriptionEnd!)
-                    : '—',
-              ),
-              if (member.visitsAllowed > 0)
-                _InfoTile(
-                  icon: Icons.fitness_center,
-                  label: 'أيام الحضور',
-                  value: '${member.visitsUsed} / ${member.visitsAllowed}',
-                  valueColor: member.hasVisitsRemaining ? null : AppColors.danger,
-                ),
-              _InfoTile(icon: Icons.flag, label: 'الحالة', value: member.status.label),
-              const SizedBox(height: 12),
-              _MemberDebtsSection(memberId: member.id),
-              const SizedBox(height: 12),
-              if (!member.hasLoginAccount)
-                Card(
-                  color: AppColors.warning.withValues(alpha: 0.08),
-                  child: ListTile(
-                    leading: const Icon(Icons.lock_outline, color: AppColors.warning),
-                    title: const Text('العضو ده لسه معندوش حساب دخول'),
-                    subtitle: const Text('كلمة المرور الأولى هي رقم موبايله، وهيغيّرها أول ما يدخل'),
-                    trailing: TextButton(
-                      onPressed: () async {
-                        final gymId = ref.read(currentUserProvider)?.gymId ?? 'default_gym';
-                        final result = await ref.read(authRepositoryProvider).createMemberAccount(
-                              gymId: gymId,
-                              memberId: member.id,
-                              memberName: member.name,
-                              phone: member.phone,
-                            );
-                        if (!context.mounted) return;
-                        result.fold(
-                          (failure) => ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(failure.message), backgroundColor: AppColors.danger),
-                          ),
-                          (password) => showDialog<void>(
-                            context: context,
-                            builder: (context) => MemberLoginDialog(gymId: gymId, phone: member.phone, password: password),
-                          ),
-                        );
-                      },
-                      child: const Text('تفعيل'),
-                    ),
-                  ),
-                )
-              else
-                const Card(
-                  child: ListTile(
-                    leading: Icon(Icons.check_circle, color: AppColors.success),
-                    title: Text('حساب الدخول مفعّل'),
-                  ),
-                ),
-              const SizedBox(height: 24),
+              GymHero(eyebrow: 'ملف العضو', title: member.name, subtitle: 'كل بيانات العضوية والاشتراك في مكان واحد.', icon: Icons.person_outline_rounded,
+                child: Wrap(spacing: 8, runSpacing: 8, children: [GymBadge(label: member.status.label, color: member.status == MemberStatus.active ? AppColors.success : AppColors.warning)])),
+              const SizedBox(height: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -241,11 +149,92 @@ class MemberDetailsScreen extends ConsumerWidget {
                 icon: const Icon(Icons.badge),
                 label: const Text('عرض كارت العضوية'),
               ),
+              const GymSection(title: 'بيانات العضو'),
+              Card(margin: EdgeInsets.zero, child: Column(children: [
+              _InfoTile(icon: Icons.phone, label: 'الموبايل', value: member.phone),
+              if (member.gender != null)
+                _InfoTile(icon: Icons.wc, label: 'النوع', value: member.gender!.label),
+              if (member.dateOfBirth != null)
+                _InfoTile(
+                  icon: Icons.cake,
+                  label: 'تاريخ الميلاد',
+                  value: member.age != null
+                      ? '${DateFormatter.toDisplayDate(member.dateOfBirth!)} (${member.age} سنة)'
+                      : DateFormatter.toDisplayDate(member.dateOfBirth!),
+                ),
+              if (member.occupation != null && member.occupation!.isNotEmpty)
+                _InfoTile(icon: Icons.work_outline, label: 'الوظيفة', value: member.occupation!),
+              if (member.nationalId != null && member.nationalId!.isNotEmpty)
+                _InfoTile(icon: Icons.badge_outlined, label: 'الرقم القومي', value: member.nationalId!),
+              _InfoTile(
+                icon: Icons.calendar_today,
+                label: 'تاريخ التسجيل',
+                value: DateFormatter.toDisplayDate(member.joinDate),
+              ),
+              _InfoTile(
+                icon: Icons.event_available,
+                label: 'نهاية الاشتراك',
+                value: member.subscriptionEnd != null
+                    ? DateFormatter.toDisplayDate(member.subscriptionEnd!)
+                    : '—',
+              ),
+              if (member.visitsAllowed > 0)
+                _InfoTile(
+                  icon: Icons.fitness_center,
+                  label: 'أيام الحضور',
+                  value: '${member.visitsUsed} / ${member.visitsAllowed}',
+                  valueColor: member.hasVisitsRemaining ? null : AppColors.danger,
+                ),
+              _InfoTile(icon: Icons.flag, label: 'الحالة', value: member.status.label),
+              ])),
+              const SizedBox(height: 12),
+              _MemberDebtsSection(memberId: member.id),
+              const SizedBox(height: 12),
+              if (!member.hasLoginAccount)
+                Card(
+                  color: AppColors.warning.withValues(alpha: 0.08),
+                  child: GymListTile(
+                    leading: const Icon(Icons.lock_outline, color: AppColors.warning),
+                    title: const Text('العضو ده لسه معندوش حساب دخول'),
+                    subtitle: const Text('كلمة المرور الأولى هي رقم موبايله، وهيغيّرها أول ما يدخل'),
+                    trailing: TextButton(
+                      onPressed: () async {
+                        final gymId = ref.read(currentUserProvider)?.gymId ?? 'default_gym';
+                        final result = await ref.read(authRepositoryProvider).createMemberAccount(
+                              gymId: gymId,
+                              memberId: member.id,
+                              memberName: member.name,
+                              phone: member.phone,
+                            );
+                        if (!context.mounted) return;
+                        result.fold(
+                          (failure) => ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(failure.message), backgroundColor: AppColors.danger),
+                          ),
+                          (password) => showDialog<void>(
+                            context: context,
+                            builder: (context) => MemberLoginDialog(gymId: gymId, phone: member.phone, password: password),
+                          ),
+                        );
+                      },
+                      child: const Text('تفعيل'),
+                    ),
+                  ),
+                )
+              else
+                const Card(
+                  child: GymListTile(
+                    leading: Icon(Icons.check_circle, color: AppColors.success),
+                    title: Text('حساب الدخول مفعّل'),
+                  ),
+                ),
+              const SizedBox(height: 24),
+
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('حصل خطأ: $err')),
+        loading: () => const GymLoading(),
+        error: (err, _) => GymErrorState(onRetry: () => ref.invalidate(membersStreamProvider)),
       ),
     );
   }
@@ -337,8 +326,7 @@ class _InfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
+    return GymListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           padding: const EdgeInsets.all(10),
@@ -348,9 +336,9 @@ class _InfoTile extends StatelessWidget {
         title: Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
         subtitle: Text(
           value,
+          textDirection: label == 'الموبايل' || label == 'الرقم القومي' ? TextDirection.ltr : null,
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: valueColor),
         ),
-      ),
     );
   }
 }

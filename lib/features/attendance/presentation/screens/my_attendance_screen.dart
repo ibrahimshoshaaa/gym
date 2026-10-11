@@ -1,3 +1,4 @@
+import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -14,10 +15,10 @@ class MyAttendanceScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final memberId = user?.memberId;
 
-    return Scaffold(
+    return GymScaffold(
       appBar: AppBar(title: const Text('سجل حضوري')),
       body: memberId == null
-          ? const Center(child: Text('مفيش بيانات عضوية مرتبطة بالحساب ده'))
+          ? const GymEmptyState(title: 'مفيش بيانات عضوية مرتبطة بالحساب ده')
           : _HistoryList(memberId: memberId),
     );
   }
@@ -34,7 +35,7 @@ class _HistoryList extends ConsumerWidget {
     return historyAsync.when(
       data: (records) {
         if (records.isEmpty) {
-          return const Center(child: Text('لسه مفيش تسجيل حضور 💪'));
+          return const GymEmptyState(title: 'لسه مفيش تسجيل حضور 💪');
         }
         return ListView.separated(
           padding: const EdgeInsets.all(12),
@@ -43,7 +44,7 @@ class _HistoryList extends ConsumerWidget {
           itemBuilder: (context, i) {
             final r = records[i];
             return Card(
-              child: ListTile(
+              child: GymListTile(
                 leading: const CircleAvatar(
                   backgroundColor: Colors.transparent,
                   child: Icon(Icons.check_circle, color: AppColors.success),
@@ -59,17 +60,9 @@ class _HistoryList extends ConsumerWidget {
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, __) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            'خطأ: $e',
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red, fontSize: 12),
-          ),
-        ),
-      ),
+      loading: () => const GymLoading(),
+      error: (_, __) => GymErrorState(onRetry: () => ref.invalidate(memberAttendanceHistoryProvider(memberId))),
     );
   }
 }
+
