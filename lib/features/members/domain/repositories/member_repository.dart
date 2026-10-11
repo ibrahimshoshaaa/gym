@@ -6,7 +6,7 @@ abstract class MemberRepository {
   Stream<List<Member>> watchMembers();
 
   /// ستريم لسجل عضو واحد بس - ده اللي لازم العضو نفسه يستخدمه
-  /// (بدل watchMembers) عشان Firestore rules بتسمح له يقرأ سجله هو
+  /// (بدل watchMembers) عشان صلاحيات السيرفر بتسمح له يقرأ سجله هو
   /// بس، ومحاولة قراءة الجدول كله بتترفض بالكامل حتى لو سجله موجود فيه
   Stream<Member?> watchMemberById(String id);
 
@@ -20,3 +20,4 @@ abstract class MemberRepository {
   /// excludeMemberId اختياري - عشان وقت التعديل ميرفضش رقم العضو نفسه
   Future<Either<Failure, bool>> isPhoneTaken(String phone, {String? excludeMemberId});
 }
+

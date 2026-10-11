@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import '../../domain/entities/gym_class.dart';
 
 class GymClassModel extends GymClass {
@@ -19,7 +19,7 @@ class GymClassModel extends GymClass {
       name: map['name'] as String,
       trainerId: map['trainerId'] as String,
       trainerName: map['trainerName'] as String,
-      dateTime: (map['dateTime'] as Timestamp).toDate(),
+      dateTime: (map['dateTime'] as DbTimestamp).toDate(),
       durationMinutes: map['durationMinutes'] as int,
       capacity: map['capacity'] as int,
       bookedMemberIds: List<String>.from(map['bookedMemberIds'] as List? ?? []),
@@ -31,10 +31,11 @@ class GymClassModel extends GymClass {
       'name': name,
       'trainerId': trainerId,
       'trainerName': trainerName,
-      'dateTime': Timestamp.fromDate(dateTime),
+      'dateTime': DbTimestamp.fromDate(dateTime),
       'durationMinutes': durationMinutes,
       'capacity': capacity,
       'bookedMemberIds': bookedMemberIds,
     };
   }
 }
+

@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import '../../domain/entities/member.dart';
 
 class MemberModel extends Member {
@@ -29,17 +29,14 @@ class MemberModel extends Member {
       name: map['name'] as String,
       phone: map['phone'] as String,
       photoUrl: map['photoUrl'] as String?,
-      joinDate: (map['joinDate'] as Timestamp).toDate(),
+      joinDate: (map['joinDate'] as DbTimestamp).toDate(),
       currentPlanId: map['currentPlanId'] as String?,
       currentSubscriptionId: map['currentSubscriptionId'] as String?,
-      subscriptionStart: (map['subscriptionStart'] as Timestamp?)?.toDate(),
-      subscriptionEnd: (map['subscriptionEnd'] as Timestamp?)?.toDate(),
+      subscriptionStart: (map['subscriptionStart'] as DbTimestamp?)?.toDate(),
+      subscriptionEnd: (map['subscriptionEnd'] as DbTimestamp?)?.toDate(),
       visitsAllowed: map['visitsAllowed'] as int? ?? 0,
       visitsUsed: map['visitsUsed'] as int? ?? 0,
-      status: MemberStatus.values.firstWhere(
-        (s) => s.name == map['status'],
-        orElse: () => MemberStatus.expired,
-      ),
+      status: _statusFromDates(map),
       notes: map['notes'] as String?,
       gender: map['gender'] == null
           ? null
@@ -48,10 +45,19 @@ class MemberModel extends Member {
               orElse: () => Gender.male,
             ),
       nationalId: map['nationalId'] as String?,
-      dateOfBirth: (map['dateOfBirth'] as Timestamp?)?.toDate(),
+      dateOfBirth: (map['dateOfBirth'] as DbTimestamp?)?.toDate(),
       occupation: map['occupation'] as String?,
       hasLoginAccount: map['hasLoginAccount'] as bool? ?? false,
     );
+  }
+
+  static MemberStatus _statusFromDates(Map<String, dynamic> map) {
+    final now = DateTime.now();
+    final start = (map['subscriptionStart'] as DbTimestamp?)?.toDate();
+    final end = (map['subscriptionEnd'] as DbTimestamp?)?.toDate();
+    if (start != null && start.isAfter(now)) return MemberStatus.pending;
+    if (end == null || end.isBefore(now)) return MemberStatus.expired;
+    return MemberStatus.active;
   }
 
   Map<String, dynamic> toMap() {
@@ -59,18 +65,18 @@ class MemberModel extends Member {
       'name': name,
       'phone': phone,
       'photoUrl': photoUrl,
-      'joinDate': Timestamp.fromDate(joinDate),
+      'joinDate': DbTimestamp.fromDate(joinDate),
       'currentPlanId': currentPlanId,
       'currentSubscriptionId': currentSubscriptionId,
-      'subscriptionStart': subscriptionStart != null ? Timestamp.fromDate(subscriptionStart!) : null,
-      'subscriptionEnd': subscriptionEnd != null ? Timestamp.fromDate(subscriptionEnd!) : null,
+      'subscriptionStart': subscriptionStart != null ? DbTimestamp.fromDate(subscriptionStart!) : null,
+      'subscriptionEnd': subscriptionEnd != null ? DbTimestamp.fromDate(subscriptionEnd!) : null,
       'visitsAllowed': visitsAllowed,
       'visitsUsed': visitsUsed,
       'status': status.name,
       'notes': notes,
       'gender': gender?.name,
       'nationalId': nationalId,
-      'dateOfBirth': dateOfBirth != null ? Timestamp.fromDate(dateOfBirth!) : null,
+      'dateOfBirth': dateOfBirth != null ? DbTimestamp.fromDate(dateOfBirth!) : null,
       'occupation': occupation,
       'hasLoginAccount': hasLoginAccount,
     };
@@ -99,3 +105,4 @@ class MemberModel extends Member {
     );
   }
 }
+

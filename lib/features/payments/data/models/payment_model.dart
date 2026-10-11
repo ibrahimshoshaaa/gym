@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import '../../domain/entities/payment.dart';
 
 class PaymentModel extends Payment {
@@ -19,7 +19,7 @@ class PaymentModel extends Payment {
       memberId: map['memberId'] as String,
       memberName: map['memberName'] as String? ?? '',
       amount: (map['amount'] as num).toDouble(),
-      date: (map['date'] as Timestamp).toDate(),
+      date: (map['date'] as DbTimestamp).toDate(),
       method: PaymentMethod.values.firstWhere(
         (m) => m.name == map['method'],
         orElse: () => PaymentMethod.cash,
@@ -34,10 +34,11 @@ class PaymentModel extends Payment {
       'memberId': memberId,
       'memberName': memberName,
       'amount': amount,
-      'date': Timestamp.fromDate(date),
+      'date': DbTimestamp.fromDate(date),
       'method': method.name,
       'recordedBy': recordedByUid,
       'relatedSubscriptionId': relatedSubscriptionId,
     };
   }
 }
+

@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import '../../domain/entities/expense.dart';
 
 class ExpenseModel extends Expense {
@@ -18,7 +18,7 @@ class ExpenseModel extends Expense {
       id: id,
       category: ExpenseCategory.fromString(map['category'] as String? ?? 'other'),
       amount: (map['amount'] as num).toDouble(),
-      date: (map['date'] as Timestamp).toDate(),
+      date: (map['date'] as DbTimestamp).toDate(),
       recordedByUid: map['recordedByUid'] as String? ?? '',
       notes: map['notes'] as String?,
       relatedPersonId: map['relatedPersonId'] as String?,
@@ -30,7 +30,7 @@ class ExpenseModel extends Expense {
     return {
       'category': category.name,
       'amount': amount,
-      'date': Timestamp.fromDate(date),
+      'date': DbTimestamp.fromDate(date),
       'recordedByUid': recordedByUid,
       'notes': notes,
       'relatedPersonId': relatedPersonId,
@@ -38,3 +38,4 @@ class ExpenseModel extends Expense {
     };
   }
 }
+

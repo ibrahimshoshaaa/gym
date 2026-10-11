@@ -8,7 +8,7 @@ import '../providers/auth_provider.dart';
 /// RoleGuard(allowedRoles: [UserRole.admin], child: AdminOnlyButton())
 ///
 /// ملاحظة مهمة: ده تحكم على مستوى الـ UI فقط، الحماية الحقيقية
-/// لازم تكون في Firestore Security Rules كمان
+/// لازم تكون في صلاحيات السيرفر كمان
 class RoleGuard extends ConsumerWidget {
   final List<UserRole> allowedRoles;
   final Widget child;
@@ -30,3 +30,4 @@ class RoleGuard extends ConsumerWidget {
     return fallback ?? const SizedBox.shrink();
   }
 }
+

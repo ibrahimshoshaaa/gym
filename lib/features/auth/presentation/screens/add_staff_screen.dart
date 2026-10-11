@@ -6,7 +6,7 @@ import '../../domain/entities/app_user.dart';
 import '../providers/auth_provider.dart';
 
 /// شاشة إضافة موظف جديد - الأدمن بس اللي يقدر يستخدمها
-/// بتعمل حساب Firebase Auth حقيقي للموظف بإيميل وباسورد مبدئية
+/// إنشاء حساب موظف على السيرفر بإيميل وكلمة مرور مؤقتة
 ///
 /// لو اتبعتلها staff (وضع التعديل)، بس بيانات التفاصيل (المرتب/العنوان/
 /// الملاحظات) هي اللي بتتعدل - حساب الدخول (إيميل/باسورد) ثابت مش بيتغير
@@ -202,3 +202,4 @@ class _AddStaffScreenState extends ConsumerState<AddStaffScreen> {
     );
   }
 }
+

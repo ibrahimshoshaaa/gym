@@ -1,7 +1,5 @@
+import 'package:gym_manager/core/network/api_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../auth/domain/entities/app_user.dart';
-import '../../../auth/domain/repositories/auth_repository.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/repositories/gym_repository_impl.dart';
 import '../../domain/entities/gym.dart';
 import '../../domain/repositories/gym_repository.dart';
@@ -25,9 +23,8 @@ final gymFutureProvider = FutureProvider.family<Gym?, String>((ref, gymId) async
 
 class GymController extends StateNotifier<AsyncValue<void>> {
   final GymRepository _repository;
-  final AuthRepository _authRepository;
 
-  GymController(this._repository, this._authRepository) : super(const AsyncData(null));
+  GymController(this._repository) : super(const AsyncData(null));
 
   Future<bool> selfSignUp({
     required String gymName,
@@ -42,53 +39,18 @@ class GymController extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncLoading();
 
-    final gymResult = await _repository.createGym(
-      name: gymName,
-      ownerName: adminName,
-      phone: gymPhone,
-      licenseEnd: trialEnd,
-      plan: plan,
-      address: gymAddress,
-    );
-
-    return gymResult.fold(
-      (failure) {
-        state = AsyncError(failure.message, StackTrace.current);
-        return false;
-      },
-      (gym) async {
-        final updatedGym = gym.copyWith(
-          isTrial: true,
-          trialEndDate: trialEnd,
-        );
-        await _repository.updateGym(updatedGym);
-
-        final adminResult = await _authRepository.registerStaff(
-          gymId: gym.id,
-          name: adminName,
-          email: adminEmail,
-          password: adminPassword,
-          phone: adminPhone,
-          role: UserRole.admin,
-        );
-
-        return adminResult.fold(
-          (failure) {
-            state = AsyncError(
-              'ALERT: Gym "' + gym.name + '" registered (ID: ' + gym.id + ')\n'
-              'But admin creation failed: ' + failure.message + '\n'
-              'Admin can be added manually from Firebase Console.',
-              StackTrace.current,
-            );
-            return false;
-          },
-          (_) {
-            state = const AsyncData(null);
-            return true;
-          },
-        );
-      },
-    );
+    try {
+      await ApiClient.instance.request('POST', '/api/auth/signup', {
+        'name': gymName, 'phone': gymPhone, 'address': gymAddress,
+        'plan': plan.name, 'adminName': adminName, 'adminEmail': adminEmail,
+        'adminPassword': adminPassword, 'adminPhone': adminPhone,
+      });
+      state = const AsyncData(null);
+      return true;
+    } catch (error) {
+      state = AsyncError(error.toString(), StackTrace.current);
+      return false;
+    }
   }
 
   Future<bool> createGymWithAdmin({
@@ -107,49 +69,20 @@ class GymController extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncLoading();
 
-    final gymResult = await _repository.createGym(
-      gymId: gymId,
-      name: name,
-      ownerName: ownerName,
-      phone: phone,
-      licenseEnd: licenseEnd,
-      plan: plan,
-      email: email,
-      address: address,
-    );
-
-    return gymResult.fold(
-      (failure) {
-        state = AsyncError(failure.message, StackTrace.current);
-        return false;
-      },
-      (gym) async {
-        final adminResult = await _authRepository.registerStaff(
-          gymId: gym.id,
-          name: adminName,
-          email: adminEmail,
-          password: adminPassword,
-          phone: adminPhone,
-          role: UserRole.admin,
-        );
-
-        return adminResult.fold(
-          (failure) {
-            state = AsyncError(
-              'ALERT: Gym "' + gym.name + '" created (ID: ' + gym.id + ')\n'
-              'But admin creation failed: ' + failure.message + '\n'
-              'Admin can be added manually from Firebase Console.',
-              StackTrace.current,
-            );
-            return false;
-          },
-          (_) {
-            state = const AsyncData(null);
-            return true;
-          },
-        );
-      },
-    );
+    try {
+      await ApiClient.instance.request('POST', '/api/auth/gym-owner', {
+        if (gymId != null) 'gymId': gymId,
+        'name': name, 'ownerName': ownerName, 'phone': phone,
+        'licenseEnd': DbTimestamp.fromDate(licenseEnd), 'plan': plan.name,
+        'email': email, 'address': address, 'adminName': adminName,
+        'adminEmail': adminEmail, 'adminPassword': adminPassword, 'adminPhone': adminPhone,
+      });
+      state = const AsyncData(null);
+      return true;
+    } catch (error) {
+      state = AsyncError(error.toString(), StackTrace.current);
+      return false;
+    }
   }
 
   Future<bool> createGym({
@@ -242,6 +175,6 @@ class GymController extends StateNotifier<AsyncValue<void>> {
 final gymControllerProvider = StateNotifierProvider<GymController, AsyncValue<void>>((ref) {
   return GymController(
     ref.watch(gymRepositoryProvider),
-    ref.watch(authRepositoryProvider),
   );
 });
+

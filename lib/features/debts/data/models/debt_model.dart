@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import '../../domain/entities/debt.dart';
 
 class DebtModel extends Debt {
@@ -22,7 +22,7 @@ class DebtModel extends Debt {
       memberName: map['memberName'] as String? ?? '',
       totalAmount: (map['totalAmount'] as num).toDouble(),
       paidAmount: (map['paidAmount'] as num).toDouble(),
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      createdAt: (map['createdAt'] as DbTimestamp).toDate(),
       relatedSubscriptionId: map['relatedSubscriptionId'] as String?,
       planName: map['planName'] as String?,
       recordedByUid: map['recordedByUid'] as String?,
@@ -36,7 +36,7 @@ class DebtModel extends Debt {
       'memberName': memberName,
       'totalAmount': totalAmount,
       'paidAmount': paidAmount,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'createdAt': DbTimestamp.fromDate(createdAt),
       'relatedSubscriptionId': relatedSubscriptionId,
       'planName': planName,
       'recordedByUid': recordedByUid,
@@ -44,3 +44,4 @@ class DebtModel extends Debt {
     };
   }
 }
+

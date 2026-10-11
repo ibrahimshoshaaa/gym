@@ -20,17 +20,20 @@ import '../../features/payment/presentation/screens/payment_screen.dart';
 /// بيربط GoRouter بتغيّرات authStateProvider عن طريق ref.listen
 class _RouterRefreshNotifier extends ChangeNotifier {
   late final ProviderSubscription<AsyncValue<AppUser?>> _subscription;
+  late final ProviderSubscription<AsyncValue<Gym?>> _gymSubscription;
 
   _RouterRefreshNotifier(Ref ref) {
     _subscription = ref.listen<AsyncValue<AppUser?>>(
       authStateProvider,
       (previous, next) => notifyListeners(),
     );
+    _gymSubscription = ref.listen<AsyncValue<Gym?>>(currentGymProvider, (previous, next) => notifyListeners());
   }
 
   @override
   void dispose() {
     _subscription.close();
+    _gymSubscription.close();
     super.dispose();
   }
 }
@@ -120,7 +123,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/payment',
         builder: (context, state) {
-          final gym = state.extra as Gym?;
+          final gym = state.extra as Gym? ?? ref.read(currentGymProvider).valueOrNull;
           if (gym == null) {
             return const Scaffold(body: Center(child: Text('خطأ: مفيش بيانات جيم')));
           }
@@ -169,3 +172,4 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+

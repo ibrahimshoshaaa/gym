@@ -163,7 +163,7 @@ class MemberDetailsScreen extends ConsumerWidget {
                   child: ListTile(
                     leading: const Icon(Icons.lock_outline, color: AppColors.warning),
                     title: const Text('العضو ده لسه معندوش حساب دخول'),
-                    subtitle: const Text('دوس عشان تفعّله - الباسورد الابتدائي هيبقى رقم موبايله'),
+                    subtitle: const Text('دوس عشان تفعّله وتستلم كلمة مرور مؤقتة'),
                     trailing: TextButton(
                       onPressed: () async {
                         final gymId = ref.read(currentUserProvider)?.gymId ?? 'default_gym';
@@ -178,10 +178,12 @@ class MemberDetailsScreen extends ConsumerWidget {
                           (failure) => ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text(failure.message), backgroundColor: AppColors.danger),
                           ),
-                          (_) => ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('تم تفعيل حساب الدخول ✅'),
-                              backgroundColor: AppColors.success,
+                          (password) => showDialog<void>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('تم تفعيل حساب الدخول'),
+                              content: SelectableText('كود الجيم: $gymId\nالموبايل: ${member.phone}\nكلمة المرور المؤقتة: $password\n\nاحفظها وابعتهاله. لازم يغيّرها أول ما يدخل.'),
+                              actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('تم'))],
                             ),
                           ),
                         );
@@ -353,3 +355,4 @@ class _InfoTile extends StatelessWidget {
     );
   }
 }
+

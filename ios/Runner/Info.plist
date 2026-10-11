@@ -49,6 +49,10 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>مسح كارت عضوية الجيم</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>اختيار صورة العضو</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>نستخدم Face ID عشان نسجّل حضورك في الجيم بسرعة وأمان</string>
 	<key>UILaunchStoryboardName</key>
@@ -70,3 +74,4 @@
 	</array>
 </dict>
 </plist>
+

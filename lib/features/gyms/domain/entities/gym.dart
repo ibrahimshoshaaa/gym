@@ -89,7 +89,7 @@ class Gym extends Equatable {
   }
 
   /// هل الجيم شغال (ترخيص ساري أو تجربة سارية)؟
-  bool get isOperational => isLicenseValid || isTrialActive;
+  bool get isOperational => isActive && (isLicenseValid || isTrialActive);
 
   /// عدد الأيام المتبقية في الترخيص
   int get daysRemaining {
@@ -167,3 +167,4 @@ class Gym extends Equatable {
         maxMembers, maxStaff, isTrial, trialEndDate,
       ];
 }
+

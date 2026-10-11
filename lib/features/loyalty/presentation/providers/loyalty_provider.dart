@@ -64,8 +64,7 @@ class LoyaltyController extends AsyncNotifier<void> {
     final repo = ref.read(loyaltyRepositoryProvider);
     final result = await repo.redeemPoints(
       memberId: memberId,
-      points: reward.pointsCost,
-      rewardTitle: reward.title,
+      rewardId: reward.id,
     );
     return result.fold((f) => f.message, (_) => null);
   }
@@ -88,3 +87,4 @@ class LoyaltyController extends AsyncNotifier<void> {
     return result.fold((f) => f.message, (_) => null);
   }
 }
+

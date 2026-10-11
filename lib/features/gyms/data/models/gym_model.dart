@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import '../../domain/entities/gym.dart';
 
 class GymModel extends Gym {
@@ -30,16 +30,16 @@ class GymModel extends Gym {
       email: map['email'],
       address: map['address'],
       logoUrl: map['logoUrl'],
-      licenseStart: (map['licenseStart'] as Timestamp).toDate(),
-      licenseEnd: (map['licenseEnd'] as Timestamp).toDate(),
+      licenseStart: (map['licenseStart'] as DbTimestamp).toDate(),
+      licenseEnd: (map['licenseEnd'] as DbTimestamp).toDate(),
       isActive: map['isActive'] ?? true,
       plan: GymPlan.fromString(map['plan'] ?? 'basic'),
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      createdAt: (map['createdAt'] as DbTimestamp).toDate(),
       maxMembers: map['maxMembers'],
       maxStaff: map['maxStaff'],
       isTrial: map['isTrial'] ?? false,
       trialEndDate: map['trialEndDate'] != null
-          ? (map['trialEndDate'] as Timestamp).toDate()
+          ? (map['trialEndDate'] as DbTimestamp).toDate()
           : null,
     );
   }
@@ -52,15 +52,15 @@ class GymModel extends Gym {
       'email': email,
       'address': address,
       'logoUrl': logoUrl,
-      'licenseStart': Timestamp.fromDate(licenseStart),
-      'licenseEnd': Timestamp.fromDate(licenseEnd),
+      'licenseStart': DbTimestamp.fromDate(licenseStart),
+      'licenseEnd': DbTimestamp.fromDate(licenseEnd),
       'isActive': isActive,
       'plan': plan.name,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'createdAt': DbTimestamp.fromDate(createdAt),
       'maxMembers': maxMembers,
       'maxStaff': maxStaff,
       'isTrial': isTrial,
-      'trialEndDate': trialEndDate != null ? Timestamp.fromDate(trialEndDate!) : null,
+      'trialEndDate': trialEndDate != null ? DbTimestamp.fromDate(trialEndDate!) : null,
     };
   }
 
@@ -85,3 +85,4 @@ class GymModel extends Gym {
     );
   }
 }
+

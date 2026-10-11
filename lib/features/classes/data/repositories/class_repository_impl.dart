@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import 'package:dartz/dartz.dart';
-import '../../../../core/constants/firestore_paths.dart';
+import '../../../../core/constants/data_paths.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/gym_class.dart';
 import '../../domain/entities/trainer.dart';
@@ -9,23 +9,23 @@ import '../models/gym_class_model.dart';
 import '../models/trainer_model.dart';
 
 class ClassRepositoryImpl implements ClassRepository {
-  final FirebaseFirestore _firestore;
+  final DocumentStore _store;
   final String gymId;
 
-  ClassRepositoryImpl({required this.gymId, FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  ClassRepositoryImpl({required this.gymId, DocumentStore? store})
+      : _store = store ?? DocumentStore.instance;
 
   CollectionReference<Map<String, dynamic>> get _classesCollection =>
-      _firestore.collection(FirestorePaths.classes(gymId));
+      _store.collection(DataPaths.classes(gymId));
 
   CollectionReference<Map<String, dynamic>> get _trainersCollection =>
-      _firestore.collection(FirestorePaths.trainers(gymId));
+      _store.collection(DataPaths.trainers(gymId));
 
   @override
   Stream<List<GymClass>> watchUpcomingClasses() {
     final now = DateTime.now();
     return _classesCollection
-        .where('dateTime', isGreaterThanOrEqualTo: Timestamp.fromDate(now))
+        .where('dateTime', isGreaterThanOrEqualTo: DbTimestamp.fromDate(now))
         .orderBy('dateTime')
         .snapshots()
         .map((snap) => snap.docs.map((d) => GymClassModel.fromMap(d.data(), d.id)).toList());
@@ -63,42 +63,17 @@ class ClassRepositoryImpl implements ClassRepository {
   @override
   Future<Either<Failure, void>> bookClass({required String classId, required String memberId}) async {
     try {
-      final docRef = _classesCollection.doc(classId);
-      await _firestore.runTransaction((transaction) async {
-        final snapshot = await transaction.get(docRef);
-        if (!snapshot.exists) {
-          throw Exception('الكلاس غير موجود');
-        }
-        final data = snapshot.data() as Map<String, dynamic>;
-        final booked = List<String>.from(data['bookedMemberIds'] as List? ?? []);
-        final capacity = data['capacity'] as int;
-
-        if (booked.contains(memberId)) {
-          throw Exception('أنت محجوز بالفعل في هذا الكلاس');
-        }
-        if (booked.length >= capacity) {
-          throw Exception('الكلاس مكتمل العدد');
-        }
-
-        booked.add(memberId);
-        transaction.update(docRef, {'bookedMemberIds': booked});
-      });
+      await _store.command('book-class', {'gymId': gymId, 'classId': classId, 'memberId': memberId});
       return const Right(null);
-    } catch (e) {
-      return Left(ValidationFailure(e.toString().replaceFirst('Exception: ', '')));
-    }
+    } catch (error) { return Left(ValidationFailure(error.toString())); }
   }
 
   @override
   Future<Either<Failure, void>> cancelBooking({required String classId, required String memberId}) async {
     try {
-      await _classesCollection.doc(classId).update({
-        'bookedMemberIds': FieldValue.arrayRemove([memberId]),
-      });
+      await _store.command('cancel-booking', {'gymId': gymId, 'classId': classId, 'memberId': memberId});
       return const Right(null);
-    } catch (_) {
-      return const Left(ServerFailure());
-    }
+    } catch (error) { return Left(ServerFailure(error.toString())); }
   }
 
   @override
@@ -152,3 +127,4 @@ class ClassRepositoryImpl implements ClassRepository {
     }
   }
 }
+

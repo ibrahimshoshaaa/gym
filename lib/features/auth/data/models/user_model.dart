@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import '../../domain/entities/app_user.dart';
 
 class UserModel extends AppUser {
@@ -27,7 +27,7 @@ class UserModel extends AppUser {
       role: UserRole.fromString(map['role'] as String? ?? 'member'),
       memberId: map['memberId'] as String?,
       mustChangePassword: map['mustChangePassword'] as bool? ?? false,
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: (map['createdAt'] as DbTimestamp?)?.toDate() ?? DateTime.now(),
       salary: (map['salary'] as num?)?.toDouble(),
       address: map['address'] as String?,
       notes: map['notes'] as String?,
@@ -60,10 +60,11 @@ class UserModel extends AppUser {
       'role': role.name,
       'memberId': memberId,
       'mustChangePassword': mustChangePassword,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'createdAt': DbTimestamp.fromDate(createdAt),
       'salary': salary,
       'address': address,
       'notes': notes,
     };
   }
 }
+

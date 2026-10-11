@@ -126,7 +126,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
     if (!mounted) return;
     result.fold(
       (failure) => _showError(failure.message),
-      (record) => _showSuccess('تم تسجيل حضور ${record.memberName} بالبصمة ✅'),
+      (record) => _showSuccess('تم تسجيل حضور ${record.memberName} ✅'),
     );
 
     setState(() => _isProcessing = false);
@@ -193,7 +193,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
           controller: _tabController,
           tabs: const [
             Tab(icon: Icon(Icons.qr_code_scanner), text: 'QR'),
-            Tab(icon: Icon(Icons.fingerprint), text: 'بصمة'),
+            Tab(icon: Icon(Icons.fingerprint), text: 'تأكيد الموظف'),
           ],
         ),
       ),
@@ -292,13 +292,13 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
             Icon(Icons.fingerprint, size: 100, color: gold),
             const SizedBox(height: 32),
             const Text(
-              'تسجيل الحضور بالبصمة أو Face ID',
+              'تأكيد الحضور بقفل جهاز الموظف',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
             Text(
-              'الموظف يختار العضو أولاً، بعدين العضو يحط إصبعه على البصمة',
+              'الموظف يختار العضو ويؤكد العملية بقفل جهازه. التحقق ده مش إثبات لبصمة العضو.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Theme.of(context).brightness == Brightness.dark
@@ -311,7 +311,7 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
               onPressed: _isProcessing ? null : _handleBiometricCheckIn,
               icon: const Icon(Icons.fingerprint, size: 28),
               label: const Text(
-                'تسجيل حضور بالبصمة',
+                'تأكيد وتسجيل الحضور',
                 style: TextStyle(fontSize: 16),
               ),
               style: ElevatedButton.styleFrom(
@@ -324,3 +324,4 @@ class _CheckinScreenState extends ConsumerState<CheckinScreen>
     );
   }
 }
+

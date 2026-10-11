@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/loyalty_point.dart';
@@ -6,23 +6,23 @@ import '../../domain/repositories/loyalty_repository.dart';
 import '../models/loyalty_model.dart';
 
 class LoyaltyRepositoryImpl implements LoyaltyRepository {
-  final FirebaseFirestore _firestore;
+  final DocumentStore _store;
   final String gymId;
 
-  LoyaltyRepositoryImpl({required this.gymId, FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  LoyaltyRepositoryImpl({required this.gymId, DocumentStore? store})
+      : _store = store ?? DocumentStore.instance;
 
   // gyms/{gymId}/members/{memberId}/loyalty/summary
   DocumentReference<Map<String, dynamic>> _loyaltyDoc(String memberId) =>
-      _firestore.doc('gyms/$gymId/members/$memberId/loyalty/summary');
+      _store.doc('gyms/$gymId/members/$memberId/loyalty/summary');
 
   // gyms/{gymId}/members/{memberId}/loyalty/transactions/{txId}
   CollectionReference<Map<String, dynamic>> _txCollection(String memberId) =>
-      _firestore.collection('gyms/$gymId/members/$memberId/loyalty/summary/transactions');
+      _store.collection('gyms/$gymId/members/$memberId/loyalty/summary/transactions');
 
   // gyms/{gymId}/rewards
   CollectionReference<Map<String, dynamic>> get _rewardsCollection =>
-      _firestore.collection('gyms/$gymId/rewards');
+      _store.collection('gyms/$gymId/rewards');
 
   @override
   Future<Either<Failure, LoyaltyPoints>> getMemberPoints(String memberId) async {
@@ -71,75 +71,19 @@ class LoyaltyRepositoryImpl implements LoyaltyRepository {
   }
 
   @override
-  Future<Either<Failure, void>> addPoints({
-    required String memberId,
-    required int points,
-    required String reason,
-  }) async {
+  Future<Either<Failure, void>> addPoints({required String memberId, required int points, required String reason}) async {
     try {
-      final docRef = _loyaltyDoc(memberId);
-      final txRef = _txCollection(memberId).doc();
-
-      await _firestore.runTransaction((tx) async {
-        final snap = await tx.get(docRef);
-        final current = snap.exists
-            ? LoyaltyPointsModel.fromMap(snap.data()!, memberId)
-            : LoyaltyPointsModel.empty(memberId);
-
-        final newTotal = current.totalPoints + points;
-        final newLifetime = current.lifetimePoints + (points > 0 ? points : 0);
-
-        tx.set(docRef, {
-          'totalPoints': newTotal,
-          'lifetimePoints': newLifetime,
-        }, SetOptions(merge: true));
-
-        tx.set(txRef, PointTransactionModel(
-          id: txRef.id,
-          points: points,
-          reason: reason,
-          date: DateTime.now(),
-        ).toMap());
-      });
-
+      await _store.command('points-add', {'gymId': gymId, 'memberId': memberId, 'points': points, 'reason': reason});
       return const Right(null);
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
-    }
+    } catch (error) { return Left(ServerFailure(error.toString())); }
   }
 
   @override
-  Future<Either<Failure, void>> redeemPoints({
-    required String memberId,
-    required int points,
-    required String rewardTitle,
-  }) async {
+  Future<Either<Failure, void>> redeemPoints({required String memberId, required String rewardId}) async {
     try {
-      final docRef = _loyaltyDoc(memberId);
-      final txRef = _txCollection(memberId).doc();
-
-      await _firestore.runTransaction((tx) async {
-        final snap = await tx.get(docRef);
-        if (!snap.exists) throw Exception('لا يوجد نقاط لهذا العضو');
-
-        final current = LoyaltyPointsModel.fromMap(snap.data()!, memberId);
-        if (current.totalPoints < points) {
-          throw Exception('النقاط غير كافية');
-        }
-
-        tx.update(docRef, {'totalPoints': current.totalPoints - points});
-        tx.set(txRef, PointTransactionModel(
-          id: txRef.id,
-          points: -points,
-          reason: 'استبدال: $rewardTitle',
-          date: DateTime.now(),
-        ).toMap());
-      });
-
+      await _store.command('redeem', {'gymId': gymId, 'memberId': memberId, 'rewardId': rewardId});
       return const Right(null);
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
-    }
+    } catch (error) { return Left(ServerFailure(error.toString())); }
   }
 
   @override
@@ -232,3 +176,4 @@ extension on LoyaltyPointsModel {
     );
   }
 }
+

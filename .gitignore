@@ -45,29 +45,11 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# ---- ملفات حساسة لازم تفضل بعيدة عن الجيت ----
-
-# مفاتيح Firebase - لازم تتولد محلياً بـ flutterfire configure
-# ومتترفعش على الجيت، خصوصاً لو الريبو عام (public)
-
-ios/Runner/GoogleService-Info.plist
-
-# مفاتيح توقيع Android (keystore) - لو فيه ملف حقيقي بعد كده
+# Local credentials and generated dependencies
+.env
+.env.*
+!.env.example
+node_modules/
 android/key.properties
 android/app/*.jks
 android/app/*.keystore
-# استثناء: debug.keystore ده مفتاح ثابت متعمد إنه يترفع على الجيت -
-# مش سر حقيقي (باسورده "android" المعروف)، والغرض منه إن كل الـ builds
-# اللي بتطلع من GitHub Actions توقّع بنفس المفتاح بالظبط (شوف الشرح في
-# android/app/build.gradle.kts). لو استثنيناه، هيرجع نفس مشكلة تسجيل
-# الدخول اللي بيتمسح مع كل نسخة جديدة.
-!android/app/debug.keystore
-
-# ملفات بيئة محلية (لو استخدمت .env لاحقاً)
-.env
-.env.*
-
-# Node.js (Cloud Functions) - المكتبات دي بتترفع لوحدها بـ npm install
-# مفيش داعي تتخزن في الجيت، وحجمها كبير وبيبطّئ الريبو
-node_modules/
-functions/node_modules/

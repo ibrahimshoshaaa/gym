@@ -9,7 +9,7 @@ abstract class SubscriptionRepository {
   Future<Either<Failure, void>> deletePlan(String id);
 
   /// بيعمل اشتراك جديد للعضو، وبيحدث بيانات العضو (currentPlanId, subscriptionEnd)
-  /// في نفس الوقت باستخدام Firestore Batch/Transaction
+  /// في نفس الوقت باستخدام معاملات السيرفر
   /// startDate اختياري - لو العضو هيبدأ يتمرن بعد كذا يوم من الدفع
   /// (مش شرط النهاردة)، من غيره بيتحسب تلقائي من دلوقتي
   Future<Either<Failure, Subscription>> subscribeMember({
@@ -22,3 +22,4 @@ abstract class SubscriptionRepository {
 
   Stream<List<Subscription>> watchMemberSubscriptions(String memberId);
 }
+

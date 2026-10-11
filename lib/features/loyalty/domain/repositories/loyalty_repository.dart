@@ -19,8 +19,7 @@ abstract class LoyaltyRepository {
   /// اصرف نقاط (هدية)
   Future<Either<Failure, void>> redeemPoints({
     required String memberId,
-    required int points,
-    required String rewardTitle,
+    required String rewardId,
   });
 
   /// جيب قائمة الهدايا المتاحة
@@ -38,3 +37,4 @@ abstract class LoyaltyRepository {
   /// حذف هدية (للأدمن)
   Future<Either<Failure, void>> deleteReward(String rewardId);
 }
+
