@@ -248,14 +248,14 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
                     children: [
                       CircleAvatar(
                         radius: 45,
-                        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                        backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                         backgroundImage: _pickedPhoto != null
                             ? FileImage(_pickedPhoto!)
                             : (widget.member?.photoUrl != null
                                 ? NetworkImage(widget.member!.photoUrl!)
                                 : null) as ImageProvider?,
                         child: _pickedPhoto == null && widget.member?.photoUrl == null
-                            ? const Icon(Icons.person, size: 40, color: AppColors.primary)
+                            ? Icon(Icons.person, size: 40, color: Theme.of(context).colorScheme.primary)
                             : null,
                       ),
                       Positioned(
@@ -263,11 +263,11 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
                         right: 0,
                         child: Container(
                           padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                          child: Icon(Icons.camera_alt, size: 16, color: Theme.of(context).colorScheme.onPrimary),
                         ),
                       ),
                     ],

@@ -58,12 +58,12 @@ class _MemberPickerDialogState extends ConsumerState<MemberPickerDialog> {
                       final member = filtered[i];
                       return GymListTile(
                         leading: CircleAvatar(
-                          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                          backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                           backgroundImage:
                               member.photoUrl != null ? NetworkImage(member.photoUrl!) : null,
                           child: member.photoUrl == null
                               ? Text(member.name.isNotEmpty ? member.name[0] : '?',
-                                  style: const TextStyle(color: AppColors.primary))
+                                  style: TextStyle(color: Theme.of(context).colorScheme.primary))
                               : null,
                         ),
                         title: Text(member.name),

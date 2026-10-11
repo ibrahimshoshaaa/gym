@@ -82,7 +82,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 12),
-                const Icon(Icons.lock_reset, size: 56, color: AppColors.primary),
+                Icon(Icons.lock_reset, size: 56, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(height: 16),
                 Text(
                   widget.requiredChange ? 'خطوة واحدة لتأمين حسابك' : 'كلمة مرور جديدة',

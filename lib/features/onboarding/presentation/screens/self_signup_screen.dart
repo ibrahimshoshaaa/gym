@@ -50,7 +50,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gold = Theme.of(context).colorScheme.primary;
+    final accent = Theme.of(context).colorScheme.primary;
     final gymState = ref.watch(gymControllerProvider);
 
     ref.listen<AsyncValue<void>>(gymControllerProvider, (previous, next) {
@@ -126,7 +126,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: gold,
+                  color: accent,
                 ),
               ),
               const SizedBox(height: 16),
@@ -165,7 +165,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: gold,
+                  color: accent,
                 ),
               ),
               const SizedBox(height: 8),
@@ -173,7 +173,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 '١٤ يوم مجاني على كل الخطط',
                 style: TextStyle(
                   fontSize: 13,
-                  color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                  color: isDark ? GymPalette.darkTextSecondary : GymPalette.lightTextSecondary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -190,7 +190,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: gold,
+                  color: accent,
                 ),
               ),
               const SizedBox(height: 16),
@@ -263,7 +263,7 @@ class _SelfSignUpScreenState extends ConsumerState<SelfSignUpScreen> {
                 'بالضغط على "ابدأ مجانًا" أنت توافق على شروط الاستخدام وسياسة الخصوصية.',
                 style: TextStyle(
                   fontSize: 11,
-                  color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                  color: isDark ? GymPalette.darkTextSecondary : GymPalette.lightTextSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -361,7 +361,7 @@ class _PlanSelector extends StatelessWidget {
                           plan.description,
                           style: TextStyle(
                             fontSize: 13,
-                            color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                            color: isDark ? GymPalette.darkTextSecondary : GymPalette.lightTextSecondary,
                           ),
                         ),
                       ],

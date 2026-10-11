@@ -86,7 +86,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gold = Theme.of(context).colorScheme.primary;
+    final accent = Theme.of(context).colorScheme.primary;
     final gymState = ref.watch(gymControllerProvider);
     final dateFormat = DateFormat('yyyy-MM-dd');
 
@@ -134,7 +134,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: gold,
+                        color: accent,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -204,7 +204,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: gold,
+                        color: accent,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -254,7 +254,7 @@ class _EditGymScreenState extends ConsumerState<EditGymScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: gold,
+                        color: accent,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -370,7 +370,7 @@ class _PlanSelector extends StatelessWidget {
                           plan.description,
                           style: TextStyle(
                             fontSize: 13,
-                            color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                            color: isDark ? GymPalette.darkTextSecondary : GymPalette.lightTextSecondary,
                           ),
                         ),
                       ],

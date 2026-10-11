@@ -22,8 +22,8 @@ class LoyaltyAdminScreen extends ConsumerWidget {
         onPressed: () => _showAddRewardDialog(context, ref, isDark),
         icon: const Icon(Icons.add),
         label: const Text('هدية جديدة'),
-        backgroundColor: GoldPalette.gold,
-        foregroundColor: Colors.black,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
@@ -208,7 +208,7 @@ class _SectionHeader extends StatelessWidget {
         fontSize: 16,
         fontWeight: FontWeight.bold,
         color:
-            isDark ? GoldPalette.darkTextPrimary : GoldPalette.lightTextPrimary,
+            isDark ? GymPalette.darkTextPrimary : GymPalette.lightTextPrimary,
       ),
     );
   }
@@ -232,14 +232,14 @@ class _RuleCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: isDark ? GoldPalette.darkSurface : GoldPalette.lightSurface,
+        color: isDark ? GymPalette.darkSurface : GymPalette.lightSurface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-            color: GoldPalette.gold.withValues(alpha: 0.15)),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)),
       ),
       child: Row(
         children: [
-          Icon(icon, color: GoldPalette.gold, size: 20),
+          Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -247,8 +247,8 @@ class _RuleCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 color: isDark
-                    ? GoldPalette.darkTextPrimary
-                    : GoldPalette.lightTextPrimary,
+                    ? GymPalette.darkTextPrimary
+                    : GymPalette.lightTextPrimary,
               ),
             ),
           ),
@@ -286,11 +286,11 @@ class _AdminRewardTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: isDark ? GoldPalette.darkSurface : GoldPalette.lightSurface,
+        color: isDark ? GymPalette.darkSurface : GymPalette.lightSurface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: reward.isActive
-              ? GoldPalette.gold.withValues(alpha: 0.3)
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)
               : Colors.grey.withValues(alpha: 0.2),
         ),
       ),
@@ -298,10 +298,10 @@ class _AdminRewardTile extends StatelessWidget {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         leading: CircleAvatar(
-          backgroundColor: (reward.isActive ? GoldPalette.gold : Colors.grey)
+          backgroundColor: (reward.isActive ? Theme.of(context).colorScheme.primary : Colors.grey)
               .withValues(alpha: 0.15),
           child: Icon(Icons.card_giftcard,
-              color: reward.isActive ? GoldPalette.gold : Colors.grey),
+              color: reward.isActive ? Theme.of(context).colorScheme.primary : Colors.grey),
         ),
         title: Text(
           reward.title,
@@ -309,15 +309,15 @@ class _AdminRewardTile extends StatelessWidget {
             fontWeight: FontWeight.bold,
             color: reward.isActive
                 ? (isDark
-                    ? GoldPalette.darkTextPrimary
-                    : GoldPalette.lightTextPrimary)
+                    ? GymPalette.darkTextPrimary
+                    : GymPalette.lightTextPrimary)
                 : Colors.grey,
           ),
         ),
         subtitle: Text(
           '${reward.pointsCost} نقطة • ${reward.type.label}',
           style: TextStyle(
-            color: reward.isActive ? GoldPalette.gold : Colors.grey,
+            color: reward.isActive ? Theme.of(context).colorScheme.primary : Colors.grey,
             fontSize: 12,
           ),
         ),
@@ -326,15 +326,15 @@ class _AdminRewardTile extends StatelessWidget {
           children: [
             Switch(
               value: reward.isActive,
-              activeColor: GoldPalette.gold,
+              activeColor: Theme.of(context).colorScheme.primary,
               onChanged: (_) => onToggle(),
             ),
             IconButton(
               icon: const Icon(Icons.edit_outlined, size: 20),
               onPressed: onEdit,
               color: isDark
-                  ? GoldPalette.darkTextSecondary
-                  : GoldPalette.lightTextSecondary,
+                  ? GymPalette.darkTextSecondary
+                  : GymPalette.lightTextSecondary,
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline, size: 20),

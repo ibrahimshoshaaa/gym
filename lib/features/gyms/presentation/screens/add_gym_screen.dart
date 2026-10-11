@@ -54,7 +54,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gold = Theme.of(context).colorScheme.primary;
+    final accent = Theme.of(context).colorScheme.primary;
     final gymState = ref.watch(gymControllerProvider);
 
     ref.listen<AsyncValue<void>>(gymControllerProvider, (previous, next) {
@@ -100,7 +100,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: gold,
+                  color: accent,
                 ),
               ),
               const SizedBox(height: 16),
@@ -171,7 +171,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: gold,
+                  color: accent,
                 ),
               ),
               const SizedBox(height: 16),
@@ -186,14 +186,14 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                     child: Text(
                       'مدة الترخيص (بالأشهر):',
                       style: TextStyle(
-                        color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                        color: isDark ? GymPalette.darkTextSecondary : GymPalette.lightTextSecondary,
                       ),
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      border: Border.all(color: gold.withValues(alpha: 0.3)),
+                      border: Border.all(color: accent.withValues(alpha: 0.3)),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: DropdownButton<int>(
@@ -219,7 +219,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: gold,
+                  color: accent,
                 ),
               ),
               const SizedBox(height: 8),
@@ -227,7 +227,7 @@ class _AddGymScreenState extends ConsumerState<AddGymScreen> {
                 'هيتم إنشاء حساب أدمن للجيم تلقائيًا',
                 style: TextStyle(
                   fontSize: 12,
-                  color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                  color: isDark ? GymPalette.darkTextSecondary : GymPalette.lightTextSecondary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -369,7 +369,7 @@ class _PlanSelector extends StatelessWidget {
                           plan.description,
                           style: TextStyle(
                             fontSize: 13,
-                            color: isDark ? GoldPalette.darkTextSecondary : GoldPalette.lightTextSecondary,
+                            color: isDark ? GymPalette.darkTextSecondary : GymPalette.lightTextSecondary,
                           ),
                         ),
                       ],

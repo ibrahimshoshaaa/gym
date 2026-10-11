@@ -27,9 +27,9 @@ class TrainersListScreen extends ConsumerWidget {
               final t = trainers[i];
               return Card(
                 child: GymListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: AppColors.primary,
-                    child: Icon(Icons.sports_gymnastics, color: Colors.white),
+                  leading: CircleAvatar(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    child: Icon(Icons.sports_gymnastics, color: Theme.of(context).colorScheme.onPrimary),
                   ),
                   title: Text(t.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(
@@ -97,9 +97,9 @@ class TrainersListScreen extends ConsumerWidget {
         error: (err, _) => GymErrorState(onRetry: () => ref.invalidate(trainersStreamProvider)),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primary,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         onPressed: () => showDialog(context: context, builder: (_) => const AddTrainerDialog()),
-        child: const Icon(Icons.person_add, color: Colors.white),
+        child: Icon(Icons.person_add, color: Theme.of(context).colorScheme.onPrimary),
       ),
     );
   }
