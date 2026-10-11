@@ -334,11 +334,11 @@ class _PlanSelector extends StatelessWidget {
         final isSelected = plan == selected;
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
-          color: isSelected ? (isDark ? Colors.amber.withValues(alpha: 0.1) : Colors.amber.withValues(alpha: 0.05)) : null,
+          color: isSelected ? (isDark ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05)) : null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: isSelected ? Colors.amber : Colors.transparent,
+              color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
               width: 1.5,
             ),
           ),
@@ -353,7 +353,7 @@ class _PlanSelector extends StatelessWidget {
                     value: plan,
                     groupValue: selected,
                     onChanged: (v) => onChanged(v!),
-                    activeColor: Colors.amber,
+                    activeColor: Theme.of(context).colorScheme.primary,
                   ),
                   Expanded(
                     child: Column(
