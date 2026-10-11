@@ -81,6 +81,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             const SizedBox(height: 24),
             FilledButton(onPressed: busy ? null : _submit, child: busy ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('تسجيل الدخول')),
           ]))),
+        TextButton(onPressed:()=>showDialog<void>(context:context,builder:(context)=>GymDialog(title:const Text('نسيت كلمة المرور؟'),content:Text(member?'تواصل مع إدارة الجيم. الأدمن يقدر يرجّع كلمة المرور لرقم موبايلك من ملفك، وبعد الدخول هتختار كلمة جديدة.':'تواصل مع مالك النظام لاسترجاع حساب الإدارة. متشاركش كلمة مرورك مع أي حد.'),actions:[TextButton(onPressed:()=>Navigator.pop(context),child:const Text('تمام'))])),child:const Text('نسيت كلمة المرور؟')),
         const SizedBox(height: 24),
         Text(member ? 'إدارة الجيم هي اللي بتفعّل حسابك وبتديك كود الدخول.' : 'حساب الإدارة بيستخدم البريد الإلكتروني المسجّل للجيم.',
           textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall),

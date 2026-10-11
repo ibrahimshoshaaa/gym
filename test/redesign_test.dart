@@ -1,5 +1,9 @@
 import 'package:gym_manager/features/attendance/presentation/screens/checkin_screen.dart';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:gym_manager/core/network/api_client.dart';
+import 'package:gym_manager/features/operations/presentation/operations_screens.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -86,6 +90,11 @@ Future<void> mount(WidgetTester tester, Widget page, {double width = 320, double
   tester.view.devicePixelRatio = 1;
   await tester.pumpWidget(ProviderScope(overrides: [
     sharedPreferencesProvider.overrideWithValue(prefs),
+    operationsApiProvider.overrideWithValue(ApiClient(baseUrl:'https://gym.example',client:MockClient((request)async{
+      final memberData={'name':member.name,'phone':member.phone,'joinDate':DbTimestamp.fromDate(now).toJson(),'status':'active','subscriptionEnd':DbTimestamp.fromDate(now.add(const Duration(days:30))).toJson(),'visitsAllowed':12,'visitsUsed':4};
+      final data=request.url.path=='/api/reports/summary'?{'subscriptionValue':1200,'outstanding':800}:request.url.path=='/api/reception'?{'members':[{'id':'m1','data':memberData}],'next':null}:request.url.path=='/api/notifications'?[{'id':'notice1','title':'اشتراكك قرب يخلص','body':'تذكير التجديد','date':DbTimestamp.fromDate(now).toJson(),'isRead':false}]:[{'id':'sub1','data':{'planName':'اشتراك شهري','paidAmount':400,'startDate':DbTimestamp.fromDate(now).toJson(),'endDate':DbTimestamp.fromDate(now.add(const Duration(days:30))).toJson(),'action':'subscribe','actorName':member.name,'date':DbTimestamp.fromDate(now).toJson()}}];
+      return http.Response.bytes(utf8.encode(jsonEncode({'data':data})),200,headers:{'content-type':'application/json; charset=utf-8'});
+    }))),
     currentUserProvider.overrideWithValue(user(role)),
     authStateProvider.overrideWith((ref) => Stream.value(user(role))),
     currentGymProvider.overrideWith((ref) => Stream.value(gym)),
@@ -135,6 +144,7 @@ void main() {
     await icons.load();
   });
   final screens = <String, Widget>{
+    'reception': const ReceptionScreen(), 'notifications': const OperationRecordsScreen(kind:RecordKind.notifications), 'audit': const OperationRecordsScreen(kind:RecordKind.audit), 'subscriptions-history': const OperationRecordsScreen(kind:RecordKind.subscriptions,memberId:'m1'),
     'login': const LoginScreen(), 'admin': const AdminDashboard(), 'staff': const StaffDashboard(), 'member': const MemberDashboard(),
     'members': const MembersListScreen(), 'details': const MemberDetailsScreen(memberId: 'm1'), 'add-member': const AddMemberScreen(),
     'add-staff': const AddStaffScreen(), 'staff-list': const StaffListScreen(), 'password': const ChangePasswordScreen(),
@@ -172,6 +182,12 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
   }
+  testWidgets('Reception displays returned members, not a swallowed parsing error',(tester)async{
+    addTearDown(tester.view.resetPhysicalSize);addTearDown(tester.view.resetDevicePixelRatio);
+    await mount(tester,const ReceptionScreen(),width:390,scale:1);
+    expect(find.text(member.name),findsOneWidget);
+    expect(find.byType(GymErrorState),findsNothing);
+  });
   testWidgets('Member menu hides administration and navigation reaches card', (tester) async {
     addTearDown(tester.view.resetPhysicalSize); addTearDown(tester.view.resetDevicePixelRatio);
     await mount(tester, const GymWorkspace(), role: UserRole.member, width: 390, scale: 1);
@@ -229,7 +245,7 @@ void main() {
 
   testWidgets('Visual previews use real Arabic fonts', (tester) async {
     addTearDown(tester.view.resetPhysicalSize); addTearDown(tester.view.resetDevicePixelRatio);
-    for (final name in ['login', 'admin', 'member', 'details', 'qr']) {
+    for (final name in ['login', 'admin', 'member', 'details', 'qr', 'reception']) {
       final key = GlobalKey();
       await mount(tester, screens[name]!, width: 390, scale: 1, role: name == 'member' ? UserRole.member : UserRole.admin, capture: key);
       expect(tester.takeException(), isNull);

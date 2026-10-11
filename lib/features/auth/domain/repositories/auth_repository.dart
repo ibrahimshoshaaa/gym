@@ -16,7 +16,7 @@ abstract class AuthRepository {
     required String gymId,
   });
 
-  /// إنشاء حساب عضو بكلمة مرور عشوائية مؤقتة تظهر للأدمن مرة واحدة.
+  /// إنشاء حساب عضو بكلمة مرور أولى هي رقم موبايله، ويغيّرها أول دخول.
   Future<Either<Failure, String>> createMemberAccount({
     required String gymId,
     required String memberId,

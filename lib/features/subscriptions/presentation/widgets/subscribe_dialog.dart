@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../loyalty/presentation/providers/loyalty_provider.dart';
+
 import '../../domain/entities/plan.dart';
 import '../providers/subscriptions_provider.dart';
 
@@ -30,6 +30,7 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
   late final TextEditingController _amountController;
   DateTime _startDate = DateTime.now();
   bool _isLoading = false;
+  bool _afterCurrent = true;
 
   @override
   void initState() {
@@ -69,7 +70,7 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
           plan: widget.plan,
           paidAmount: double.parse(_amountController.text.trim()),
           recordedByUid: user.uid,
-          startDate: _startDate,
+          startDate: _startDate, startAfterCurrent: _afterCurrent,
         );
 
     if (!mounted) return;
@@ -82,16 +83,6 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
         );
       },
       (_) {
-        // إضافة نقاط الدفع (١ نقطة لكل ١٠ ج.م)
-        final paidAmount = double.tryParse(_amountController.text.trim()) ?? 0;
-        final pointsEarned = (paidAmount / 10).floor();
-        if (pointsEarned > 0) {
-          ref.read(loyaltyControllerProvider.notifier).addPoints(
-                memberId: widget.memberId,
-                points: pointsEarned,
-                reason: 'دفع اشتراك (${paidAmount.toStringAsFixed(0)} ج.م)',
-              );
-        }
         Navigator.pop(context, true);
       },
     );
@@ -119,8 +110,8 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
               decoration: const InputDecoration(labelText: 'المبلغ المدفوع (ج.م)'),
               validator: (v) => Validators.positiveNumber(v, 'المبلغ'),
             ),
-            const SizedBox(height: 16),
-            InkWell(
+            SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('بعد انتهاء الاشتراك الحالي'), subtitle: const Text('يحافظ على المدة المتبقية. يبدأ اليوم لو مفيش اشتراك نشط.'), value: _afterCurrent, onChanged: _isLoading ? null : (v) => setState(() => _afterCurrent = v)),
+            if (!_afterCurrent) InkWell(
               onTap: _pickStartDate,
               child: InputDecorator(
                 decoration: const InputDecoration(
@@ -134,7 +125,7 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
+            if (!_afterCurrent) Text(
               'هينتهي في: ${_endDatePreview().day}/${_endDatePreview().month}/${_endDatePreview().year}',
               style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),

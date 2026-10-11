@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/gym_ui.dart';
@@ -19,7 +20,8 @@ class PaymentsHistoryScreen extends ConsumerWidget {
         for (final payment in payments) Card(margin: const EdgeInsets.only(bottom: 10), child: GymListTile(
           leading: const GymIcon(icon: Icons.arrow_downward_rounded, color: AppColors.success), title: Text(payment.memberName),
           subtitle: Text('${DateFormatter.toDisplayDateTime(payment.date)} · ${_method(payment.method)}'),
-          trailing: GymBadge(label: '${gymAmount(payment.amount)} ج.م', color: AppColors.success))),
+          trailing: GymBadge(label: '${gymAmount(payment.amount)} ج.م', color: AppColors.success),
+          onTap:()=>showDialog<void>(context:context,builder:(context)=>GymDialog(title:const Text('إيصال تحصيل'),content:SelectableText('Golden Gym\nإيصال: ${payment.receiptNumber??payment.id}\nالعضو: ${payment.memberName}\nالمبلغ: ${gymAmount(payment.amount)} ج.م\nالتاريخ: ${DateFormatter.toDisplayDateTime(payment.date)}\nطريقة الدفع: ${_method(payment.method)}'),actions:[TextButton(onPressed:()=>Clipboard.setData(ClipboardData(text:'إيصال ${payment.receiptNumber??payment.id}\n${payment.memberName}\n${gymAmount(payment.amount)} ج.م\n${DateFormatter.toDisplayDateTime(payment.date)}')),child:const Text('نسخ الإيصال')),FilledButton(onPressed:()=>Navigator.pop(context),child:const Text('تم'))])))),
       ]);
     }, loading: () => const GymLoading(), error: (_, __) => GymErrorState(onRetry: () => ref.invalidate(allPaymentsProvider))));
 }

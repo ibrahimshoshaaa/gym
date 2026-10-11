@@ -14,6 +14,7 @@ import '../../../debts/presentation/widgets/pay_debt_dialog.dart';
 import '../../domain/entities/member.dart';
 import '../providers/members_provider.dart';
 import 'add_member_screen.dart';
+import '../../../operations/presentation/operations_screens.dart';
 import '../widgets/member_login_dialog.dart';
 
 class MemberDetailsScreen extends ConsumerWidget {
@@ -149,6 +150,7 @@ class MemberDetailsScreen extends ConsumerWidget {
                 icon: const Icon(Icons.badge),
                 label: const Text('عرض كارت العضوية'),
               ),
+              MemberOperations(member: member),
               const GymSection(title: 'بيانات العضو'),
               Card(margin: EdgeInsets.zero, child: Column(children: [
               _InfoTile(icon: Icons.phone, label: 'الموبايل', value: member.phone),

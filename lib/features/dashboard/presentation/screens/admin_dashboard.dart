@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../operations/presentation/operations_screens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/gym_ui.dart';
@@ -44,6 +45,7 @@ class AdminDashboard extends ConsumerWidget {
             color: AppColors.success, onTap: () => open(const CheckinScreen())), loading: () => const GymLoading(), error: (_, __) => GymErrorState(onRetry: () => ref.invalidate(todayAttendanceProvider))),
         ]),
         const GymSection(title: 'متابعة سريعة'),
+        Card(child:GymListTile(leading:const GymIcon(icon:Icons.desk_outlined),title:const Text('الاستقبال السريع'),subtitle:const Text('ابحث وسجل الحضور وجدّد من مكان واحد'),onTap:()=>open(const ReceptionScreen()))),
         Card(margin: EdgeInsets.zero, child: GymListTile(leading: const GymIcon(icon: Icons.notifications_active_outlined),
           title: const Text('تابع الاشتراكات اللي قربت تنتهي'), subtitle: const Text('راجع قائمة الأعضاء وابدأ التجديد من صفحة العضو.'),
           onTap: () => open(const MembersListScreen(initialFilter: MemberFilterCategory.expiringSoon)))),

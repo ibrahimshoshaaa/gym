@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:uuid/uuid.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
@@ -52,18 +53,27 @@ class ApiClient {
     };
     try {
       final request = http.Request(method, Uri.parse('$baseUrl$path'))..headers.addAll(headers);
+      String? pendingKey;
+      if (path.startsWith('/api/commands/') && body != null) {
+        pendingKey = 'gym.operation.${const Uuid().v5(Uuid.NAMESPACE_URL, '$token:$path:${jsonEncode(encodeApiValue(body))}')}';
+        final requestId = await storage.read(key: pendingKey) ?? const Uuid().v4();
+        await storage.write(key: pendingKey, value: requestId);
+        body = {...body, 'requestId': requestId};
+      }
       if (body != null) request.body = jsonEncode(encodeApiValue(body));
       final response = await http.Response.fromStream(await client.send(request).timeout(const Duration(seconds: 20)))
           .timeout(const Duration(seconds: 20));
       final payload = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode >= 400) {
+        if (pendingKey != null && response.statusCode < 500) await storage.delete(key: pendingKey);
         throw ApiException(response.statusCode, payload['error'] as String? ?? 'حصل خطأ في الخدمة');
       }
       final result = decodeApiValue(payload['data']);
+      if (pendingKey != null) await storage.delete(key: pendingKey);
       // Login has not committed its session yet; profile reads do not mutate data.
       final authMutation = path.startsWith('/api/auth/') &&
           !['/api/auth/login', '/api/auth/me', '/api/auth/logout'].contains(path);
-      if (path.startsWith('/api/commands/') || path == '/api/data/write' || authMutation) {
+      if (path.startsWith('/api/commands/') || path == '/api/data/write' || path == '/api/photos/delete' || authMutation) {
         changes.add(null);
       }
       return result;

@@ -28,6 +28,34 @@ export class PostgresStore {
     const { rows } = await this.connection.query('SELECT path, data, version FROM documents WHERE collection_path=$1', [collection]);
     return rows;
   }
+  async select(collection, filters = [], order = null, count = null) {
+    const params = [collection], clauses = ['collection_path=$1'];
+    const bind = value => { params.push(value); return `$${params.length}`; };
+    for (const f of filters) {
+      const field = bind(f.field), expr = `(data->${field})`;
+      if (f.op === 'in') clauses.push(`(${f.value.map(v => `${expr}=${bind(JSON.stringify(v))}::jsonb`).join(' OR ') || 'false'})`);
+      else clauses.push(`${expr}${{eq:'=',gte:'>=',lte:'<='}[f.op]}${bind(JSON.stringify(f.value))}::jsonb`);
+    }
+    let sorting = 'path ASC';
+    if (order) sorting = `data->${bind(order.field)} ${order.descending ? 'DESC' : 'ASC'}, path ${order.descending ? 'DESC' : 'ASC'}`;
+    const limit = count == null ? '' : ` LIMIT ${bind(count)}`;
+    const { rows } = await this.connection.query(`SELECT path,data,version FROM documents WHERE ${clauses.join(' AND ')} ORDER BY ${sorting}${limit}`, params);
+    return rows;
+  }
+  async financialSummary(gymId, from, to) {
+    const root=`gyms/${gymId}`, time=field=>`($2::timestamptz IS NULL OR (data->'${field}'->>'value')::timestamptz >= $2) AND ($3::timestamptz IS NULL OR (data->'${field}'->>'value')::timestamptz < $3)`;
+    const incoming=await this.connection.query(`SELECT COALESCE(sum((data->>'amount')::numeric),0) AS total,count(*)::int AS count FROM documents WHERE collection_path=$1 AND ${time('date')}`,[`${root}/payments`,from,to]);
+    const outgoing=await this.connection.query(`SELECT COALESCE(sum((data->>'amount')::numeric),0) AS total FROM documents WHERE collection_path=$1 AND ${time('date')}`,[`${root}/expenses`,from,to]);
+    const contracts=await this.connection.query(`SELECT COALESCE(sum(COALESCE((s.data->>'price')::numeric,(SELECT (d.data->>'totalAmount')::numeric FROM documents d WHERE d.collection_path=$4 AND d.data->>'relatedSubscriptionId'=split_part(s.path,'/',4) LIMIT 1),(s.data->>'paidAmount')::numeric)),0) AS total FROM documents s WHERE collection_path=$1 AND ${time('createdAt')}`,[`${root}/subscriptions`,from,to,`${root}/debts`]);
+    const debt=await this.connection.query(`SELECT COALESCE(sum(GREATEST((data->>'totalAmount')::numeric-(data->>'paidAmount')::numeric,0)),0) AS total FROM documents WHERE collection_path=$1`,[`${root}/debts`]);
+    const collected=Number(incoming.rows[0].total), spent=Number(outgoing.rows[0].total);
+    return {collected,spent,netCash:collected-spent,collectionsCount:incoming.rows[0].count,subscriptionValue:Number(contracts.rows[0].total),outstanding:Number(debt.rows[0].total)};
+  }
+  async searchMembers(gymId, search, after = '') {
+    const escaped = search.replace(/[\\%_]/g, '\\$&');
+    const { rows } = await this.connection.query(`SELECT path,data,version FROM documents WHERE collection_path=$1 AND path>$2 AND (data->>'name' ILIKE $3 OR data->>'phone' ILIKE $3) ORDER BY path LIMIT 26`, [`gyms/${gymId}/members`, after, `%${escaped}%`]);
+    return rows;
+  }
   async put(path, data) {
     const collection = path.slice(0, path.lastIndexOf('/'));
     await this.connection.query(`INSERT INTO documents(path,collection_path,data) VALUES($1,$2,$3)
