@@ -156,7 +156,7 @@ class _ReceptionState extends ConsumerState<ReceptionScreen> {
       if(!mounted || generation!=_generation)return;
       final members=(data['members'] as List).map((r)=>MemberModel.fromMap(Map<String,dynamic>.from(r['data'] as Map),r['id'] as String)).toList();
       setState((){if(!append)_members.clear();_members.addAll(members);_next=data['next'] as String?;});
-    }catch(e){assert((){debugPrint('RECEPTION_LOAD_ERROR: $e');return true;}());if(mounted && generation==_generation)setState(()=>_error=e.toString());}
+    }catch(e){if(mounted && generation==_generation)setState(()=>_error=e.toString());}
     finally{if(mounted && generation==_generation)setState(()=>_loading=false);}
   }
   Future<void> _checkIn(Member m) async {

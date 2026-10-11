@@ -178,7 +178,7 @@ void main() {
       final body=jsonDecode(request.body) as Map<String,dynamic>;
       expect(body.remove('requestId'),isA<String>());
       expect(body, {'gymId': 'g1', 'memberId': 'm1'});
-      return http.Response(jsonEncode({'error': 'حضور العضو مسجل النهارده بالفعل'}), 409);
+      return http.Response(jsonEncode({'error': 'حضور العضو مسجل النهارده بالفعل'}), 409, headers:{'Content-Type':'application/json; charset=utf-8'});
     }));
     final result = await AttendanceRepositoryImpl(gymId: 'g1', store: DocumentStore(api: api)).checkIn('m1');
     expect(result.isLeft(), isTrue);
