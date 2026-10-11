@@ -204,7 +204,9 @@ void main() {
         expect(style!.color, foreground);
       }
       for (final label in ['المزيد', 'إدارة الجيم', 'الموظفون', 'حسابك وتفضيلاتك', 'كلمة المرور']) {
-        final finder = find.text(label);
+        final finder = ['إدارة الجيم', 'حسابك وتفضيلاتك'].contains(label)
+          ? find.descendant(of: find.byType(GymSection), matching: find.text(label))
+          : find.text(label);
         if (finder.evaluate().isEmpty) {
           await tester.scrollUntilVisible(finder, 300);
           await tester.pumpAndSettle();
