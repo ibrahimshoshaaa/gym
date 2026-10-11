@@ -345,7 +345,7 @@ class _InfoTile extends StatelessWidget {
           decoration: BoxDecoration(color: GoldPalette.gold.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
           child: Icon(icon, color: GoldPalette.gold, size: 22),
         ),
-        title: Text(label, style: const TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+        title: Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
         subtitle: Text(
           value,
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: valueColor),
