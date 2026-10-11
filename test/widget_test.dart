@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gym_manager/core/providers/shared_preferences_provider.dart';
 import 'package:gym_manager/features/auth/domain/entities/app_user.dart';
 import 'package:gym_manager/features/auth/presentation/providers/auth_provider.dart';
+import 'package:gym_manager/features/gyms/presentation/providers/gym_provider.dart';
+import 'package:gym_manager/features/gyms/data/repositories/gym_repository_impl.dart';
 import 'package:gym_manager/features/gyms/domain/entities/gym.dart';
 import 'package:gym_manager/main.dart';
 import 'package:gym_manager/core/network/api_client.dart';
@@ -17,6 +20,53 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
+  test('Gym queries wait for an authorized profile after password change', () async {
+    var queries = 0;
+    final api = ApiClient(baseUrl: 'https://gym.example', client: MockClient((request) async {
+      queries++;
+      expect(request.headers['Authorization'], 'Bearer committed-session');
+      return http.Response('{"data":[]}', 200);
+    }));
+    final users = StreamController<AppUser?>();
+    final container = ProviderContainer(overrides: [
+      authStateProvider.overrideWith((ref) => users.stream),
+      gymRepositoryProvider.overrideWithValue(GymRepositoryImpl(store: DocumentStore(api: api))),
+    ]);
+    final subscription = container.listen(allGymsProvider, (_, __) {});
+    try {
+      users.add(null);
+      await Future<void>.delayed(Duration.zero);
+      expect(queries, 0);
+      final temporary = AppUser(uid: 'owner', gymId: '', name: 'Owner', phone: '', role: UserRole.superAdmin, createdAt: DateTime.now(), mustChangePassword: true);
+      users.add(temporary);
+      await Future<void>.delayed(Duration.zero);
+      expect(queries, 0);
+      api.token = 'committed-session';
+      users.add(AppUser(uid: temporary.uid, gymId: '', name: temporary.name, phone: '', role: temporary.role, createdAt: temporary.createdAt));
+      await Future<void>.delayed(Duration.zero);
+      await container.read(allGymsProvider.future);
+      expect(queries, 1);
+      expect(container.read(allGymsProvider).hasError, isFalse);
+      users.add(null);
+      await Future<void>.delayed(Duration.zero);
+      expect(queries, 1);
+    } finally {
+      subscription.close();
+      container.dispose();
+      await users.close();
+    }
+  });
+  test('Login responses do not refresh data before the session is committed', () async {
+    final api = ApiClient(baseUrl: 'https://gym.example', client: MockClient((request) async => http.Response('{"data":{"token":"new-session"}}', 200)));
+    var updates = 0;
+    final subscription = api.changes.stream.listen((_) => updates++);
+    try {
+      await api.request('POST', '/api/auth/login', {'email': 'owner@example.com', 'password': 'password-value'});
+      await Future<void>.delayed(Duration.zero);
+      expect(updates, 0);
+      expect(api.token, isNull);
+    } finally { await subscription.cancel(); }
+  });
   testWidgets('Signed-out app opens login without an external SDK', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();

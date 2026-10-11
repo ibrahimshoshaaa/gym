@@ -60,7 +60,10 @@ class ApiClient {
         throw ApiException(response.statusCode, payload['error'] as String? ?? 'حصل خطأ في الخدمة');
       }
       final result = decodeApiValue(payload['data']);
-      if (path.startsWith('/api/commands/') || path == '/api/data/write' || path.startsWith('/api/auth/')) {
+      // Login has not committed its session yet; profile reads do not mutate data.
+      final authMutation = path.startsWith('/api/auth/') &&
+          !['/api/auth/login', '/api/auth/me', '/api/auth/logout'].contains(path);
+      if (path.startsWith('/api/commands/') || path == '/api/data/write' || authMutation) {
         changes.add(null);
       }
       return result;
