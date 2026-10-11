@@ -1,23 +1,23 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import 'package:dartz/dartz.dart';
-import '../../../../core/constants/firestore_paths.dart';
+import '../../../../core/constants/data_paths.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/member.dart';
 import '../../domain/repositories/member_repository.dart';
 import '../models/member_model.dart';
 
 class MemberRepositoryImpl implements MemberRepository {
-  final FirebaseFirestore _firestore;
+  final DocumentStore _store;
   final String gymId;
 
-  MemberRepositoryImpl({required this.gymId, FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  MemberRepositoryImpl({required this.gymId, DocumentStore? store})
+      : _store = store ?? DocumentStore.instance;
 
   CollectionReference<Map<String, dynamic>> get _collection =>
-      _firestore.collection(FirestorePaths.members(gymId));
+      _store.collection(DataPaths.members(gymId));
 
   CollectionReference<Map<String, dynamic>> get _phoneIndex =>
-      _firestore.collection('gyms/$gymId/phoneIndex');
+      _store.collection('gyms/$gymId/phoneIndex');
 
   @override
   Stream<List<Member>> watchMembers() {
@@ -49,65 +49,32 @@ class MemberRepositoryImpl implements MemberRepository {
   @override
   Future<Either<Failure, Member>> addMember(Member member) async {
     try {
-      final model = MemberModel.fromEntity(member);
-      final docRef = await _collection.add(model.toMap());
-      if (member.phone.isNotEmpty) {
-        await _phoneIndex.doc(member.phone).set({
-          'memberId': docRef.id,
-          'name': member.name,
-        });
-      }
-      return Right(MemberModel.fromMap(model.toMap(), docRef.id));
-    } catch (_) {
-      return const Left(ServerFailure());
-    }
+      final row = await _store.command('member-save', {'gymId': gymId, 'data': MemberModel.fromEntity(member).toMap()}) as Map<String, dynamic>;
+      return Right(MemberModel.fromMap(Map<String, dynamic>.from(row['data'] as Map), row['id'] as String));
+    } catch (error) { return Left(ServerFailure(error.toString())); }
   }
 
   @override
   Future<Either<Failure, void>> updateMember(Member member) async {
     try {
-      final model = MemberModel.fromEntity(member);
-      final oldSnap = await _collection.doc(member.id).get();
-      final oldPhone = oldSnap.data()?['phone'] as String?;
-
-      await _collection.doc(member.id).update(model.toMap());
-
-      // لو الرقم اتغيّر، امسح الفهرس القديم واكتب الجديد
-      if (oldPhone != null && oldPhone != member.phone && oldPhone.isNotEmpty) {
-        await _phoneIndex.doc(oldPhone).delete();
-      }
-      if (member.phone.isNotEmpty) {
-        await _phoneIndex.doc(member.phone).set({
-          'memberId': member.id,
-          'name': member.name,
-        });
-      }
+      await _store.command('member-save', {'gymId': gymId, 'memberId': member.id, 'data': MemberModel.fromEntity(member).toMap()});
       return const Right(null);
-    } catch (_) {
-      return const Left(ServerFailure());
-    }
+    } catch (error) { return Left(ServerFailure(error.toString())); }
   }
 
   @override
   Future<Either<Failure, void>> deleteMember(String id) async {
     try {
-      final snap = await _collection.doc(id).get();
-      final phone = snap.data()?['phone'] as String?;
-      await _collection.doc(id).delete();
-      if (phone != null && phone.isNotEmpty) {
-        await _phoneIndex.doc(phone).delete();
-      }
+      await _store.command('member-delete', {'gymId': gymId, 'memberId': id});
       return const Right(null);
-    } catch (_) {
-      return const Left(ServerFailure());
-    }
+    } catch (error) { return Left(ServerFailure(error.toString())); }
   }
 
   @override
   Future<Either<Failure, List<Member>>> searchMembers(String query) async {
     try {
-      // بحث بسيط بالاسم (Firestore مش بيدعم full-text search أصلاً)
-      // للبحث المتقدم لاحقاً ممكن تستخدم Algolia أو Typesense
+      // بحث بالاسم من خلال API
+      // الفلاتر تتطبق على السيرفر داخل بيانات الجيم الحالي
       final snap = await _collection
           .orderBy('name')
           .startAt([query])
@@ -134,3 +101,4 @@ class MemberRepositoryImpl implements MemberRepository {
     }
   }
 }
+

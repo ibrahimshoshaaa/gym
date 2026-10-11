@@ -10,8 +10,8 @@ final memberRepositoryProvider = Provider<MemberRepository>((ref) {
   return MemberRepositoryImpl(gymId: gymId);
 });
 
-/// ستريم كل الأعضاء - بيتحدث لحظياً مع أي تغيير في Firestore
-/// ⚠️ للأدمن والموظف بس (Firestore rules بتسمح لهم يقرأوا الجدول كامل)
+/// ستريم كل الأعضاء - بيتحدث لحظياً مع أي تغيير في السيرفر
+/// ⚠️ للأدمن والموظف بس (صلاحيات السيرفر بتسمح لهم يقرأوا الجدول كامل)
 final membersStreamProvider = StreamProvider<List<Member>>((ref) {
   return ref.watch(memberRepositoryProvider).watchMembers();
 });
@@ -96,3 +96,4 @@ class MemberStats {
     required this.expired,
   });
 }
+

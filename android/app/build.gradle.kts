@@ -1,8 +1,5 @@
 plugins {
     id("com.android.application")
-    // START: FlutterFire Configuration
-    id("com.google.gms.google-services")
-    // END: FlutterFire Configuration
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -17,22 +14,20 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // مفتاح توقيع ثابت (debug.keystore) محفوظ جوه المشروع نفسه - عشان كل
-    // build يطلع من GitHub Actions يتوقع بنفس المفتاح بالظبط. قبل كده كل
-    // build كان بيستخدم مفتاح debug افتراضي بيتولد جديد على كل CI runner
-    // (لأنه مؤقت ومش موجود على القرص أصلاً)، فكل نسخة APK كانت بتوقيعها
-    // مختلف عن اللي قبلها - يعني أندرويد كان بيشوفها "برنامج مختلف"، فلو
-    // ثبتّها فوق نسخة قديمة كان بيمسح كل بيانات التطبيق (بما فيها جلسة
-    // تسجيل الدخول المحفوظة)، وده كان سبب "بيطلب دخول من جديد كل مرة".
-    // دلوقتي بما إن المفتاح ثابت، أي تحديث APK هيتعامل معاه أندرويد
-    // كـ"ترقية" عادية ويحافظ على بيانات التطبيق وجلسة الدخول.
+    val releaseKey = file("release.jks")
+    val hasReleaseKey = releaseKey.exists() && System.getenv("ANDROID_STORE_PASSWORD") != null
     signingConfigs {
-        create("debugFixed") {
-            storeFile = file("debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+        if (hasReleaseKey) {
+            create("privateRelease") {
+                storeFile = releaseKey
+                storePassword = System.getenv("ANDROID_STORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
         }
+    }
+    if (gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }) {
+        require(hasReleaseKey) { "Release builds require a private release.jks and ANDROID signing environment variables" }
     }
 
     defaultConfig {
@@ -51,7 +46,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debugFixed")
+            if (hasReleaseKey) signingConfig = signingConfigs.getByName("privateRelease")
 
             // ✅ تصغير الكود وحذف اللي مش محتاجه
             isMinifyEnabled = true
@@ -73,3 +68,4 @@ kotlin {
 flutter {
     source = "../.."
 }
+

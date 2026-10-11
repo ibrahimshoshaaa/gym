@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import '../../domain/entities/attendance_record.dart';
 
 class AttendanceModel extends AttendanceRecord {
@@ -16,8 +16,8 @@ class AttendanceModel extends AttendanceRecord {
       id: id,
       memberId: map['memberId'] as String,
       memberName: map['memberName'] as String,
-      checkInTime: (map['checkInTime'] as Timestamp).toDate(),
-      checkOutTime: (map['checkOutTime'] as Timestamp?)?.toDate(),
+      checkInTime: (map['checkInTime'] as DbTimestamp).toDate(),
+      checkOutTime: (map['checkOutTime'] as DbTimestamp?)?.toDate(),
       biometricVerified: map['biometricVerified'] as bool? ?? false,
     );
   }
@@ -26,9 +26,10 @@ class AttendanceModel extends AttendanceRecord {
     return {
       'memberId': memberId,
       'memberName': memberName,
-      'checkInTime': Timestamp.fromDate(checkInTime),
-      'checkOutTime': checkOutTime != null ? Timestamp.fromDate(checkOutTime!) : null,
+      'checkInTime': DbTimestamp.fromDate(checkInTime),
+      'checkOutTime': checkOutTime != null ? DbTimestamp.fromDate(checkOutTime!) : null,
       'biometricVerified': biometricVerified,
     };
   }
 }
+

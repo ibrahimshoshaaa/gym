@@ -1,4 +1,4 @@
-/// الـ Exceptions بتترمي جوا الـ Data Layer (Firebase, API..)
+/// الـ Exceptions بتترمي جوا الـ Data Layer (API)
 /// وبتتحول لاحقاً لـ Failure جوا الـ Repository Implementation
 class ServerException implements Exception {
   final String message;
@@ -19,3 +19,4 @@ class PermissionException implements Exception {
   final String message;
   PermissionException([this.message = 'ليس لديك صلاحية']);
 }
+

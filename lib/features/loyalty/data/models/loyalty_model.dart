@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import '../../domain/entities/loyalty_point.dart';
 
 class PointTransactionModel extends PointTransaction {
@@ -14,14 +14,14 @@ class PointTransactionModel extends PointTransaction {
       id: id,
       points: map['points'] as int,
       reason: map['reason'] as String? ?? '',
-      date: (map['date'] as Timestamp).toDate(),
+      date: (map['date'] as DbTimestamp).toDate(),
     );
   }
 
   Map<String, dynamic> toMap() => {
         'points': points,
         'reason': reason,
-        'date': Timestamp.fromDate(date),
+        'date': DbTimestamp.fromDate(date),
       };
 }
 
@@ -93,3 +93,4 @@ class RewardModel extends Reward {
         if (freeMonths != null) 'freeMonths': freeMonths,
       };
 }
+

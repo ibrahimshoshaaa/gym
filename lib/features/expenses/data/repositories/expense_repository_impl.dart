@@ -1,20 +1,20 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import 'package:dartz/dartz.dart';
-import '../../../../core/constants/firestore_paths.dart';
+import '../../../../core/constants/data_paths.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/expense.dart';
 import '../../domain/repositories/expense_repository.dart';
 import '../models/expense_model.dart';
 
 class ExpenseRepositoryImpl implements ExpenseRepository {
-  final FirebaseFirestore _firestore;
+  final DocumentStore _store;
   final String gymId;
 
-  ExpenseRepositoryImpl({required this.gymId, FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  ExpenseRepositoryImpl({required this.gymId, DocumentStore? store})
+      : _store = store ?? DocumentStore.instance;
 
   CollectionReference<Map<String, dynamic>> get _collection =>
-      _firestore.collection(FirestorePaths.expenses(gymId));
+      _store.collection(DataPaths.expenses(gymId));
 
   @override
   Stream<List<Expense>> watchExpenses() {
@@ -53,3 +53,4 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     }
   }
 }
+

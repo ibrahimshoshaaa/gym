@@ -165,23 +165,12 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
       occupation: _occupationOrNull,
     ));
 
-    final withAccount = await addResult.fold((f) async => addResult, (newMember) async {
-      // بعد ما العضو اتسجل، ننشئله حساب دخول (رقم موبايله + باسورد
-      // ابتدائي = نفس الرقم) - لو فشل الإنشاء لأي سبب، العضو لسه
-      // متسجل عادي والأدمن يقدر يفعّل الحساب بعدين من صفحة بياناته
-      await ref.read(authRepositoryProvider).createMemberAccount(
-            gymId: gymId,
-            memberId: newMember.id,
-            memberName: newMember.name,
-            phone: newMember.phone,
-          );
-      return addResult;
-    });
+    final withAccount = addResult;
 
     return withAccount.fold((f) => withAccount, (newMember) async {
       if (_pickedPhoto == null) return withAccount;
       // رفعنا الصورة بعد ما عرفنا الـ id بتاع العضو
-      // لو فشل الرفع (مثلاً Storage محتاج خطة Blaze) منوقفش العملية -
+      // لو فشل رفع الصورة، منوقفش إضافة العضو -
       // العضو بيتحفظ عادي من غير صورة، ونبلغ المستخدم بس
       try {
         final url = await ref
@@ -381,3 +370,4 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
     );
   }
 }
+

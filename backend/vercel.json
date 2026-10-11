@@ -1,0 +1,7 @@
+{
+  "regions": ["fra1"],
+  "functions": {
+    "api/index.js": { "maxDuration": 60, "includeFiles": "src/schema.sql" }
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index?__route=$1" }]
+}

@@ -1,35 +1,34 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:async';
+import '../network/api_client.dart';
 
-/// خدمة التنبيهات - بتسجل الـ FCM token بتاع كل مستخدم في Firestore
-/// عشان الـ Cloud Function (شوفه في functions/index.js) يقدر يبعتله تنبيه
+/// In-app API reminders; no push provider or device token.
 class NotificationService {
-  final FirebaseMessaging _messaging;
-  final FirebaseFirestore _firestore;
-
-  NotificationService({FirebaseMessaging? messaging, FirebaseFirestore? firestore})
-      : _messaging = messaging ?? FirebaseMessaging.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance;
-
-  /// لازم تتنادى مرة واحدة بعد تسجيل الدخول بنجاح
+  final ApiClient api;
+  final _events = StreamController<String>.broadcast();
+  Timer? _timer;
+  String? _uid;
+  final Set<String> _shown = {};
+  bool _busy = false;
+  NotificationService({ApiClient? api}) : api = api ?? ApiClient.instance;
+  Stream<String> get messages => _events.stream;
   Future<void> initialize(String uid) async {
-    // طلب إذن الإشعارات (لازم على iOS، وAndroid 13+)
-    await _messaging.requestPermission(alert: true, badge: true, sound: true);
-
-    final token = await _messaging.getToken();
-    if (token != null) {
-      await _saveToken(uid, token);
-    }
-
-    // لو الـ token اتغيّر (مثلاً بعد إعادة تثبيت التطبيق) نحدثه تلقائي
-    _messaging.onTokenRefresh.listen((newToken) => _saveToken(uid, newToken));
+    if (_uid == uid) return;
+    _timer?.cancel(); _uid = uid; _shown.clear();
+    await _check();
+    _timer = Timer.periodic(const Duration(minutes: 5), (_) => _check());
   }
-
-  Future<void> _saveToken(String uid, String token) async {
-    await _firestore.collection('users').doc(uid).update({'fcmToken': token});
+  Future<void> _check() async {
+    if (_busy || _uid == null || !api.isForeground) return;
+    final uid = _uid; _busy = true;
+    try {
+      final notifications = await api.request('GET', '/api/notifications') as List<dynamic>;
+      if (_uid != uid) return;
+      for (final item in notifications) {
+        if (_shown.add(item['id'] as String)) _events.add('${item['title']}\n${item['body']}');
+      }
+    } catch (_) { /* Failed reminders must not prevent sign-in. */ }
+    finally { _busy = false; }
   }
-
-  Future<void> clearToken(String uid) async {
-    await _firestore.collection('users').doc(uid).update({'fcmToken': FieldValue.delete()});
-  }
+  Future<void> stop() async { _uid = null; _timer?.cancel(); _shown.clear(); }
+  void dispose() { _timer?.cancel(); _events.close(); }
 }

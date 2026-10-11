@@ -4,8 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/validators.dart';
 import '../providers/auth_provider.dart';
 
-/// شاشة إجبارية تظهر أول ما العضو يدخل بحساب جديد (الباسورد لسه رقم
-/// موبايله) - لازم يغيّر الباسورد قبل ما يقدر يوصل لأي حاجة تانية في
+/// شاشة إجبارية بعد الدخول بكلمة مرور مؤقتة - لازم يغيّر الباسورد قبل ما يقدر يوصل لأي حاجة تانية في
 /// التطبيق. الـ Router هو اللي بيوجّه هنا تلقائي (مفيش زرار رجوع)
 class ChangePasswordScreen extends ConsumerStatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -133,3 +132,4 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     );
   }
 }
+

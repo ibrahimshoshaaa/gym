@@ -1,0 +1,21 @@
+{
+  "name": "gym-api",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js",
+    "migrate": "node src/migrate.js"
+  },
+  "dependencies": {
+    "@vercel/functions": "^3.9.11",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8"
+  }
+}

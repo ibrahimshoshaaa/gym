@@ -1,20 +1,20 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import 'package:dartz/dartz.dart';
-import '../../../../core/constants/firestore_paths.dart';
+import '../../../../core/constants/data_paths.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/debt.dart';
 import '../../domain/repositories/debt_repository.dart';
 import '../models/debt_model.dart';
 
 class DebtRepositoryImpl implements DebtRepository {
-  final FirebaseFirestore _firestore;
+  final DocumentStore _store;
   final String gymId;
 
-  DebtRepositoryImpl({required this.gymId, FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  DebtRepositoryImpl({required this.gymId, DocumentStore? store})
+      : _store = store ?? DocumentStore.instance;
 
   CollectionReference<Map<String, dynamic>> get _debtsCollection =>
-      _firestore.collection(FirestorePaths.debts(gymId));
+      _store.collection(DataPaths.debts(gymId));
 
   @override
   Stream<List<Debt>> watchOpenDebts() {
@@ -35,42 +35,13 @@ class DebtRepositoryImpl implements DebtRepository {
   }
 
   @override
-  Future<Either<Failure, void>> payDebt({
-    required String debtId,
-    required double amount,
-    required String recordedByUid,
-  }) async {
+  Future<Either<Failure, void>> payDebt({required String debtId, required double amount, required String recordedByUid}) async {
     try {
-      final debtRef = _debtsCollection.doc(debtId);
-
-      await _firestore.runTransaction((transaction) async {
-        final snap = await transaction.get(debtRef);
-        if (!snap.exists) {
-          throw Exception('debt-not-found');
-        }
-        final debt = DebtModel.fromMap(snap.data()!, snap.id);
-        final newPaid = (debt.paidAmount + amount).clamp(0, debt.totalAmount);
-
-        transaction.update(debtRef, {
-          'paidAmount': newPaid,
-          'isPaid': newPaid >= debt.totalAmount,
-        });
-
-        final paymentRef = _firestore.collection(FirestorePaths.payments(gymId)).doc();
-        transaction.set(paymentRef, {
-          'memberId': debt.memberId,
-          'memberName': debt.memberName,
-          'amount': amount,
-          'date': Timestamp.fromDate(DateTime.now()),
-          'method': 'cash',
-          'recordedBy': recordedByUid,
-          'relatedSubscriptionId': debt.relatedSubscriptionId,
-        });
-      });
-
+      await _store.command('debt-pay', {'gymId': gymId, 'debtId': debtId, 'amount': amount});
       return const Right(null);
-    } catch (_) {
-      return const Left(ServerFailure());
-    }
+    } catch (error) { return Left(ServerFailure(error.toString())); }
   }
+
+
 }
+

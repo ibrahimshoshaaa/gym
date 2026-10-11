@@ -2,9 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
-/// خدمة رفع الصور - بتستخدم Cloudinary (Unsigned Upload) بدل Firebase Storage
-/// عشان تشتغل على خطة Firebase المجانية (Spark) من غير الحاجة لترقية Blaze.
-///
+/// رفع صور العضوية على Cloudinary.
 /// الإعداد: من لوحة تحكم Cloudinary -> Settings -> Upload -> Upload presets
 /// أنشئ preset بوضع "Unsigned" وحط اسمه واسم الـ Cloud بتاعك تحت.
 class StorageService {
@@ -44,3 +42,4 @@ class StorageService {
     // no-op بالتصميم - شوف الملحوظة فوق
   }
 }
+

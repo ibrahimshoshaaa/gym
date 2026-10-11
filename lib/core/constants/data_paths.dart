@@ -1,8 +1,8 @@
-/// مسارات الـ Firestore الخاصة بكل الفيتشرز
+/// مسارات الـ السيرفر الخاصة بكل الفيتشرز
 /// النظام مبني multi-tenant (كل جيم ليه gymId خاص بيه)
 /// عشان نقدر نستخدم نفس النظام لأكتر من جيم مستقبلاً لو حبينا
-class FirestorePaths {
-  FirestorePaths._();
+class DataPaths {
+  DataPaths._();
 
   static const String gyms = 'gyms';
 
@@ -30,3 +30,4 @@ class FirestorePaths {
   static String classDoc(String gymId, String classId) =>
       '${classes(gymId)}/$classId';
 }
+

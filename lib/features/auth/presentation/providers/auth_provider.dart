@@ -8,7 +8,9 @@ import '../../domain/repositories/auth_repository.dart';
 
 /// الـ Repository provider - نقطة واحدة للتحكم في implementation
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepositoryImpl();
+  final repository = AuthRepositoryImpl();
+  ref.onDispose(repository.dispose);
+  return repository;
 });
 
 /// Stream المستخدم الحالي - بيتحدث تلقائي مع كل تغيير في حالة الدخول
@@ -124,7 +126,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     try {
       final currentUser = _ref.read(currentUserProvider);
       if (currentUser != null) {
-        await _ref.read(notificationServiceProvider).clearToken(currentUser.uid);
+        await _ref.read(notificationServiceProvider).stop();
       }
     } catch (_) {
       // تجاهل - مش سبب كافي إننا نمنع تسجيل الخروج الفعلي
@@ -137,3 +139,4 @@ final authControllerProvider =
     StateNotifierProvider<AuthController, AsyncValue<void>>((ref) {
   return AuthController(ref.watch(authRepositoryProvider), ref);
 });
+

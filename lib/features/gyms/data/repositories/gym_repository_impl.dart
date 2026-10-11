@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import 'package:dartz/dartz.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/errors/exceptions.dart';
@@ -9,17 +9,17 @@ import '../../domain/repositories/gym_repository.dart';
 import '../models/gym_model.dart';
 
 class GymRepositoryImpl implements GymRepository {
-  final FirebaseFirestore _firestore;
+  final DocumentStore _store;
   final Uuid _uuid;
 
   GymRepositoryImpl({
-    FirebaseFirestore? firestore,
+    DocumentStore? store,
     Uuid? uuid,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+  })  : _store = store ?? DocumentStore.instance,
         _uuid = uuid ?? const Uuid();
 
   CollectionReference<Map<String, dynamic>> get _gymsCollection =>
-      _firestore.collection('gyms');
+      _store.collection('gyms');
 
   @override
   Stream<List<Gym>> watchAllGyms() {
@@ -123,7 +123,7 @@ class GymRepositoryImpl implements GymRepository {
   }) async {
     try {
       final updateData = <String, dynamic>{
-        'licenseEnd': Timestamp.fromDate(newLicenseEnd),
+        'licenseEnd': DbTimestamp.fromDate(newLicenseEnd),
       };
       if (newPlan != null) {
         updateData['plan'] = newPlan.name;
@@ -167,3 +167,4 @@ class GymRepositoryImpl implements GymRepository {
     }
   }
 }
+

@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gym_manager/core/network/document_store.dart';
 import '../../domain/entities/plan.dart';
 
 class PlanModel extends Plan {
@@ -55,10 +55,10 @@ class SubscriptionModel extends Subscription {
       id: id,
       memberId: map['memberId'] as String,
       planId: map['planId'] as String,
-      startDate: (map['startDate'] as Timestamp).toDate(),
-      endDate: (map['endDate'] as Timestamp).toDate(),
+      startDate: (map['startDate'] as DbTimestamp).toDate(),
+      endDate: (map['endDate'] as DbTimestamp).toDate(),
       paidAmount: (map['paidAmount'] as num).toDouble(),
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      createdAt: (map['createdAt'] as DbTimestamp).toDate(),
       visitsAllowed: map['visitsAllowed'] as int? ?? 0,
       visitsUsed: map['visitsUsed'] as int? ?? 0,
       recordedByUid: map['recordedByUid'] as String?,
@@ -69,13 +69,14 @@ class SubscriptionModel extends Subscription {
     return {
       'memberId': memberId,
       'planId': planId,
-      'startDate': Timestamp.fromDate(startDate),
-      'endDate': Timestamp.fromDate(endDate),
+      'startDate': DbTimestamp.fromDate(startDate),
+      'endDate': DbTimestamp.fromDate(endDate),
       'paidAmount': paidAmount,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'createdAt': DbTimestamp.fromDate(createdAt),
       'visitsAllowed': visitsAllowed,
       'visitsUsed': visitsUsed,
       'recordedByUid': recordedByUid,
     };
   }
 }
+

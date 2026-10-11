@@ -28,14 +28,14 @@ class Validators {
 
   static String? password(String? value) {
     if (value == null || value.isEmpty) return 'كلمة المرور مطلوبة';
-    if (value.length < 6) return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+    if (value.length < 8) return 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
     return null;
   }
 
   static String? positiveNumber(String? value, [String fieldName = 'القيمة']) {
     if (value == null || value.trim().isEmpty) return '$fieldName مطلوبة';
     final n = num.tryParse(value.trim());
-    if (n == null || n <= 0) return '$fieldName يجب أن تكون رقم أكبر من صفر';
+    if (n == null || !n.isFinite || n <= 0) return '$fieldName يجب أن تكون رقم أكبر من صفر';
     return null;
   }
 
@@ -50,3 +50,4 @@ class Validators {
     return null;
   }
 }
+
