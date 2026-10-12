@@ -1,7 +1,7 @@
 import {createCipheriv,createDecipheriv,randomBytes} from 'node:crypto';
 import {v2 as cloudinary} from 'cloudinary';
 import {snapshot} from '../backup.js';
-import {requireValue,stamp,id} from '../security.js';
+import {ApiError,requireValue,stamp,id} from '../security.js';
 export function encryptBackup(data,key){
  const material=Buffer.from(key,'base64');requireValue(material.length===32,'مفتاح النسخ الاحتياطي غير صحيح',503);
  const nonce=randomBytes(12),cipher=createCipheriv('aes-256-gcm',material,nonce);
@@ -37,7 +37,15 @@ export async function createCloudBackup(service,{cloud:injectedCloud,key=process
    try{const removed=await cloud.uploader.destroy(old.data.publicId,{resource_type:'raw',type:'authenticated',invalidate:true});if(['ok','not found'].includes(removed.result))await service.store.remove(old.path);}catch{/* Retention is retried at the next backup; a valid new backup stays ready. */}
   }
   return {id:day,...metadata};
- }catch(error){await service.store.put(path,previous?.state==='ready'?{...previous,lastAttemptFailedAt:stamp()}:{state:'failed',date:stamp()});throw error;}
+ }catch(error){
+  let reason=String(error.message??error.code??error.name??'Unknown storage error');
+  for(const secret of [key,process.env.CLOUDINARY_API_KEY,process.env.CLOUDINARY_API_SECRET,process.env.CRON_SECRET])if(secret)reason=reason.replaceAll(secret,'[redacted]');
+  reason=reason.replace(/signature[=:][^&\s]+/gi,'signature=[redacted]').slice(0,300);
+  await service.store.put(path,previous?.state==='ready'?{...previous,lastAttemptFailedAt:stamp(),lastError:reason}:{state:'failed',date:stamp(),lastError:reason});
+  if(error instanceof ApiError)throw error;
+  throw new ApiError(502,'فشل تخزين النسخة الاحتياطية: '+reason);
+ }
+
 }
 export async function listBackups(service,user){requireValue(user.role==='superAdmin','غير مسموح',403);return (await service.store.select('system/backups',[],{field:'date',descending:true},20)).map(r=>({id:r.path.split('/').at(-1),...r.data}));}
 export async function backupDownload(service,user,body){
