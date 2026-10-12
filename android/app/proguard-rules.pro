@@ -9,9 +9,6 @@
 -keep class com.google.android.gms.** { *; }
 -dontwarn com.google.android.gms.**
 
-# Firestore
--keep class com.google.firestore.** { *; }
--dontwarn com.google.firestore.**
 
 
 # local_auth (Biometric)

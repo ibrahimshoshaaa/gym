@@ -57,6 +57,7 @@ export function createHandler(service, options = {}) {
           requireValue(!user.mustChangePassword, 'غيّر الباسورد الأول', 403);
           if (req.method === 'POST' && path === '/api/auth/gym-owner') output = await service.signup(body, user);
           else if (req.method === 'POST' && path === '/api/auth/staff') output = await service.createStaff(user, body);
+          else if(req.method==='POST' && path==='/api/classes/roster')output=await service.classRoster(user,body);
           else if(req.method==='GET' && path==='/api/reminders')output=await reminders(service,user);
           else if(req.method==='GET' && path==='/api/backups')output=await listBackups(service,user);
           else if(req.method==='POST' && path==='/api/backups/create'){requireValue(user.role==='superAdmin','غير مسموح',403);output=await createCloudBackup(service);}

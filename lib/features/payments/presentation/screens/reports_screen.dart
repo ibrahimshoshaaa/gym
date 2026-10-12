@@ -11,9 +11,10 @@ import '../../../../core/widgets/gym_ui.dart';
 import '../../../expenses/presentation/providers/expenses_provider.dart';
 import '../providers/payments_provider.dart';
 
-final financialSummaryProvider=FutureProvider.family<Map<String,dynamic>,String>((ref,range)async{
+final financialSummaryProvider=FutureProvider.autoDispose.family<Map<String,dynamic>,String>((ref,range)async{
   final params=jsonDecode(range) as Map<String,dynamic>;
-  return await ref.watch(operationsApiProvider).request('POST','/api/reports/summary',{'gymId':ref.watch(currentUserProvider)?.gymId,...params}) as Map<String,dynamic>;
+  final api=ref.watch(operationsApiProvider);final changes=api.changes.stream.listen((_)=>ref.invalidateSelf());ref.onDispose(changes.cancel);
+  return await api.request('POST','/api/reports/summary',{'gymId':ref.watch(currentUserProvider)?.gymId,...params}) as Map<String,dynamic>;
 });
 
 class ReportsScreen extends ConsumerStatefulWidget {
@@ -31,7 +32,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
   Future<void> _export(List<List<String>> rows) async {
     try {
-      String cell(String value) { final safe=RegExp(r'^[=+@\-]').hasMatch(value) ? "'$value" : value; return '"${safe.replaceAll('"','""')}"'; }
+      String cell(String value) { final safe=RegExp(r'^[=+@\-]').hasMatch(value) && !RegExp(r'^-?\d+(?:\.\d+)?$').hasMatch(value) ? "'$value" : value; return '"${safe.replaceAll('"','""')}"'; }
       final folder=await getTemporaryDirectory();
       final file=File('${folder.path}/Golden-Gym-Report-${DateTime.now().millisecondsSinceEpoch}.csv');
       await file.writeAsString('\uFEFF${rows.map((r)=>r.map(cell).join(',')).join('\r\n')}');
@@ -60,8 +61,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         final now = DateTime.now();
         final incoming = allPayments.where((p) => _includes(p.date, now)).toList();
         final outgoing = allExpenses.where((e) => _includes(e.date, now)).toList();
-        final revenue = incoming.fold<double>(0, (sum, p) => sum + p.amount);
-        final cost = outgoing.fold<double>(0, (sum, e) => sum + e.amount);
+        final data=summary.valueOrNull;
+        final revenue = (data?['collected'] as num?)?.toDouble()??incoming.fold<double>(0, (sum, p) => sum + p.amount);
+        final cost = (data?['spent'] as num?)?.toDouble()??outgoing.fold<double>(0, (sum, e) => sum + e.amount);
         final net = revenue - cost;
         final monthly = <DateTime, double>{for (var i = 5; i >= 0; i--) DateTime(now.year, now.month - i): 0};
         for (final payment in allPayments) {
@@ -79,11 +81,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             GymMetric(label: 'الإيرادات المحصّلة', value: '${gymAmount(revenue)} ج.م', icon: Icons.payments_outlined, color: AppColors.success),
             GymMetric(label: 'المصروفات', value: '${gymAmount(cost)} ج.م', icon: Icons.receipt_long_outlined, color: AppColors.danger),
             GymMetric(label: 'صافي التحصيل', value: '${gymAmount(net)} ج.م', icon: Icons.account_balance_wallet_outlined, color: net >= 0 ? AppColors.success : AppColors.danger),
-            GymMetric(label: 'عمليات التحصيل', value: '${incoming.length}', icon: Icons.swap_horiz_rounded, hint: '${outgoing.length} عملية صرف'),
+            GymMetric(label: 'عمليات التحصيل', value: '${data?['collectionsCount']??incoming.length}', icon: Icons.swap_horiz_rounded, hint: '${outgoing.length} عملية صرف'),
           ]),
-          OutlinedButton.icon(onPressed:()=>_export([['نوع العملية','التاريخ','البيان','المبلغ'],for(final p in incoming)['تحصيل',p.date.toIso8601String(),p.memberName,gymAmount(p.amount)],for(final e in outgoing)['مصروف',e.date.toIso8601String(),e.category.label,gymAmount(e.amount)]]),icon:const Icon(Icons.download_outlined),label:const Text('تصدير Excel (CSV)')),
-          const GymSection(title: 'إيرادات آخر ٦ شهور', subtitle: 'القيم محسوبة من المدفوعات المسجّلة.'),
-          Card(margin: EdgeInsets.zero, child: Padding(padding: const EdgeInsets.all(20), child: Column(children: [
+          OutlinedButton.icon(onPressed:()=>_export([['الملخص','القيمة'],['صافي التحصيل',gymAmount(net)],['الإيرادات المحصلة',gymAmount(revenue)],['المصروفات',gymAmount(cost)],['قيمة الاشتراكات','${data?['subscriptionValue']??0}'],['المديونيات الحالية','${data?['outstanding']??0}'],[],['نوع العملية','التاريخ','البيان','المبلغ'],for(final p in incoming)['تحصيل',p.date.toIso8601String(),p.memberName,gymAmount(p.amount)],for(final e in outgoing)['مصروف',e.date.toIso8601String(),e.category.label,gymAmount(e.amount)]]),icon:const Icon(Icons.download_outlined),label:const Text('تصدير Excel (CSV)')),
+          if(ref.watch(currentUserProvider)?.can('collections')==true) const GymSection(title: 'إيرادات آخر ٦ شهور', subtitle: 'القيم محسوبة من المدفوعات المسجّلة.'),
+          if(ref.watch(currentUserProvider)?.can('collections')==true) Card(margin: EdgeInsets.zero, child: Padding(padding: const EdgeInsets.all(20), child: Column(children: [
             for (final entry in monthly.entries) Padding(padding: const EdgeInsets.only(bottom: 16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Wrap(spacing: 12, runSpacing: 4, children: [Text('${entry.key.month}/${entry.key.year}'), Text('${gymAmount(entry.value)} ج.م', style: Theme.of(context).textTheme.titleSmall)]),
               const SizedBox(height: 8), LinearProgressIndicator(value: entry.value.abs() / maximum, color:entry.value<0?AppColors.danger:null, minHeight: 8, borderRadius: BorderRadius.circular(8)),

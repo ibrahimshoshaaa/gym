@@ -385,8 +385,14 @@ test('API account, tenant, subscription and money flows', async t => {
     const reset=await call('/api/auth/staff-reset',{gymId:gymA,email:'recover-staff@example.com'},adminA);assert.equal(reset.status,200);
     const login=await call('/api/auth/login',{email:'recover-staff@example.com',password:reset.data.temporaryPassword});assert.equal(login.data.user.data.mustChangePassword,true);
     const uid=staff.data.id;
+    await call('/api/auth/password',{password:'Recovered-staff2'},login.data.token);
+    await call('/api/commands/staff-settings',{gymId:gymA,uid,permissions:['classes','reports'],isActive:true},adminA);
+    const clazz=(await store.list(`gyms/${gymA}/classes`)).find(r=>r.data.bookedMemberIds?.includes(memberA));
+    const roster=await call('/api/classes/roster',{gymId:gymA,classId:clazz.path.split('/').at(-1)},login.data.token);assert.equal(roster.status,200);assert.ok(roster.data.data.rosterNames[memberA]);
+    assert.equal((await call('/api/data/read',{path:`gyms/${gymA}/members/${memberA}`},login.data.token)).status,403);
+    assert.equal((await call('/api/reports/summary',{gymId:gymA},login.data.token)).status,200);
     assert.equal((await call('/api/commands/staff-settings',{gymId:gymA,uid,permissions:['invalid'],isActive:false},adminA)).status,400);
-    assert.equal((await store.get(`users/${uid}`)).data.isActive,undefined);
+    assert.equal((await store.get(`users/${uid}`)).data.isActive,true);
     const profile=await service.authenticate(memberToken),row=await store.get(`gyms/${gymA}/members/${profile.memberId}`);
     await store.put(row.path,{...row.data,status:'active',subscriptionEnd:stamp(new Date(Date.now()+2*86400000)),nextSubscription:null});
     const scheduled=await call('/api/reminders',null,memberToken,'GET');assert.equal(scheduled.status,200);assert.ok(scheduled.data.some(r=>r.kind==='expiry-now'));

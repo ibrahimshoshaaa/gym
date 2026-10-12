@@ -516,6 +516,13 @@ export class GymService {
     });
     return { saved: true };
   }
+  async classRoster(user,body){
+    const gymId=id(body.gymId);await this.operational(this.store,user,gymId);this.requirePermission(user,'classes');
+    const row=await this.store.get(`gyms/${gymId}/classes/${id(body.classId)}`);requireValue(row,'الحصة غير موجودة',404);
+    const paths=(row.data.bookedMemberIds??[]).map(memberId=>`gyms/${gymId}/members/${id(memberId)}`);
+    const names=paths.length?(await this.store.connection.query("SELECT path,data->>'name' AS name FROM documents WHERE collection_path=$1 AND path=ANY($2::text[])",[`gyms/${gymId}/members`,paths])).rows:[];
+    return {...resultOf(row),data:{...row.data,rosterNames:Object.fromEntries(names.map(m=>[uidOf(m),m.name]))}};
+  }
   async notifications(user) {
     if (!user.gymId) return [];
     const end = stamp(new Date(Date.now() + 3 * 86400000));
