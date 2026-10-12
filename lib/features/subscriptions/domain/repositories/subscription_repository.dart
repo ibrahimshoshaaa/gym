@@ -17,7 +17,7 @@ abstract class SubscriptionRepository {
     required Plan plan,
     required double paidAmount,
     required String recordedByUid,
-    DateTime? startDate, bool startAfterCurrent = false,
+    DateTime? startDate, bool startAfterCurrent = false, String method = 'cash',
   });
 
   Stream<List<Subscription>> watchMemberSubscriptions(String memberId);

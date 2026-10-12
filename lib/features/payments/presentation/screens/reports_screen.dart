@@ -68,7 +68,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           final month = DateTime(payment.date.year, payment.date.month);
           if (monthly.containsKey(month)) monthly[month] = monthly[month]! + payment.amount;
         }
-        final maximum = monthly.values.fold<double>(1, (max, amount) => amount > max ? amount : max);
+        final maximum = monthly.values.fold<double>(1, (max, amount) => amount.abs() > max ? amount.abs() : max);
         return ListView(padding: const EdgeInsets.all(20), children: [
           const GymHero(eyebrow: 'الصورة المالية', title: 'كل حركة ليها حساب', subtitle: 'قارن التحصيل الفعلي بالمصروفات. صافي التحصيل لا يساوي الربح المحاسبي.', icon: Icons.bar_chart_rounded),
           const SizedBox(height: 16),
@@ -86,7 +86,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           Card(margin: EdgeInsets.zero, child: Padding(padding: const EdgeInsets.all(20), child: Column(children: [
             for (final entry in monthly.entries) Padding(padding: const EdgeInsets.only(bottom: 16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Wrap(spacing: 12, runSpacing: 4, children: [Text('${entry.key.month}/${entry.key.year}'), Text('${gymAmount(entry.value)} ج.م', style: Theme.of(context).textTheme.titleSmall)]),
-              const SizedBox(height: 8), LinearProgressIndicator(value: entry.value / maximum, minHeight: 8, borderRadius: BorderRadius.circular(8)),
+              const SizedBox(height: 8), LinearProgressIndicator(value: entry.value.abs() / maximum, color:entry.value<0?AppColors.danger:null, minHeight: 8, borderRadius: BorderRadius.circular(8)),
             ])),
           ]))),
         ]);

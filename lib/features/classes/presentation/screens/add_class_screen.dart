@@ -20,6 +20,7 @@ class _AddClassScreenState extends ConsumerState<AddClassScreen> {
   final _nameController = TextEditingController();
   final _durationController = TextEditingController(text: '60');
   final _capacityController = TextEditingController(text: '15');
+  final _repeatController=TextEditingController(text:'1');
   DateTime? _selectedDateTime;
   Trainer? _selectedTrainer;
   bool _isLoading = false;
@@ -28,7 +29,7 @@ class _AddClassScreenState extends ConsumerState<AddClassScreen> {
   void dispose() {
     _nameController.dispose();
     _durationController.dispose();
-    _capacityController.dispose();
+    _capacityController.dispose();_repeatController.dispose();
     super.dispose();
   }
 
@@ -73,7 +74,7 @@ class _AddClassScreenState extends ConsumerState<AddClassScreen> {
       trainerName: _selectedTrainer!.name,
       dateTime: _selectedDateTime!,
       durationMinutes: int.parse(_durationController.text.trim()),
-      capacity: int.parse(_capacityController.text.trim()),
+      capacity: int.parse(_capacityController.text.trim()),repeatCount:int.parse(_repeatController.text.trim()),
     );
 
     final result = await ref.read(classRepositoryProvider).addClass(gymClass);
@@ -102,6 +103,8 @@ class _AddClassScreenState extends ConsumerState<AddClassScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              GymTextField(controller:_repeatController,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'تكرار أسبوعي: عدد الحصص (١–١٢)'),validator:(v){final n=int.tryParse(v??'');return n==null||n<1||n>12?'اختار عدد بين ١ و١٢':null;}),
+              const SizedBox(height:16),
               const GymSection(title: 'تفاصيل الحصة', subtitle: 'حدد المدرب والموعد وعدد الأماكن المتاحة للحجز.'),
 
               GymTextField(

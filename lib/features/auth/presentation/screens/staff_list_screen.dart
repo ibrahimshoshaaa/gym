@@ -1,5 +1,6 @@
 import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
+import '../../../operations/presentation/lifecycle_screens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../expenses/presentation/widgets/pay_salary_dialog.dart';
@@ -95,6 +96,7 @@ class StaffListScreen extends ConsumerWidget {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if(s.isStaff) IconButton(tooltip:'صلاحيات الموظف',icon:const Icon(Icons.admin_panel_settings_outlined),onPressed:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>StaffAccessScreen(uid:s.uid)))),
                       IconButton(
                         tooltip: 'دفع مرتب',
                         icon: const Icon(Icons.payments_outlined, color: AppColors.success),

@@ -35,9 +35,9 @@ class DebtRepositoryImpl implements DebtRepository {
   }
 
   @override
-  Future<Either<Failure, void>> payDebt({required String debtId, required double amount, required String recordedByUid}) async {
+  Future<Either<Failure, void>> payDebt({required String debtId, required double amount, required String recordedByUid, String method='cash'}) async {
     try {
-      await _store.command('debt-pay', {'gymId': gymId, 'debtId': debtId, 'amount': amount});
+      await _store.command('debt-pay', {'gymId': gymId, 'debtId': debtId, 'amount': amount, 'method':method});
       return const Right(null);
     } catch (error) { return Left(ServerFailure(error.toString())); }
   }

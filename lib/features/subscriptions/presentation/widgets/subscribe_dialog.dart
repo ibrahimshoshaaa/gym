@@ -2,7 +2,6 @@ import 'package:gym_manager/core/widgets/gym_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/utils/validators.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 import '../../domain/entities/plan.dart';
@@ -30,6 +29,7 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
   late final TextEditingController _amountController;
   DateTime _startDate = DateTime.now();
   bool _isLoading = false;
+  String _method='cash';
   bool _afterCurrent = true;
 
   @override
@@ -69,7 +69,7 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
           memberId: widget.memberId,
           plan: widget.plan,
           paidAmount: double.parse(_amountController.text.trim()),
-          recordedByUid: user.uid,
+          recordedByUid: user.uid, method:_method,
           startDate: _startDate, startAfterCurrent: _afterCurrent,
         );
 
@@ -104,11 +104,13 @@ class _SubscribeDialogState extends ConsumerState<SubscribeDialog> {
           children: [
             Text('الخطة: ${widget.plan.name} — ${widget.plan.durationDays} يوم'),
             const SizedBox(height: 16),
+            DropdownButtonFormField<String>(initialValue:_method,isExpanded:true,decoration:const InputDecoration(labelText:'طريقة الدفع'),items:const [DropdownMenuItem(value:'cash',child:Text('نقدي')),DropdownMenuItem(value:'card',child:Text('بطاقة')),DropdownMenuItem(value:'transfer',child:Text('تحويل'))],onChanged:_isLoading?null:(value)=>setState(()=>_method=value??'cash')),
+            const SizedBox(height:12),
             GymTextField(
               controller: _amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: 'المبلغ المدفوع (ج.م)'),
-              validator: (v) => Validators.positiveNumber(v, 'المبلغ'),
+              validator: (v) { final n=double.tryParse(v??''); return n==null||!n.isFinite||n<0||n>widget.plan.price?'المبلغ من صفر لحد سعر الباقة':null; },
             ),
             SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('بعد انتهاء الاشتراك الحالي'), subtitle: const Text('يحافظ على المدة المتبقية. يبدأ اليوم لو مفيش اشتراك نشط.'), value: _afterCurrent, onChanged: _isLoading ? null : (v) => setState(() => _afterCurrent = v)),
             if (!_afterCurrent) InkWell(

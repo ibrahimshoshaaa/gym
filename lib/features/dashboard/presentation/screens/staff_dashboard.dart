@@ -22,18 +22,18 @@ class StaffDashboard extends ConsumerWidget {
       body: ListView(padding: const EdgeInsets.all(20), children: [
         GymHero(eyebrow: 'العمليات اليومية', title: 'أهلاً، ${user?.name ?? ''}', subtitle: 'ابدأ تسجيل الحضور أو جدّد اشتراك عضو بخطوات بسيطة.',
           child: Wrap(spacing: 10, runSpacing: 10, children: [
-            FilledButton.icon(onPressed: () => open(const CheckinScreen()), icon: const Icon(Icons.qr_code_scanner_rounded), label: const Text('تسجيل حضور')),
-            OutlinedButton.icon(onPressed: () async {
+            if(user?.can('attendance')==true) FilledButton.icon(onPressed: () => open(const CheckinScreen()), icon: const Icon(Icons.qr_code_scanner_rounded), label: const Text('تسجيل حضور')),
+            if(user?.can('members')==true && user?.can('subscriptions')==true) OutlinedButton.icon(onPressed: () async {
               final member = await pickMember(context);
               if (member == null || !context.mounted) return;
               open(PlansScreen(memberId: member.id, memberName: member.name));
             }, icon: const Icon(Icons.autorenew_rounded), label: const Text('تجديد اشتراك')),
           ])),
         const SizedBox(height: 16),
-        Card(margin: EdgeInsets.zero, child: GymListTile(leading: const GymIcon(icon: Icons.people_outline_rounded), title: const Text('الأعضاء'),
+        if(user?.can('members')==true) Card(margin: EdgeInsets.zero, child: GymListTile(leading: const GymIcon(icon: Icons.people_outline_rounded), title: const Text('الأعضاء'),
           subtitle: const Text('ابحث بالاسم أو الموبايل وراجع بيانات العضو.'), onTap: () => open(const MembersListScreen()))),
-        const GymSection(title: 'حضور النهاردة', subtitle: 'أحدث عمليات تسجيل الحضور.'),
-        attendance.when(data: (records) {
+        if(user?.can('attendance')==true) const GymSection(title: 'حضور النهاردة', subtitle: 'أحدث عمليات تسجيل الحضور.'),
+        if(user?.can('attendance')==true) attendance.when(data: (records) {
           if (records.isEmpty) return const GymEmptyState(title: 'اليوم لسه بيبدأ', message: 'أول حضور هيتعرض هنا بعد تسجيله.', icon: Icons.how_to_reg_outlined);
           final sorted = [...records]..sort((a, b) => b.checkInTime.compareTo(a.checkInTime));
           return Column(children: [

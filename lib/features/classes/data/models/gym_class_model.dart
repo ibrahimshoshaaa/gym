@@ -10,7 +10,7 @@ class GymClassModel extends GymClass {
     required super.dateTime,
     required super.durationMinutes,
     required super.capacity,
-    super.bookedMemberIds,
+    super.bookedMemberIds,super.isCancelled,super.repeatCount,
   });
 
   factory GymClassModel.fromMap(Map<String, dynamic> map, String id) {
@@ -22,7 +22,7 @@ class GymClassModel extends GymClass {
       dateTime: (map['dateTime'] as DbTimestamp).toDate(),
       durationMinutes: map['durationMinutes'] as int,
       capacity: map['capacity'] as int,
-      bookedMemberIds: List<String>.from(map['bookedMemberIds'] as List? ?? []),
+      bookedMemberIds: List<String>.from(map['bookedMemberIds'] as List? ?? []),isCancelled:map['isCancelled'] as bool? ?? false,
     );
   }
 

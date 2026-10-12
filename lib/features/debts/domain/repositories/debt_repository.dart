@@ -14,6 +14,6 @@ abstract class DebtRepository {
   Future<Either<Failure, void>> payDebt({
     required String debtId,
     required double amount,
-    required String recordedByUid,
+    required String recordedByUid, String method='cash',
   });
 }

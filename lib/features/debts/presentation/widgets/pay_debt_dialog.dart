@@ -20,6 +20,7 @@ class _PayDebtDialogState extends ConsumerState<PayDebtDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _amountController;
   bool _isLoading = false;
+  String _method='cash';
 
   @override
   void initState() {
@@ -55,7 +56,7 @@ class _PayDebtDialogState extends ConsumerState<PayDebtDialog> {
     final result = await ref.read(debtRepositoryProvider).payDebt(
           debtId: widget.debt.id,
           amount: amount,
-          recordedByUid: user.uid,
+          recordedByUid: user.uid, method:_method,
         );
 
     if (!mounted) return;
@@ -82,6 +83,8 @@ class _PayDebtDialogState extends ConsumerState<PayDebtDialog> {
             Text('المتبقي: ${widget.debt.remainingAmount.toStringAsFixed(0)} ج.م',
                 style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.danger)),
             const SizedBox(height: 16),
+            DropdownButtonFormField<String>(initialValue:_method,isExpanded:true,decoration:const InputDecoration(labelText:'طريقة الدفع'),items:const [DropdownMenuItem(value:'cash',child:Text('نقدي')),DropdownMenuItem(value:'card',child:Text('بطاقة')),DropdownMenuItem(value:'transfer',child:Text('تحويل'))],onChanged:_isLoading?null:(value)=>setState(()=>_method=value??'cash')),
+            const SizedBox(height:12),
             GymTextField(
               controller: _amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),

@@ -9,6 +9,8 @@ class GymClass extends Equatable {
   final int durationMinutes;
   final int capacity;
   final List<String> bookedMemberIds;
+  final bool isCancelled;
+  final int repeatCount;
 
   const GymClass({
     required this.id,
@@ -18,7 +20,7 @@ class GymClass extends Equatable {
     required this.dateTime,
     required this.durationMinutes,
     required this.capacity,
-    this.bookedMemberIds = const [],
+    this.bookedMemberIds = const [],this.isCancelled=false,this.repeatCount=1,
   });
 
   int get availableSpots => capacity - bookedMemberIds.length;
@@ -27,5 +29,5 @@ class GymClass extends Equatable {
 
   @override
   List<Object?> get props =>
-      [id, name, trainerId, trainerName, dateTime, durationMinutes, capacity, bookedMemberIds];
+      [id, name, trainerId, trainerName, dateTime, durationMinutes, capacity, bookedMemberIds,isCancelled,repeatCount];
 }

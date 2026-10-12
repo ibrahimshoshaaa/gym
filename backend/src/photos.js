@@ -9,6 +9,7 @@ export function signature(params, secret) {
 export async function photoUpload(service, user, body) {
   const gymId = id(body.gymId), memberId = id(body.memberId);
   await service.operational(service.store, user, gymId);
+  service.requirePermission(user,'members');
   requireValue(await service.store.get(`gyms/${gymId}/members/${memberId}`), 'العضو غير موجود', 404);
   const c = config();
   requireValue(/^[a-zA-Z0-9_-]+$/.test(c.cloud), 'إعداد الصور غير صحيح', 503);

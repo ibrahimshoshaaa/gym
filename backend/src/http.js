@@ -1,3 +1,6 @@
+import {reminders} from './operations/reminders.js';
+import {createCloudBackup,listBackups,backupDownload} from './operations/cloud-backups.js';
+import {issueRecoveryCode,recoverAccount,resetStaffAccount} from './operations/recovery.js';
 import { photoUpload, photoDelete } from './photos.js';
 import { createServer } from 'node:http';
 import { ApiError, requireValue, hash } from './security.js';
@@ -37,9 +40,11 @@ export function createHandler(service, options = {}) {
       if (req.method === 'OPTIONS') { res.writeHead(204).end(); return; }
       const path = new URL(req.url, 'http://localhost').pathname;
       if (req.method === 'GET' && path === '/health') { await service.store.health(); res.end(JSON.stringify({ status: 'ok' })); return; }
+      if(req.method==='GET' && path==='/api/cron/backup'){requireValue(process.env.CRON_SECRET && req.headers.authorization===`Bearer ${process.env.CRON_SECRET}`,'غير مسموح',401);res.end(JSON.stringify({data:await createCloudBackup(service)}));return;}
       const body = req.method === 'POST' ? await readBody(req) : {};
       let output;
       if (req.method === 'POST' && path === '/api/auth/login') output = await service.login(body, req.socket.remoteAddress ?? 'unknown');
+      else if(req.method==='POST' && path==='/api/auth/recover')output=await recoverAccount(service,body,req.socket.remoteAddress??'unknown');
       else if (req.method === 'POST' && path === '/api/auth/signup') {
         requireValue(await service.store.attempt(hash(`signup:${req.socket.remoteAddress}`)) <= 5, 'محاولات كتير، حاول بعد 15 دقيقة', 429);
         output = await service.signup(body);
@@ -52,6 +57,12 @@ export function createHandler(service, options = {}) {
           requireValue(!user.mustChangePassword, 'غيّر الباسورد الأول', 403);
           if (req.method === 'POST' && path === '/api/auth/gym-owner') output = await service.signup(body, user);
           else if (req.method === 'POST' && path === '/api/auth/staff') output = await service.createStaff(user, body);
+          else if(req.method==='GET' && path==='/api/reminders')output=await reminders(service,user);
+          else if(req.method==='GET' && path==='/api/backups')output=await listBackups(service,user);
+          else if(req.method==='POST' && path==='/api/backups/create'){requireValue(user.role==='superAdmin','غير مسموح',403);output=await createCloudBackup(service);}
+          else if(req.method==='POST' && path==='/api/backups/download')output=await backupDownload(service,user,body);
+          else if(req.method==='POST' && path==='/api/auth/recovery-code')output=await issueRecoveryCode(service,user);
+          else if(req.method==='POST' && path==='/api/auth/staff-reset')output=await resetStaffAccount(service,user,body);
           else if (req.method === 'POST' && path === '/api/auth/member-reset') output = await service.resetMemberPassword(user, body);
           else if (req.method === 'POST' && path === '/api/auth/member-account') output = await service.createMemberAccount(user, body);
           else if (req.method === 'DELETE' && path.startsWith('/api/auth/staff/')) output = await service.deleteStaff(user, path.split('/').at(-1));

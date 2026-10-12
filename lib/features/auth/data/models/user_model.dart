@@ -14,7 +14,7 @@ class UserModel extends AppUser {
     super.mustChangePassword,
     super.salary,
     super.address,
-    super.notes,
+    super.notes, super.permissions, super.isActive,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
@@ -30,7 +30,7 @@ class UserModel extends AppUser {
       createdAt: (map['createdAt'] as DbTimestamp?)?.toDate() ?? DateTime.now(),
       salary: (map['salary'] as num?)?.toDouble(),
       address: map['address'] as String?,
-      notes: map['notes'] as String?,
+      notes: map['notes'] as String?, permissions:map['permissions']==null?null:List<String>.from(map['permissions'] as List),isActive:map['isActive'] as bool? ?? true,
     );
   }
 
@@ -47,7 +47,7 @@ class UserModel extends AppUser {
       createdAt: user.createdAt,
       salary: user.salary,
       address: user.address,
-      notes: user.notes,
+      notes: user.notes,permissions:user.permissions,isActive:user.isActive,
     );
   }
 
@@ -63,7 +63,7 @@ class UserModel extends AppUser {
       'createdAt': DbTimestamp.fromDate(createdAt),
       'salary': salary,
       'address': address,
-      'notes': notes,
+      'notes': notes,'permissions':permissions,'isActive':isActive,
     };
   }
 }
