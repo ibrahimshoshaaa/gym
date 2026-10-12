@@ -28,9 +28,14 @@ class SubscriptionLifecycleScreen extends ConsumerStatefulWidget{
  @override ConsumerState<SubscriptionLifecycleScreen> createState()=>_SubscriptionLifecycleState();
 }
 class _SubscriptionLifecycleState extends ConsumerState<SubscriptionLifecycleScreen>{
- late Future<List<dynamic>> _rows;bool _busy=false;
+ late Future<List<dynamic>> _rows;bool _busy=false,_frozen=false;String? _currentId,_nextId;
  @override void initState(){super.initState();_rows=_load();}
- Future<List<dynamic>> _load()async=>await ref.read(operationsApiProvider).request('POST','/api/data/query',{'path':'gyms/${ref.read(currentUserProvider)?.gymId}/subscriptions','filters':[{'field':'memberId','op':'eq','value':widget.memberId}],'order':{'field':'createdAt','descending':true}}) as List<dynamic>;
+ Future<List<dynamic>> _load()async{
+  final api=ref.read(operationsApiProvider),root='gyms/${ref.read(currentUserProvider)?.gymId}';
+  final results=await Future.wait([api.request('POST','/api/data/query',{'path':'$root/subscriptions','filters':[{'field':'memberId','op':'eq','value':widget.memberId}],'order':{'field':'createdAt','descending':true}}),api.request('POST','/api/data/read',{'path':'$root/members/${widget.memberId}'})]);
+  final data=(results[1] as Map)['data'] as Map;_currentId=data['currentSubscriptionId'] as String?;_nextId=(data['nextSubscription'] as Map?)?['currentSubscriptionId'] as String?;_frozen=data['status']=='frozen';
+  return results[0] as List<dynamic>;
+ }
  Future<void> _cancel(Map row)async{
   if(_busy)return;
   final data=await operationForm(context,title:'إلغاء الاشتراك',message:'الحضور هيتوقف للاشتراك ده والمديونية المتبقية هتتلغي. الاسترداد اختياري ولا يتجاوز صافي التحصيل.',amountLabel:'المبلغ المسترد (ج.م)');
@@ -51,7 +56,7 @@ class _SubscriptionLifecycleState extends ConsumerState<SubscriptionLifecycleScr
   try{await ref.read(operationsApiProvider).request('POST','/api/commands/$action',{'gymId':ref.read(currentUserProvider)?.gymId,'memberId':widget.memberId,...body});if(mounted){setState(()=>_rows=_load());ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تم حفظ العملية والسجل المالي')));}}
   catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString())));}finally{if(mounted)setState(()=>_busy=false);}
  }
- @override Widget build(BuildContext context){ref.watch(plansStreamProvider);final admin=ref.watch(currentUserProvider)?.isAdmin==true;return GymScaffold(appBar:AppBar(title:const Text('إدارة الاشتراكات')),body:FutureBuilder<List<dynamic>>(future:_rows,builder:(context,s){if(s.hasError)return GymErrorState(onRetry:()=>setState(()=>_rows=_load()));if(!s.hasData)return const GymLoading();if(s.data!.isEmpty)return const GymEmptyState(title:'مفيش اشتراك مسجل');return ListView(padding:const EdgeInsets.all(20),children:[for(final row in s.data!)Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[Text(row['data']['planName'] as String? ?? 'اشتراك',style:Theme.of(context).textTheme.titleMedium),Text('من ${operationDate(row['data']['startDate'])}\nلحد ${operationDate(row['data']['endDate'])}\n${row['data']['status']=='cancelled'?'ملغي':'مسجل'}'),if(admin && row['data']['status']!='cancelled')Wrap(spacing:8,runSpacing:8,children:[TextButton(onPressed:_busy?null:()=>_change(row as Map),child:const Text('تغيير الباقة')),TextButton(onPressed:_busy?null:()=>_cancel(row as Map),child:const Text('إلغاء واسترداد'))])])))]);}));}
+ @override Widget build(BuildContext context){ref.watch(plansStreamProvider);final admin=ref.watch(currentUserProvider)?.isAdmin==true;return GymScaffold(appBar:AppBar(title:const Text('إدارة الاشتراكات')),body:FutureBuilder<List<dynamic>>(future:_rows,builder:(context,s){if(s.hasError)return GymErrorState(onRetry:()=>setState(()=>_rows=_load()));if(!s.hasData)return const GymLoading();if(s.data!.isEmpty)return const GymEmptyState(title:'مفيش اشتراك مسجل');return ListView(padding:const EdgeInsets.all(20),children:[for(final row in s.data!)Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[Text(row['data']['planName'] as String? ?? 'اشتراك',style:Theme.of(context).textTheme.titleMedium),Text('من ${operationDate(row['data']['startDate'])}\nلحد ${operationDate(row['data']['endDate'])}\n${row['data']['status']=='cancelled'?'ملغي':'مسجل'}'),if(admin && row['data']['status']!='cancelled' && (row['id']==_currentId||row['id']==_nextId))Wrap(spacing:8,runSpacing:8,children:[if(row['id']==_currentId && !_frozen && _nextId==null)TextButton(onPressed:_busy?null:()=>_change(row as Map),child:const Text('تغيير الباقة')),TextButton(onPressed:_busy?null:()=>_cancel(row as Map),child:const Text('إلغاء واسترداد'))])])))]);}));}
 }
 class GymPolicyScreen extends ConsumerStatefulWidget{const GymPolicyScreen({super.key});@override ConsumerState<GymPolicyScreen> createState()=>_GymPolicyState();}
 class _GymPolicyState extends ConsumerState<GymPolicyScreen>{
@@ -79,7 +84,7 @@ class _StaffAccessState extends ConsumerState<StaffAccessScreen>{
  static const labels={'members':'بيانات الأعضاء','attendance':'الحضور والخروج','subscriptions':'التجديد والاشتراكات','collections':'التحصيل والمديونيات','classes':'الحصص','expenses':'تسجيل المصروفات','loyalty':'النقاط والمكافآت','reports':'عرض التقارير'};
  @override void initState(){super.initState();_load();}
  Future<void> _load()async{try{final row=await ref.read(operationsApiProvider).request('POST','/api/data/read',{'path':'users/${widget.uid}'}) as Map;final data=row['data'] as Map;_selected.addAll(List<String>.from(data['permissions'] as List? ?? labels.keys.where((k)=>k!='reports').toList()));_active=data['isActive']!=false;}catch(e){_error=e.toString();}finally{if(mounted)setState(()=>_loading=false);}}
- Future<void> _save()async{setState(()=>_busy=true);try{final api=ref.read(operationsApiProvider),gym=ref.read(currentUserProvider)?.gymId;await api.request('POST','/api/commands/staff-permissions',{'gymId':gym,'uid':widget.uid,'permissions':_selected.toList()..sort()});await api.request('POST','/api/commands/staff-disable',{'gymId':gym,'uid':widget.uid,'isActive':_active});if(mounted)Navigator.pop(context);}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString())));}finally{if(mounted)setState(()=>_busy=false);}}
+ Future<void> _save()async{setState(()=>_busy=true);try{final api=ref.read(operationsApiProvider),gym=ref.read(currentUserProvider)?.gymId;await api.request('POST','/api/commands/staff-settings',{'gymId':gym,'uid':widget.uid,'permissions':_selected.toList()..sort(),'isActive':_active});if(mounted)Navigator.pop(context);}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString())));}finally{if(mounted)setState(()=>_busy=false);}}
  @override Widget build(BuildContext context)=>GymScaffold(appBar:AppBar(title:const Text('صلاحيات الموظف')),body:_loading?const GymLoading():_error!=null?GymErrorState(onRetry:_load):ListView(padding:const EdgeInsets.all(20),children:[SwitchListTile(title:const Text('الحساب نشط'),subtitle:const Text('إيقاف الحساب يقفل جلساته ويمنع تسجيل الدخول'),value:_active,onChanged:_busy?null:(v)=>setState(()=>_active=v)),for(final entry in labels.entries)CheckboxListTile(title:Text(entry.value),value:_selected.contains(entry.key),onChanged:_busy?null:(v)=>setState((){if(v==true){_selected.add(entry.key);}else{_selected.remove(entry.key);}})),FilledButton(onPressed:_busy?null:_save,child:const Text('حفظ الصلاحيات'))]));
 }
 class ClassRosterScreen extends ConsumerStatefulWidget{
@@ -94,7 +99,7 @@ class _RosterState extends ConsumerState<ClassRosterScreen>{
 }
 class CloudBackupsScreen extends ConsumerStatefulWidget{const CloudBackupsScreen({super.key});@override ConsumerState<CloudBackupsScreen> createState()=>_BackupState();}
 class _BackupState extends ConsumerState<CloudBackupsScreen>{
- late Future<List<dynamic>> _rows;bool _busy=false;
+ late Future<List<dynamic>> _rows;bool _busy=false,_frozen=false;String? _currentId,_nextId;
  @override void initState(){super.initState();_rows=_load();}
  Future<List<dynamic>> _load()async=>await ref.read(operationsApiProvider).request('GET','/api/backups') as List<dynamic>;
  Future<void> _create()async{setState(()=>_busy=true);try{await ref.read(operationsApiProvider).request('POST','/api/backups/create',{});if(mounted)setState(()=>_rows=_load());}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString())));}finally{if(mounted)setState(()=>_busy=false);}}

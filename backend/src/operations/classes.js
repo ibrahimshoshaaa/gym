@@ -3,20 +3,21 @@ import {requireValue,id,text,date,stamp,integer} from '../security.js';
 function wallTime(value){const values=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(value).filter(p=>p.type!=='literal').map(p=>[p.type,Number(p.value)]));return Date.UTC(values.year,values.month-1,values.day,values.hour,values.minute,values.second);}
 export function addCairoWeeks(value,weeks){const wall=wallTime(value)+weeks*7*86400000;let candidate=wall;for(let i=0;i<3;i++)candidate=wall-(wallTime(new Date(candidate))-candidate);return new Date(candidate);}
 export async function classCommand(service,tx,user,gymId,name,body){
- if(!['class-series','class-cancel','class-attendance','staff-permissions','staff-disable'].includes(name))return null;
+ if(!['class-series','class-cancel','class-attendance','staff-permissions','staff-disable','staff-settings'].includes(name))return null;
  const root=`gyms/${gymId}`;
  if(name.startsWith('staff-')){
   service.requirePermission(user,'members',true);
   const uid=id(body.uid),row=await tx.get(`users/${uid}`);
   requireValue(row && row.data.gymId===gymId && row.data.role==='staff','حساب الموظف غير موجود',404);
-  if(name==='staff-disable'){
-   requireValue(typeof body.isActive==='boolean','حالة الحساب غير صحيحة');
-   await tx.put(row.path,{...row.data,isActive:body.isActive});if(!body.isActive)await tx.revokeSessions(uid);
-  }else{
-   const allowed=['members','attendance','subscriptions','collections','classes','expenses','loyalty','reports'];
-   requireValue(Array.isArray(body.permissions) && body.permissions.every(p=>allowed.includes(p)),'الصلاحيات غير صحيحة');
-   await tx.put(row.path,{...row.data,permissions:[...new Set(body.permissions)]});
+  let changes={};
+  if(name!=='staff-permissions'){
+   requireValue(typeof body.isActive==='boolean','حالة الحساب غير صحيحة');changes.isActive=body.isActive;
   }
+  if(name!=='staff-disable'){
+   const allowed=['members','attendance','subscriptions','collections','classes','expenses','loyalty','reports'];
+   requireValue(Array.isArray(body.permissions) && body.permissions.every(p=>allowed.includes(p)),'الصلاحيات غير صحيحة');changes.permissions=[...new Set(body.permissions)];
+  }
+  await tx.put(row.path,{...row.data,...changes});if(changes.isActive===false)await tx.revokeSessions(uid);
   return {handled:true,result:{saved:true}};
  }
  service.requirePermission(user,'classes',name!=='class-attendance');

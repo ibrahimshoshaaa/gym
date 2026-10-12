@@ -156,7 +156,7 @@ export class GymService {
   async audit(tx, user, gymId, action, body = {}) {
     await tx.put(`gyms/${gymId}/audit/${randomUUID()}`, {
       action, actorUid: user.uid, actorName: user.name, date: stamp(),
-      ...pick(body, ['memberId', 'debtId', 'planId', 'amount', 'paidAmount', 'recordPath']),
+      ...pick(body, ['memberId', 'debtId', 'planId', 'amount', 'paidAmount', 'recordPath','subscriptionId','paymentId','classId','uid','refundAmount','reason','permissions','isActive','method','freezeMaxDays','freezeMaxTimes','bookingCancelHours']),
     });
   }
   async businessTransaction(user, name, body, work) {
@@ -236,7 +236,7 @@ export class GymService {
     if (user.role !== 'superAdmin' && p[1] !== user.gymId) return false;
     if (p.length === 2) return true;
     if (p[2] === 'audit') return ['admin', 'superAdmin'].includes(user.role);
-    if(user.role==='staff'){const permission={members:'members',plans:'subscriptions',subscriptions:'subscriptions',attendance:'attendance',classes:'classes',trainers:'classes',payments:'collections',debts:'collections',expenses:'expenses',rewards:'loyalty'}[p[2]];if(permission){const defaults=['members','attendance','subscriptions','collections','classes','expenses','loyalty'];return (user.permissions??defaults).includes(permission);}}
+    if(user.role==='staff'){const permission={members:p[4]==='loyalty'?'loyalty':'members',plans:'subscriptions',subscriptions:'subscriptions',attendance:'attendance',classes:'classes',trainers:'classes',payments:'collections',debts:'collections',expenses:'expenses',rewards:'loyalty'}[p[2]];if(permission){const defaults=['members','attendance','subscriptions','collections','classes','expenses','loyalty'];return (user.permissions??defaults).includes(permission);}}
     if (user.role !== 'member') return true;
     if (['classes', 'plans', 'trainers', 'rewards'].includes(p[2])) return true;
     if (p[2] === 'members') return p[3] === user.memberId;

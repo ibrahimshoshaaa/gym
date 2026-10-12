@@ -82,7 +82,7 @@ class MemberDetailsScreen extends ConsumerWidget {
                   },
                   itemBuilder: (context) => [
                     const PopupMenuItem(value: 'edit', child: Text('تعديل البيانات')),
-                    const PopupMenuItem(
+                    if(ref.read(currentUserProvider)?.isAdmin==true) const PopupMenuItem(
                       value: 'delete',
                       child: Text('حذف العضو', style: TextStyle(color: AppColors.danger)),
                     ),
