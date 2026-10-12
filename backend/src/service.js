@@ -123,7 +123,7 @@ export class GymService {
   async createMemberAccount(user, body) {
     const gymId = id(body.gymId), memberId = id(body.memberId);
     return this.store.transaction(async tx => {
-      await this.operational(tx, user, gymId);
+      await this.operational(tx, user, gymId);this.requirePermission(user,'members');
       const member = await tx.get(`gyms/${gymId}/members/${memberId}`);
       requireValue(member, 'العضو غير موجود', 404);
       const temporary = phone(member.data.phone);
@@ -315,6 +315,7 @@ export class GymService {
       const gym = await this.operational(tx, user, gymId, memberCommands.includes(name) ? [...staffRoles, 'member'] : staffRoles);
       const permission={ 'member-save':'members','member-delete':'members','subscribe':'subscriptions','subscription-freeze':'subscriptions','subscription-resume':'subscriptions','debt-pay':'collections','check-in':'attendance','check-out':'attendance','points-add':'loyalty'}[name];
       if(permission)this.requirePermission(user,permission);
+      if(user.role==='staff' && name==='redeem')this.requirePermission(user,'loyalty');
       const root = `gyms/${gymId}`;
       const loadMember = async (memberId) => {
         const row = await tx.get(`${root}/members/${id(memberId)}`);

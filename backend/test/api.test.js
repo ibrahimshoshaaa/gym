@@ -390,6 +390,8 @@ test('API account, tenant, subscription and money flows', async t => {
     const clazz=(await store.list(`gyms/${gymA}/classes`)).find(r=>r.data.bookedMemberIds?.includes(memberA));
     const roster=await call('/api/classes/roster',{gymId:gymA,classId:clazz.path.split('/').at(-1)},login.data.token);assert.equal(roster.status,200);assert.ok(roster.data.data.rosterNames[memberA]);
     assert.equal((await call('/api/data/read',{path:`gyms/${gymA}/members/${memberA}`},login.data.token)).status,403);
+    assert.equal((await call('/api/auth/member-account',{gymId:gymA,memberId:memberA},login.data.token)).status,403);
+    assert.equal((await call('/api/commands/redeem',{gymId:gymA,memberId:memberA,rewardId:'some-reward'},login.data.token)).status,403);
     assert.equal((await call('/api/reports/summary',{gymId:gymA},login.data.token)).status,200);
     assert.equal((await call('/api/commands/staff-settings',{gymId:gymA,uid,permissions:['invalid'],isActive:false},adminA)).status,400);
     assert.equal((await store.get(`users/${uid}`)).data.isActive,true);
