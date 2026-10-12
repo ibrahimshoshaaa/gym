@@ -72,7 +72,7 @@ class _MemberOperationsState extends ConsumerState<MemberOperations> {
         try{final opened=await launchUrl(Uri.https('wa.me','/$number',{'text':message}),mode:LaunchMode.externalApplication);if(!opened && context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تعذر فتح واتساب')));}catch(_){if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تعذر فتح واتساب')));}
       },icon:const Icon(Icons.chat_outlined),label:const Text('تذكير على واتساب')),
 
-      OutlinedButton.icon(onPressed:_busy?null:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>OperationRecordsScreen(kind:RecordKind.subscriptions,memberId:m.id))),icon:const Icon(Icons.history),label:const Text('سجل الاشتراكات')),
+      if(user?.can('subscriptions')==true) OutlinedButton.icon(onPressed:_busy?null:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>OperationRecordsScreen(kind:RecordKind.subscriptions,memberId:m.id))),icon:const Icon(Icons.history),label:const Text('سجل الاشتراكات')),
       if(admin) ...[
         OutlinedButton.icon(onPressed:_busy?null:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>SubscriptionLifecycleScreen(memberId:m.id))),icon:const Icon(Icons.manage_accounts_outlined),label:const Text('تغيير الباقة والإلغاء والاسترداد')),
         const SizedBox(height:8),

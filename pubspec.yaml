@@ -50,6 +50,9 @@ dependencies:
   flutter_local_notifications: 19.5.0
   timezone: ^0.10.1
   workmanager: ^0.10.10
+  # Keep PDF/image dependencies on their compatible compression API.
+  image: 4.12.0
+  archive: 4.5.0
 
 dev_dependencies:
   flutter_test:

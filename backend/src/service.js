@@ -315,8 +315,6 @@ export class GymService {
       const gym = await this.operational(tx, user, gymId, memberCommands.includes(name) ? [...staffRoles, 'member'] : staffRoles);
       const permission={ 'member-save':'members','member-delete':'members','subscribe':'subscriptions','subscription-freeze':'subscriptions','subscription-resume':'subscriptions','debt-pay':'collections','check-in':'attendance','check-out':'attendance','points-add':'loyalty'}[name];
       if(permission)this.requirePermission(user,permission);
-      const extension=await financeCommand(this,tx,user,gymId,name,body)??await classCommand(this,tx,user,gymId,name,body);
-      if(extension)return extension.result;
       const root = `gyms/${gymId}`;
       const loadMember = async (memberId) => {
         const row = await tx.get(`${root}/members/${id(memberId)}`);
@@ -327,6 +325,8 @@ export class GymService {
         if (row.data.nextSubscription && !resolved.nextSubscription) return tx.put(row.path, resolved);
         return row;
       };
+      const extension=await financeCommand(this,tx,user,gymId,name,body,loadMember)??await classCommand(this,tx,user,gymId,name,body);
+      if(extension)return extension.result;
       if (name === 'member-save') {
         const data = pick(body.data ?? {}, profileFields);
         data.name = text(data.name, 'اسم العضو'); data.phone = phone(data.phone);
@@ -415,6 +415,7 @@ export class GymService {
         requireValue(amount <= remaining, 'المبلغ أكبر من المتبقي الحالي', 409);
         const newPaid = money(debt.data.paidAmount + amount, true);
         await tx.put(debt.path, { ...debt.data, paidAmount: newPaid, isPaid: newPaid >= debt.data.totalAmount });
+        if(debt.data.relatedSubscriptionId){const sub=await tx.get(`${root}/subscriptions/${id(debt.data.relatedSubscriptionId)}`);if(sub)await tx.put(sub.path,{...sub.data,paidAmount:newPaid});}
         await tx.put(`${root}/payments/${randomUUID()}`, { memberId: debt.data.memberId, memberName: debt.data.memberName, amount, date: stamp(), receiptNumber: `GG-${randomUUID().slice(0, 8).toUpperCase()}`, method: paymentMethod(body.method), recordedBy: user.uid, debtId:body.debtId, relatedSubscriptionId: debt.data.relatedSubscriptionId });
         return { paid: true };
       }

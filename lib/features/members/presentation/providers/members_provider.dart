@@ -47,7 +47,7 @@ bool _matchesCategory(Member m, MemberFilterCategory category) {
       final days = m.subscriptionEnd!.difference(DateTime.now()).inDays;
       return days >= 0 && days <= 3;
     case MemberFilterCategory.expired:
-      return m.status == MemberStatus.expired;
+      return [MemberStatus.expired,MemberStatus.cancelled].contains(m.status);
   }
 }
 
