@@ -26,16 +26,16 @@ class _GymWorkspaceState extends ConsumerState<GymWorkspace> {
     final member = user.isMember;
     final pages = owner ? const <Widget>[GymListScreen(), WorkspaceMenu()] : <Widget>[
       member ? const MemberDashboard() : user.role == UserRole.admin ? const AdminDashboard() : const StaffDashboard(),
-      member ? const MemberQrScreen() : const MembersListScreen(),
-      const ClassesScheduleScreen(), const WorkspaceMenu(),
+      if(member || user.can('members')) member ? const MemberQrScreen() : const MembersListScreen(),
+      if(member || user.can('classes')) const ClassesScheduleScreen(), const WorkspaceMenu(),
     ];
     final destinations = owner ? const [
       NavigationDestination(icon: Icon(Icons.apartment_outlined), selectedIcon: Icon(Icons.apartment_rounded), label: 'الجيمات'),
       NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'حسابي'),
     ] : [
       const NavigationDestination(icon: Icon(Icons.space_dashboard_outlined), selectedIcon: Icon(Icons.space_dashboard_rounded), label: 'الرئيسية'),
-      NavigationDestination(icon: Icon(member ? Icons.qr_code_outlined : Icons.people_outline_rounded), selectedIcon: Icon(member ? Icons.qr_code_rounded : Icons.people_rounded), label: member ? 'كارت العضوية' : 'الأعضاء'),
-      const NavigationDestination(icon: Icon(Icons.event_outlined), selectedIcon: Icon(Icons.event_rounded), label: 'الحصص'),
+      if(member || user.can('members')) NavigationDestination(icon: Icon(member ? Icons.qr_code_outlined : Icons.people_outline_rounded), selectedIcon: Icon(member ? Icons.qr_code_rounded : Icons.people_rounded), label: member ? 'كارت العضوية' : 'الأعضاء'),
+      if(member || user.can('classes')) const NavigationDestination(icon: Icon(Icons.event_outlined), selectedIcon: Icon(Icons.event_rounded), label: 'الحصص'),
       const NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view_rounded), label: 'المزيد'),
     ];
     final index = _index.clamp(0, pages.length - 1);

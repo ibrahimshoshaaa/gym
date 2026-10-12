@@ -10,7 +10,7 @@ class PaymentModel extends Payment {
     required super.date,
     required super.method,
     required super.recordedByUid,
-    super.relatedSubscriptionId, super.receiptNumber,
+    super.relatedSubscriptionId, super.receiptNumber,super.kind,super.reversedBy,
   });
 
   factory PaymentModel.fromMap(Map<String, dynamic> map, String id) {
@@ -25,7 +25,7 @@ class PaymentModel extends Payment {
         orElse: () => PaymentMethod.cash,
       ),
       recordedByUid: map['recordedBy'] as String? ?? '',
-      relatedSubscriptionId: map['relatedSubscriptionId'] as String?, receiptNumber: map['receiptNumber'] as String?,
+      relatedSubscriptionId: map['relatedSubscriptionId'] as String?, receiptNumber: map['receiptNumber'] as String?,kind:map['kind'] as String? ?? 'collection',reversedBy:map['reversedBy'] as String?,
     );
   }
 
@@ -37,7 +37,7 @@ class PaymentModel extends Payment {
       'date': DbTimestamp.fromDate(date),
       'method': method.name,
       'recordedBy': recordedByUid,
-      'relatedSubscriptionId': relatedSubscriptionId, 'receiptNumber': receiptNumber,
+      'relatedSubscriptionId': relatedSubscriptionId, 'receiptNumber': receiptNumber,'kind':kind,'reversedBy':reversedBy,
     };
   }
 }

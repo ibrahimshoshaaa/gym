@@ -23,10 +23,10 @@ class ClassRepositoryImpl implements ClassRepository {
 
   @override
   Stream<List<GymClass>> watchUpcomingClasses() {
-    final now = DateTime.now();
+    final now = DateTime.now().subtract(const Duration(days:30));
     return _classesCollection
         .where('dateTime', isGreaterThanOrEqualTo: DbTimestamp.fromDate(now))
-        .orderBy('dateTime')
+        .orderBy('dateTime',descending:true).limit(200)
         .snapshots()
         .map((snap) => snap.docs.map((d) => GymClassModel.fromMap(d.data(), d.id)).toList());
   }
@@ -43,8 +43,8 @@ class ClassRepositoryImpl implements ClassRepository {
         durationMinutes: gymClass.durationMinutes,
         capacity: gymClass.capacity,
       );
-      final docRef = await _classesCollection.add(model.toMap());
-      return Right(GymClassModel.fromMap(model.toMap(), docRef.id));
+      final result=await _store.command('class-series',{'gymId':gymId,...model.toMap(),'count':gymClass.repeatCount}) as Map<String,dynamic>;
+      return Right(GymClassModel.fromMap(model.toMap(),(result['classIds'] as List).first as String));
     } catch (_) {
       return const Left(ServerFailure());
     }
@@ -53,7 +53,7 @@ class ClassRepositoryImpl implements ClassRepository {
   @override
   Future<Either<Failure, void>> deleteClass(String id) async {
     try {
-      await _classesCollection.doc(id).delete();
+      await _store.command('class-cancel',{'gymId':gymId,'classId':id,'reason':'إلغاء من إدارة الجيم'});
       return const Right(null);
     } catch (_) {
       return const Left(ServerFailure());

@@ -11,7 +11,7 @@ class MemberCard extends StatelessWidget {
   const MemberCard({super.key, required this.member, this.onTap, this.debtAmount});
   Color get _color => switch (member.status) {
     MemberStatus.active => member.subscriptionEnd != null && DateFormatter.isExpiringSoon(member.subscriptionEnd!) ? AppColors.warning : AppColors.success,
-    MemberStatus.expired => AppColors.danger, MemberStatus.frozen => AppColors.warning, MemberStatus.pending => AppColors.primary,
+    MemberStatus.expired => AppColors.danger, MemberStatus.cancelled => AppColors.danger, MemberStatus.frozen => AppColors.warning, MemberStatus.pending => AppColors.primary,
   };
   String get _status {
     if (member.status == MemberStatus.active && member.subscriptionEnd != null && DateFormatter.isExpiringSoon(member.subscriptionEnd!)) return 'باقي ${DateFormatter.daysRemaining(member.subscriptionEnd!)} يوم';

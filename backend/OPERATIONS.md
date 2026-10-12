@@ -1,19 +1,23 @@
-# Operational changes
+# Golden Gym operations (2.4)
 
-Member account recovery is performed by the gym administrator from the member profile. It resets the password to the stored phone, revokes existing sessions, and requires a different password on next login. Admin/owner recovery is not a public password-reset endpoint.
+New commands persist client operation IDs and atomically record financial entries and audit metadata. Collections are never deleted: reversal/refund adds a negative receipt and retains the original. Plan changes retain the original start date and used visits; a downgrade refunds any excess collected. Cancellation clears remaining debt and allows an explicit refund up to net collected. Only the current or queued subscription can be cancelled.
 
-New clients persist an operation ID before submitting a command. Ambiguous retries use the same ID; the server atomically returns the committed result, and rejects reuse with a changed payload. Old clients remain compatible but do not have the retry guarantee. Payment points are awarded by the server only for new requests with an operation ID; old clients keep their previous points flow.
+Administrators configure freeze day and count limits and member booking cancellation cutoff. Freeze defaults to at most 30 days and two uses per subscription. Automatic thaw adds the frozen duration to the end; earlier manual resume adds elapsed duration. Queued renewals must be reviewed before freezing.
 
-Early renewal queues one next subscription and leaves the current subscription and visits available until the next start. Freeze is indefinite until administrator resume; resume adds elapsed frozen time to the end. Queued renewals must be reviewed before freezing.
+Staff access is enforced by the backend, including members, attendance, subscriptions, collections, classes, expenses, loyalty and optional reports. Disabled accounts lose sessions. Recovery codes are hashed, single-use, and must be created while signed in. Gym admins reset staff; system owners reset gym admins. Members reset through their gym administrator to their phone and choose a new password on first login.
 
 ## Photos
 
-Existing unsigned uploads continue while upgrading. Unique image IDs avoid the old assumption that unsigned uploads overwrite existing images. Configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` on the backend to enable signed replacement and actual storage deletion. The secret is never sent to the app. Legacy preset can be configured with `GYM_CLOUDINARY_UPLOAD_PRESET`.
+Production needs CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET for signed upload/replacement and actual storage deletion. No private API secret goes to the app. Legacy unsigned installations remain compatible while upgrading.
 
-## Backups
+## Encrypted backups
 
-Use a direct connection in `DATABASE_URL_UNPOOLED`. `node scripts/backup.js <private-file.json>` creates a consistent backup; preserve it in private encrypted storage. It contains account password hashes and member data. Do not commit or upload it to public CI artifacts.
+The server implements a daily 02:00 UTC Vercel cron and owner-only manual backup/download. Activation requires CRON_SECRET and a 32-byte base64 BACKUP_ENCRYPTION_KEY plus the three private Cloudinary settings. Deployment alone does not activate backups without those variables.
 
-`node scripts/restore.js <private-file.json>` restores into an empty database only. It refuses overwrites, restores atomically and omits sessions so users must sign in again. The automated integration suite tests restore to an isolated PostgreSQL database. Production backup scheduling and retention require deployment/account configuration; these scripts do not claim that scheduled backups are active.
+Backups are AES-256-GCM encrypted before authenticated raw storage upload and retain 14 successful daily snapshots. A failed upload preserves a previous successful same-day snapshot. Files include all gyms, account hashes and recovery hashes, excluding sessions. Preserve the key independently: losing it makes snapshots unusable.
 
-Notifications are stored per user, with read state. They are in-app reminders, not background push notifications.
+Use BACKUP_ENCRYPTION_KEY with `node scripts/decrypt-backup.js <snapshot.ggbackup> <private-snapshot.json>`. Then use a NEW EMPTY direct Postgres DATABASE_URL_UNPOOLED with `node scripts/restore.js <private-snapshot.json>`. Restore refuses overwriting existing data. Never commit keys or decoded snapshots. The plaintext manual scripts remain available for private offline use.
+
+## Device notifications
+
+There is no Firebase dependency. Saved notifications have per-user read state. Subscription and booked-class reminders schedule on the device in Cairo time after foreground synchronization. Optional Android WorkManager polling fetches new alerts approximately every 15 minutes with network access; Android battery restrictions may delay it. This is periodic synchronization, not realtime push. Logout cancels local reminders and background work.

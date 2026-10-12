@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/network/api_client.dart';
+import 'core/services/background_alerts.dart';
+import 'package:workmanager/workmanager.dart';
 import 'core/providers/notification_provider.dart';
 import 'core/providers/shared_preferences_provider.dart';
 import 'core/providers/theme_provider.dart';
@@ -18,6 +20,7 @@ Future<void> main() async {
     yield LicenseEntryWithLineBreaks(['Cairo'], await rootBundle.loadString('assets/fonts/OFL-Cairo.txt'));
   });
   final prefs = await SharedPreferences.getInstance();
+  if(!kIsWeb && defaultTargetPlatform==TargetPlatform.android){await Workmanager().initialize(backgroundDispatcher);await configureBackgroundAlerts(prefs.getBool('gym.backgroundAlerts')==true);}
   await ApiClient.instance.initialize();
   runApp(ProviderScope(overrides: [sharedPreferencesProvider.overrideWithValue(prefs)], child: const GymManagerApp()));
 }

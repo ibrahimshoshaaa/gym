@@ -47,6 +47,8 @@ class AppUser extends Equatable {
   final double? salary;
   final String? address;
   final String? notes;
+  final List<String>? permissions;
+  final bool isActive;
 
   const AppUser({
     required this.uid,
@@ -60,9 +62,10 @@ class AppUser extends Equatable {
     this.mustChangePassword = false,
     this.salary,
     this.address,
-    this.notes,
+    this.notes, this.permissions, this.isActive=true,
   });
 
+  bool can(String permission)=>isAdmin||isSuperAdmin||isStaff && (permissions??const ['members','attendance','subscriptions','collections','classes','expenses','loyalty']).contains(permission);
   bool get isSuperAdmin => role == UserRole.superAdmin;
   bool get isAdmin => role == UserRole.admin;
   bool get isStaff => role == UserRole.staff;
@@ -77,7 +80,7 @@ class AppUser extends Equatable {
   @override
   List<Object?> get props => [
         uid, gymId, name, phone, email, role, createdAt,
-        memberId, mustChangePassword, salary, address, notes,
+        memberId, mustChangePassword, salary, address, notes, permissions, isActive,
       ];
 }
 

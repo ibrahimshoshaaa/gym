@@ -12,6 +12,8 @@ class Payment extends Equatable {
   final String recordedByUid;
   final String? relatedSubscriptionId;
   final String? receiptNumber;
+  final String kind;
+  final String? reversedBy;
 
   const Payment({
     required this.id,
@@ -21,10 +23,10 @@ class Payment extends Equatable {
     required this.date,
     required this.method,
     required this.recordedByUid,
-    this.relatedSubscriptionId, this.receiptNumber,
+    this.relatedSubscriptionId, this.receiptNumber, this.kind='collection',this.reversedBy,
   });
 
   @override
   List<Object?> get props =>
-      [id, memberId, memberName, amount, date, method, recordedByUid, relatedSubscriptionId, receiptNumber];
+      [id, memberId, memberName, amount, date, method, recordedByUid, relatedSubscriptionId, receiptNumber,kind,reversedBy];
 }

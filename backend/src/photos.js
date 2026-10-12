@@ -9,6 +9,7 @@ export function signature(params, secret) {
 export async function photoUpload(service, user, body) {
   const gymId = id(body.gymId), memberId = id(body.memberId);
   await service.operational(service.store, user, gymId);
+  service.requirePermission(user,'members');
   requireValue(await service.store.get(`gyms/${gymId}/members/${memberId}`), 'العضو غير موجود', 404);
   const c = config();
   requireValue(/^[a-zA-Z0-9_-]+$/.test(c.cloud), 'إعداد الصور غير صحيح', 503);
@@ -30,7 +31,8 @@ export async function photoDelete(service, user, body) {
     const parsed=new URL(url), prefix=`/${c.cloud}/image/upload/`;
     requireValue(parsed.hostname==='res.cloudinary.com' && parsed.pathname.startsWith(prefix),'الصورة مش تابعة لتخزين الجيم');
     const image=parsed.pathname.slice(prefix.length).replace(/^v\d+\//,'').replace(/\.[^.\/]+$/,'');
-    requireValue(image.startsWith(`gym_manager/${gymId}/members/${memberId}`),'مسار الصورة غير مسموح');
+    const memberPrefix=`gym_manager/${gymId}/members/${memberId}`;
+    requireValue(image===memberPrefix || image.startsWith(memberPrefix+'-'),'مسار الصورة غير مسموح');
     const fields={public_id:image,timestamp:String(Math.floor(Date.now()/1000)),invalidate:'true'};
     let response;
     try { response=await fetch(`https://api.cloudinary.com/v1_1/${c.cloud}/image/destroy`,{method:'POST',body:new URLSearchParams({...fields,api_key:c.key,signature:signature(fields,c.secret)}),signal:AbortSignal.timeout(20000)}); }

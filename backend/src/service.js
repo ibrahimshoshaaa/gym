@@ -1,3 +1,5 @@
+import {classCommand} from './operations/classes.js';
+import {financeCommand,paymentMethod} from './operations/finance.js';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { ApiError, requireValue, text, id, phone, email, money, integer, stamp, date, hash, passwordHash, verifyPassword } from './security.js';
 
@@ -8,9 +10,10 @@ const uidOf = row => row.path.split('/').at(-1);
 const resultOf = row => {
   if (!row) return null;
   let data = row.data;
+  if(data.status==='frozen' && data.frozenUntil && date(data.frozenUntil)<=new Date()){data={...data,status:'active',subscriptionEnd:stamp(new Date(date(data.subscriptionEnd).getTime()+date(data.frozenUntil).getTime()-date(data.frozenAt).getTime())),frozenAt:null,frozenUntil:null,freezeReason:null};}
   if (data.nextSubscription && date(data.nextSubscription.subscriptionStart) <= new Date()) data = { ...data, ...data.nextSubscription, nextSubscription: null };
   const parts = row.path.split('/');
-  if (parts[0] === 'gyms' && parts[2] === 'members' && parts.length === 4 && data.status !== 'frozen') {
+  if (parts[0] === 'gyms' && parts[2] === 'members' && parts.length === 4 && !['frozen','cancelled'].includes(data.status)) {
     const now = new Date();
     const status = data.subscriptionStart && date(data.subscriptionStart) > now ? 'pending' : !data.subscriptionEnd || date(data.subscriptionEnd) < now ? 'expired' : 'active';
     data = { ...data, status };
@@ -25,11 +28,16 @@ function cairoDay(value = new Date()) { return new Intl.DateTimeFormat('en-CA', 
 
 export class GymService {
   constructor(store, options = {}) { this.store = store; this.allowSignup = options.allowSignup ?? true; }
+  requirePermission(user,permission,adminOnly=false){
+    if(user.role==='superAdmin'||user.role==='admin')return;
+    const defaults=['members','attendance','subscriptions','collections','classes','expenses','loyalty'];
+    requireValue(!adminOnly && user.role==='staff' && (user.permissions??defaults).includes(permission),'الصلاحية دي مش متاحة لحسابك',403);
+  }
   async authenticate(token) {
     requireValue(typeof token === 'string' && token.length >= 32 && token.length <= 200, 'سجل دخول الأول', 401);
     const uid = await this.store.session(hash(token));
     const row = uid && await this.store.get(`users/${uid}`);
-    requireValue(row, 'الجلسة انتهت، سجل دخول تاني', 401);
+    requireValue(row && row.data.isActive!==false, 'الجلسة انتهت أو الحساب متوقف، سجل دخول تاني', 401);
     return { uid, ...row.data, tokenHash: hash(token) };
   }
   async me(user) { return resultOf(await this.store.get(`users/${user.uid}`)); }
@@ -58,6 +66,7 @@ export class GymService {
     const dummyHash = '00000000000000000000000000000000:' + '00'.repeat(64);
     const valid = await verifyPassword(body.password, account?.password_hash ?? dummyHash);
     requireValue(account && valid, 'بيانات الدخول غير صحيحة', 401);
+    requireValue((await this.store.get(account.uid))?.data.isActive!==false,'بيانات الدخول غير صحيحة',401);
     await this.store.clearAttempt(key);
     return this.session(this.store, account.uid.split('/')[1]);
   }
@@ -114,7 +123,7 @@ export class GymService {
   async createMemberAccount(user, body) {
     const gymId = id(body.gymId), memberId = id(body.memberId);
     return this.store.transaction(async tx => {
-      await this.operational(tx, user, gymId);
+      await this.operational(tx, user, gymId);this.requirePermission(user,'members');
       const member = await tx.get(`gyms/${gymId}/members/${memberId}`);
       requireValue(member, 'العضو غير موجود', 404);
       const temporary = phone(member.data.phone);
@@ -147,7 +156,7 @@ export class GymService {
   async audit(tx, user, gymId, action, body = {}) {
     await tx.put(`gyms/${gymId}/audit/${randomUUID()}`, {
       action, actorUid: user.uid, actorName: user.name, date: stamp(),
-      ...pick(body, ['memberId', 'debtId', 'planId', 'amount', 'paidAmount', 'recordPath']),
+      ...pick(body, ['memberId', 'debtId', 'planId', 'amount', 'paidAmount', 'recordPath','subscriptionId','paymentId','classId','uid','refundAmount','reason','permissions','isActive','method','freezeMaxDays','freezeMaxTimes','bookingCancelHours']),
     });
   }
   async businessTransaction(user, name, body, work) {
@@ -227,6 +236,7 @@ export class GymService {
     if (user.role !== 'superAdmin' && p[1] !== user.gymId) return false;
     if (p.length === 2) return true;
     if (p[2] === 'audit') return ['admin', 'superAdmin'].includes(user.role);
+    if(user.role==='staff'){const permission={members:p[4]==='loyalty'?'loyalty':'members',plans:'subscriptions',subscriptions:'subscriptions',attendance:'attendance',classes:'classes',trainers:'classes',payments:'collections',debts:'collections',expenses:'expenses',rewards:'loyalty'}[p[2]];if(permission){const defaults=['members','attendance','subscriptions','collections','classes','expenses','loyalty'];return (user.permissions??defaults).includes(permission);}}
     if (user.role !== 'member') return true;
     if (['classes', 'plans', 'trainers', 'rewards'].includes(p[2])) return true;
     if (p[2] === 'members') return p[3] === user.memberId;
@@ -282,11 +292,12 @@ export class GymService {
         integer(data.maxMembers, 1, 100000); integer(data.maxStaff, 1, 10000);
       } else {
         requireValue(p.length === 4 && [...managedCollections, 'expenses'].includes(p[2]), 'العملية محتاجة مسارها المخصص', 403);
+        this.requirePermission(user,{plans:'subscriptions',classes:'classes',trainers:'classes',rewards:'loyalty',expenses:'expenses'}[p[2]]);
         await this.operational(tx, user, p[1], p[2] === 'expenses' && body.operation !== 'delete' ? staffRoles : ['admin']);
         if (body.operation !== 'delete') {
           requireValue(data && typeof data === 'object' && !Array.isArray(data), 'بيانات غير صحيحة');
           if (p[2] === 'plans') { text(data.name, 'اسم الخطة'); money(data.price); integer(data.durationDays, 1, 3650); integer(data.visitsAllowed); }
-          if (p[2] === 'classes') { text(data.name, 'اسم الحصة'); date(data.dateTime); integer(data.capacity, 1, 10000); integer(data.durationMinutes, 1, 1440); data.bookedMemberIds = existing?.data.bookedMemberIds ?? []; }
+          if (p[2] === 'classes') { text(data.name, 'اسم الحصة'); date(data.dateTime); integer(data.capacity, 1, 10000); integer(data.durationMinutes, 1, 1440); for(const key of ['bookedMemberIds','attendedMemberIds','absentMemberIds','isCancelled','cancelledAt','cancellationReason','seriesId']){if(existing?.data[key]!==undefined)data[key]=existing.data[key];else delete data[key];} data.bookedMemberIds ??= []; }
           if (p[2] === 'trainers') { text(data.name, 'اسم المدرب'); phone(data.phone); }
           if (p[2] === 'rewards') { text(data.title, 'الهدية'); integer(data.pointsCost, 1); requireValue(['discount', 'freeMonth', 'physical', 'service'].includes(data.type), 'نوع الهدية غير صحيح'); }
           if (p[2] === 'expenses') { money(data.amount); date(data.date); data.recordedByUid = user.uid; }
@@ -302,15 +313,21 @@ export class GymService {
     return this.businessTransaction(user, name, body, async tx => {
       const memberCommands = ['book-class', 'cancel-booking', 'redeem'];
       const gym = await this.operational(tx, user, gymId, memberCommands.includes(name) ? [...staffRoles, 'member'] : staffRoles);
+      const permission={ 'member-save':'members','member-delete':'members','subscribe':'subscriptions','subscription-freeze':'subscriptions','subscription-resume':'subscriptions','debt-pay':'collections','check-in':'attendance','check-out':'attendance','points-add':'loyalty'}[name];
+      if(permission)this.requirePermission(user,permission);
+      if(user.role==='staff' && name==='redeem')this.requirePermission(user,'loyalty');
       const root = `gyms/${gymId}`;
       const loadMember = async (memberId) => {
         const row = await tx.get(`${root}/members/${id(memberId)}`);
         requireValue(row, 'العضو غير موجود', 404);
         if (user.role === 'member') requireValue(user.memberId === memberId, 'غير مسموح', 403);
         const resolved = resultOf(row).data;
+        if(row.data.status==='frozen' && resolved.status!=='frozen'){const sub=await tx.get(`${root}/subscriptions/${row.data.currentSubscriptionId}`);if(sub)await tx.put(sub.path,{...sub.data,endDate:resolved.subscriptionEnd,frozenAt:null,frozenUntil:null});return tx.put(row.path,resolved);}
         if (row.data.nextSubscription && !resolved.nextSubscription) return tx.put(row.path, resolved);
         return row;
       };
+      const extension=await financeCommand(this,tx,user,gymId,name,body,loadMember)??await classCommand(this,tx,user,gymId,name,body);
+      if(extension)return extension.result;
       if (name === 'member-save') {
         const data = pick(body.data ?? {}, profileFields);
         data.name = text(data.name, 'اسم العضو'); data.phone = phone(data.phone);
@@ -352,14 +369,16 @@ export class GymService {
         if (name === 'subscription-freeze') {
           requireValue(!m.nextSubscription, 'في تجديد قادم؛ راجع موعده قبل التجميد');
           requireValue(m.status !== 'frozen' && date(m.subscriptionEnd) > now && (!m.subscriptionStart || date(m.subscriptionStart) <= now), 'محتاج اشتراك نشط غير مجمد');
-          changes = { status: 'frozen', frozenAt: stamp(now), freezeReason: text(body.reason, 'سبب التجميد', 500) };
+          const days=integer(body.days??7,1,gym.freezeMaxDays??30);
+          requireValue((sub.data.freezeCount??0)<(gym.freezeMaxTimes??2),'وصلت لعدد مرات التجميد المسموح');
+          changes = { status: 'frozen', frozenUntil:stamp(new Date(now.getTime()+days*86400000)), frozenAt: stamp(now), freezeReason: text(body.reason, 'سبب التجميد', 500) };
         } else {
           requireValue(m.status === 'frozen' && m.frozenAt, 'الاشتراك مش مجمد');
           const elapsed = Math.max(0, now - date(m.frozenAt));
-          changes = { status: 'active', frozenAt: null, freezeReason: null, subscriptionEnd: stamp(new Date(date(m.subscriptionEnd).getTime() + elapsed)) };
+          changes = { status: 'active', frozenAt: null, frozenUntil:null, freezeReason: null, subscriptionEnd: stamp(new Date(date(m.subscriptionEnd).getTime() + elapsed)) };
         }
         await tx.put(member.path, { ...m, ...changes });
-        await tx.put(sub.path, { ...sub.data, frozenAt: changes.frozenAt, freezeReason: changes.freezeReason, ...(changes.subscriptionEnd ? { endDate: changes.subscriptionEnd } : {}) });
+        await tx.put(sub.path, { ...sub.data, frozenAt: changes.frozenAt, frozenUntil:changes.frozenUntil, freezeCount:(sub.data.freezeCount??0)+(name==='subscription-freeze'?1:0), freezeReason: changes.freezeReason, ...(changes.subscriptionEnd ? { endDate: changes.subscriptionEnd } : {}) });
         return resultOf(await tx.get(member.path));
       }
       if (name === 'subscribe') {
@@ -379,7 +398,7 @@ export class GymService {
         await tx.put(`${root}/subscriptions/${subId}`, subscription);
         const next = { currentPlanId: body.planId, currentSubscriptionId: subId, subscriptionStart: stamp(start), subscriptionEnd: stamp(end), visitsAllowed: subscription.visitsAllowed, visitsUsed: 0, status: start > now ? 'pending' : end < now ? 'expired' : 'active' };
         await tx.put(member.path, start > now && oldEnd && oldEnd > now ? { ...member.data, nextSubscription: next } : { ...member.data, ...next, nextSubscription: null });
-        if (paid > 0) await tx.put(`${root}/payments/${randomUUID()}`, { memberId: body.memberId, memberName: member.data.name, amount: paid, date: stamp(now), receiptNumber: `GG-${randomUUID().slice(0, 8).toUpperCase()}`, method: 'cash', recordedBy: user.uid, relatedSubscriptionId: subId });
+        if (paid > 0) await tx.put(`${root}/payments/${randomUUID()}`, { memberId: body.memberId, memberName: member.data.name, amount: paid, date: stamp(now), receiptNumber: `GG-${randomUUID().slice(0, 8).toUpperCase()}`, method: paymentMethod(body.method), recordedBy: user.uid, pointsAwarded:body.requestId?Math.floor(paid/10):0, relatedSubscriptionId: subId });
         if (paid < price) await tx.put(`${root}/debts/${randomUUID()}`, { memberId: body.memberId, memberName: member.data.name, totalAmount: price, paidAmount: paid, createdAt: stamp(now), relatedSubscriptionId: subId, planName: plan.data.name, recordedByUid: user.uid, isPaid: false });
         const earned = body.requestId ? Math.floor(paid / 10) : 0;
         if (earned > 0) {
@@ -397,12 +416,13 @@ export class GymService {
         requireValue(amount <= remaining, 'المبلغ أكبر من المتبقي الحالي', 409);
         const newPaid = money(debt.data.paidAmount + amount, true);
         await tx.put(debt.path, { ...debt.data, paidAmount: newPaid, isPaid: newPaid >= debt.data.totalAmount });
-        await tx.put(`${root}/payments/${randomUUID()}`, { memberId: debt.data.memberId, memberName: debt.data.memberName, amount, date: stamp(), receiptNumber: `GG-${randomUUID().slice(0, 8).toUpperCase()}`, method: 'cash', recordedBy: user.uid, relatedSubscriptionId: debt.data.relatedSubscriptionId });
+        if(debt.data.relatedSubscriptionId){const sub=await tx.get(`${root}/subscriptions/${id(debt.data.relatedSubscriptionId)}`);if(sub)await tx.put(sub.path,{...sub.data,paidAmount:newPaid});}
+        await tx.put(`${root}/payments/${randomUUID()}`, { memberId: debt.data.memberId, memberName: debt.data.memberName, amount, date: stamp(), receiptNumber: `GG-${randomUUID().slice(0, 8).toUpperCase()}`, method: paymentMethod(body.method), recordedBy: user.uid, debtId:body.debtId, relatedSubscriptionId: debt.data.relatedSubscriptionId });
         return { paid: true };
       }
       if (name === 'check-in') {
         const member = await loadMember(body.memberId), m = member.data, now = new Date();
-        requireValue(m.status !== 'frozen', 'اشتراك العضو مجمد');
+        requireValue(!['frozen','cancelled'].includes(m.status), 'اشتراك العضو مجمد أو ملغي');
         requireValue(m.subscriptionEnd && date(m.subscriptionEnd) >= now, 'اشتراك العضو منتهي');
         requireValue(!m.subscriptionStart || date(m.subscriptionStart) <= now, 'تاريخ بداية الاشتراك لسه ما جاش');
         requireValue(!m.visitsAllowed || (m.visitsUsed ?? 0) < m.visitsAllowed, 'العضو استنفد عدد أيامه');
@@ -430,15 +450,17 @@ export class GymService {
       if (['book-class', 'cancel-booking'].includes(name)) {
         const member = await loadMember(body.memberId);
         const row = await tx.get(`${root}/classes/${id(body.classId)}`);
-        requireValue(row, 'الحصة غير موجودة', 404);
+        requireValue(row && !row.data.isCancelled, 'الحصة غير موجودة أو ملغية', 404);
+        if(user.role==='staff')this.requirePermission(user,'classes');
         const booked = row.data.bookedMemberIds ?? [];
         requireValue(date(row.data.dateTime) > new Date(), 'الحصة بدأت بالفعل');
         if (name === 'book-class') {
-          requireValue(member.data.status !== 'frozen', 'الاشتراك مجمد؛ فك التجميد قبل الحجز');
+          requireValue(!['frozen','cancelled'].includes(member.data.status), 'الاشتراك مجمد؛ فك التجميد قبل الحجز');
           requireValue(member.data.subscriptionEnd && date(member.data.subscriptionEnd) >= new Date() && (!member.data.subscriptionStart || date(member.data.subscriptionStart) <= new Date()), 'لازم اشتراك ساري عشان تحجز');
           requireValue(!booked.includes(body.memberId), 'محجوز بالفعل', 409);
           requireValue(booked.length < row.data.capacity, 'الحصة مكتملة العدد', 409);
         }
+        if(name==='cancel-booking' && user.role==='member')requireValue(date(row.data.dateTime).getTime()-Date.now()>=(gym.bookingCancelHours??0)*3600000,'فترة إلغاء الحجز انتهت، تواصل مع الاستقبال');
         await tx.put(row.path, { ...row.data, bookedMemberIds: name === 'book-class' ? [...booked, body.memberId] : booked.filter(v => v !== body.memberId) });
         return { booked: name === 'book-class' };
       }
@@ -467,7 +489,8 @@ export class GymService {
   }
   async financialReport(user,body) {
     const gymId=id(body.gymId);
-    await this.operational(this.store,user,gymId,['admin']);
+    await this.operational(this.store,user,gymId);
+    this.requirePermission(user,'reports');
     const from=body.from==null?null:date(body.from).toISOString(),to=body.to==null?null:date(body.to).toISOString();
     requireValue(!from || !to || from<to,'فترة التقرير غير صحيحة');
     return this.store.financialSummary(gymId,from,to);
@@ -475,11 +498,14 @@ export class GymService {
   async reception(user, body) {
     const gymId = id(body.gymId);
     await this.operational(this.store, user, gymId);
+    this.requirePermission(user,'members');
     const search = typeof body.search === 'string' ? body.search.trim().slice(0, 100) : '';
     const after = body.after ? `gyms/${gymId}/members/${id(body.after)}` : '';
     const rows = await this.store.searchMembers(gymId, search, after);
     const page = rows.slice(0, 25);
-    return { members: page.map(resultOf), next: rows.length > 25 ? uidOf(page.at(-1)) : null };
+    const attendance=await this.store.select(`gyms/${gymId}/attendance`,[{field:'checkInTime',op:'gte',value:stamp(new Date(Date.now()-86400000))}]);
+    const debts=user.role!=='staff'||(user.permissions??['collections']).includes('collections')?await this.store.select(`gyms/${gymId}/debts`,[{field:'isPaid',op:'eq',value:false}]):[];
+    return { members: page.map(row=>{const result=resultOf(row),today=attendance.find(a=>a.data.memberId===result.id && cairoDay(date(a.data.checkInTime))===cairoDay());return {...result,data:{...result.data,checkedInToday:!!today,todayAttendanceId:today?.path.split('/').at(-1)??null,todayCheckedOut:!!today?.data.checkOutTime,remainingDebt:debts.filter(d=>d.data.memberId===result.id).reduce((sum,d)=>sum+d.data.totalAmount-d.data.paidAmount,0)}};}), next: rows.length > 25 ? uidOf(page.at(-1)) : null };
   }
   async markNotificationsRead(user, body) {
     requireValue(Array.isArray(body.ids) && body.ids.length <= 50, 'الطلبات غير صحيحة');
@@ -491,20 +517,27 @@ export class GymService {
     });
     return { saved: true };
   }
+  async classRoster(user,body){
+    const gymId=id(body.gymId);await this.operational(this.store,user,gymId);this.requirePermission(user,'classes');
+    const row=await this.store.get(`gyms/${gymId}/classes/${id(body.classId)}`);requireValue(row,'الحصة غير موجودة',404);
+    const paths=(row.data.bookedMemberIds??[]).map(memberId=>`gyms/${gymId}/members/${id(memberId)}`);
+    const names=paths.length?(await this.store.connection.query("SELECT path,data->>'name' AS name FROM documents WHERE collection_path=$1 AND path=ANY($2::text[])",[`gyms/${gymId}/members`,paths])).rows:[];
+    return {...resultOf(row),data:{...row.data,rosterNames:Object.fromEntries(names.map(m=>[uidOf(m),m.name]))}};
+  }
   async notifications(user) {
     if (!user.gymId) return [];
     const end = stamp(new Date(Date.now() + 3 * 86400000));
     const filters = [{field:'subscriptionEnd',op:'gte',value:stamp()},{field:'subscriptionEnd',op:'lte',value:end}];
     if (user.role === 'member') {
       const row = await this.store.get(`gyms/${user.gymId}/members/${user.memberId}`);
-      if (row && row.data.subscriptionEnd && date(row.data.subscriptionEnd) >= new Date() && date(row.data.subscriptionEnd) <= date(end)) {
+      if (row && !['frozen','cancelled'].includes(row.data.status) && !row.data.nextSubscription && row.data.subscriptionEnd && date(row.data.subscriptionEnd) >= new Date() && date(row.data.subscriptionEnd) <= date(end)) {
         await this.store.transaction(async tx => {
           const path = `users/${user.uid}/notifications/${cairoDay()}-expiry`;
           if (!await tx.get(path)) await tx.put(path, { title:'اشتراكك قرب يخلص',body:'اشتراكك هيخلص خلال 3 أيام، تواصل مع الجيم للتجديد.',date:stamp(),isRead:false });
         });
       }
     } else {
-      const members = await this.store.select(`gyms/${user.gymId}/members`, filters);
+      const members = (await this.store.select(`gyms/${user.gymId}/members`, filters)).filter(r=>!['frozen','cancelled'].includes(r.data.status)&&!r.data.nextSubscription);
       if (members.length) await this.store.transaction(async tx => {
         const path = `users/${user.uid}/notifications/${cairoDay()}-expiry`;
         if (!await tx.get(path)) await tx.put(path,{title:'اشتراكات قربت تخلص',body:`${members.length} عضو اشتراكهم هيخلص خلال 3 أيام`,date:stamp(),isRead:false});

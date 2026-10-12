@@ -11,6 +11,7 @@ enum MemberStatus {
   active,
   expired,
   frozen, // تجميد الاشتراك (إجازة، إصابة..)
+  cancelled,
   pending; // اشتراك مدفوع بس لسه معادُه ما جاش (تاريخ بداية مستقبلي)
 
   String get label {
@@ -21,6 +22,8 @@ enum MemberStatus {
         return 'منتهي';
       case MemberStatus.frozen:
         return 'مجمد';
+      case MemberStatus.cancelled:
+        return 'ملغي';
       case MemberStatus.pending:
         return 'هيبدأ قريباً';
     }

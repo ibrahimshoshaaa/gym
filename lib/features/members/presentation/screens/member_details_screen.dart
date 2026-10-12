@@ -82,7 +82,7 @@ class MemberDetailsScreen extends ConsumerWidget {
                   },
                   itemBuilder: (context) => [
                     const PopupMenuItem(value: 'edit', child: Text('تعديل البيانات')),
-                    const PopupMenuItem(
+                    if(ref.read(currentUserProvider)?.isAdmin==true) const PopupMenuItem(
                       value: 'delete',
                       child: Text('حذف العضو', style: TextStyle(color: AppColors.danger)),
                     ),
@@ -109,7 +109,7 @@ class MemberDetailsScreen extends ConsumerWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ElevatedButton.icon(
+                  if(ref.watch(currentUserProvider)?.can('subscriptions')==true) ElevatedButton.icon(
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -120,7 +120,7 @@ class MemberDetailsScreen extends ConsumerWidget {
                       label: const Text('تجديد الاشتراك'),
                   ),
                   const SizedBox(height: 8),
-                  OutlinedButton.icon(
+                  if(ref.watch(currentUserProvider)?.can('attendance')==true) OutlinedButton.icon(
                       onPressed: () async {
                         final result = await ref.read(attendanceRepositoryProvider).checkIn(member.id);
                         if (!context.mounted) return;
@@ -190,7 +190,7 @@ class MemberDetailsScreen extends ConsumerWidget {
               _InfoTile(icon: Icons.flag, label: 'الحالة', value: member.status.label),
               ])),
               const SizedBox(height: 12),
-              _MemberDebtsSection(memberId: member.id),
+              if(ref.watch(currentUserProvider)?.can('collections')==true) _MemberDebtsSection(memberId: member.id),
               const SizedBox(height: 12),
               if (!member.hasLoginAccount)
                 Card(

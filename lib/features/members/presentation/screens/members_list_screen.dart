@@ -23,12 +23,12 @@ class _MembersListScreenState extends ConsumerState<MembersListScreen> {
   void dispose() { _search.dispose(); super.dispose(); }
   String _label(MemberFilterCategory c) => switch (c) {
     MemberFilterCategory.all => 'الكل', MemberFilterCategory.active => 'نشطة',
-    MemberFilterCategory.expiringSoon => 'قربت تخلص', MemberFilterCategory.expired => 'منتهية',
+    MemberFilterCategory.expiringSoon => 'قربت تخلص', MemberFilterCategory.expired => 'منتهية أو ملغية',
   };
   bool _matches(Member m) => switch (_category) {
     MemberFilterCategory.all => true,
     MemberFilterCategory.active => m.status == MemberStatus.active,
-    MemberFilterCategory.expired => m.status == MemberStatus.expired,
+    MemberFilterCategory.expired => [MemberStatus.expired,MemberStatus.cancelled].contains(m.status),
     MemberFilterCategory.expiringSoon => m.status == MemberStatus.active && m.subscriptionEnd != null && m.subscriptionEnd!.difference(DateTime.now()).inDays <= 3,
   };
   void _add() => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddMemberScreen()));

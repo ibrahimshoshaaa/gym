@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:gym_manager/core/network/api_client.dart';
 import 'package:gym_manager/features/operations/presentation/operations_screens.dart';
+import 'package:gym_manager/features/operations/presentation/lifecycle_screens.dart';
+import 'package:gym_manager/features/operations/presentation/notification_settings.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -92,7 +94,9 @@ Future<void> mount(WidgetTester tester, Widget page, {double width = 320, double
     sharedPreferencesProvider.overrideWithValue(prefs),
     operationsApiProvider.overrideWithValue(ApiClient(baseUrl:'https://gym.example',client:MockClient((request)async{
       final memberData={'name':member.name,'phone':member.phone,'joinDate':DbTimestamp.fromDate(now).toJson(),'status':'active','subscriptionEnd':DbTimestamp.fromDate(now.add(const Duration(days:30))).toJson(),'visitsAllowed':12,'visitsUsed':4};
-      final data=request.url.path=='/api/reports/summary'?{'subscriptionValue':1200,'outstanding':800}:request.url.path=='/api/reception'?{'members':[{'id':'m1','data':memberData}],'next':null}:request.url.path=='/api/notifications'?[{'id':'notice1','title':'اشتراكك قرب يخلص','body':'تذكير التجديد','date':DbTimestamp.fromDate(now).toJson(),'isRead':false}]:[{'id':'sub1','data':{'planName':'اشتراك شهري','paidAmount':400,'startDate':DbTimestamp.fromDate(now).toJson(),'endDate':DbTimestamp.fromDate(now.add(const Duration(days:30))).toJson(),'action':'subscribe','actorName':member.name,'date':DbTimestamp.fromDate(now).toJson()}}];
+      final requestBody=request.method=='POST'?jsonDecode(request.body) as Map:<String,dynamic>{};
+      final readPath=requestBody['path'] as String? ?? '';
+      final data=request.url.path=='/api/classes/roster'?{'id':'c1','data':{'bookedMemberIds':['m1'],'attendedMemberIds':[],'absentMemberIds':[],'rosterNames':{'m1':member.name}}}:request.url.path=='/api/data/read'?{'id':readPath.split('/').last,'data':readPath.contains('/members/')?{'currentSubscriptionId':'sub1','status':'active'}:readPath.startsWith('users/')?{'permissions':['members','attendance'],'isActive':true}:readPath.contains('/classes/')?{'bookedMemberIds':['m1'],'attendedMemberIds':[],'absentMemberIds':[]}: {'freezeMaxDays':30,'freezeMaxTimes':2,'bookingCancelHours':0}}:request.url.path=='/api/backups'?[{'id':'2026-10-12','state':'ready','date':DbTimestamp.fromDate(now).toJson(),'bytes':10240}]:request.url.path=='/api/reports/summary'?{'subscriptionValue':1200,'outstanding':800}:request.url.path=='/api/reception'?{'members':[{'id':'m1','data':memberData}],'next':null}:request.url.path=='/api/notifications'?[{'id':'notice1','title':'اشتراكك قرب يخلص','body':'تذكير التجديد','date':DbTimestamp.fromDate(now).toJson(),'isRead':false}]:[{'id':'sub1','data':{'planName':'اشتراك شهري','paidAmount':400,'startDate':DbTimestamp.fromDate(now).toJson(),'endDate':DbTimestamp.fromDate(now.add(const Duration(days:30))).toJson(),'action':'subscribe','actorName':member.name,'date':DbTimestamp.fromDate(now).toJson()}}];
       return http.Response.bytes(utf8.encode(jsonEncode({'data':data})),200,headers:{'content-type':'application/json; charset=utf-8'});
     }))),
     currentUserProvider.overrideWithValue(user(role)),
@@ -144,6 +148,7 @@ void main() {
     await icons.load();
   });
   final screens = <String, Widget>{
+    'lifecycle':const SubscriptionLifecycleScreen(memberId:'m1'),'policy':const GymPolicyScreen(),'recovery':const AccountRecoveryScreen(),'recover-login':const AccountRecoveryScreen(signedIn:false),'staff-access':const StaffAccessScreen(uid:'staff'),'notification-settings':const NotificationSettingsScreen(),'backups':const CloudBackupsScreen(),'class-roster':ClassRosterScreen(gymClass:GymClass(id:'c1',name:'تمارين القوة',trainerId:'t1',trainerName:'كابتن محمد',dateTime:now.add(const Duration(minutes:15)),durationMinutes:60,capacity:12)),
     'reception': const ReceptionScreen(), 'notifications': const OperationRecordsScreen(kind:RecordKind.notifications), 'audit': const OperationRecordsScreen(kind:RecordKind.audit), 'subscriptions-history': const OperationRecordsScreen(kind:RecordKind.subscriptions,memberId:'m1'),
     'login': const LoginScreen(), 'admin': const AdminDashboard(), 'staff': const StaffDashboard(), 'member': const MemberDashboard(),
     'members': const MembersListScreen(), 'details': const MemberDetailsScreen(memberId: 'm1'), 'add-member': const AddMemberScreen(),
@@ -160,7 +165,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize); addTearDown(tester.view.resetDevicePixelRatio);
       for (final light in [false, true]) {
         await mount(tester, entry.value, width: light ? 960 : 320, scale: light ? 1 : 1.6, light: light,
-          role: ['member', 'qr', 'points', 'rewards', 'attendance'].contains(entry.key) ? UserRole.member : entry.key == 'gyms' ? UserRole.superAdmin : UserRole.admin);
+          role: ['member', 'qr', 'points', 'rewards', 'attendance'].contains(entry.key) ? UserRole.member : ['gyms','backups'].contains(entry.key) ? UserRole.superAdmin : UserRole.admin);
         expect(tester.takeException(), isNull, reason: '${entry.key}, light=$light');
         final scrolls = find.byType(Scrollable);
         if (scrolls.evaluate().isNotEmpty) {
@@ -245,7 +250,7 @@ void main() {
 
   testWidgets('Visual previews use real Arabic fonts', (tester) async {
     addTearDown(tester.view.resetPhysicalSize); addTearDown(tester.view.resetDevicePixelRatio);
-    for (final name in ['login', 'admin', 'member', 'details', 'qr', 'reception']) {
+    for (final name in ['login', 'admin', 'member', 'details', 'qr', 'reception','lifecycle','class-roster']) {
       final key = GlobalKey();
       await mount(tester, screens[name]!, width: 390, scale: 1, role: name == 'member' ? UserRole.member : UserRole.admin, capture: key);
       expect(tester.takeException(), isNull);
