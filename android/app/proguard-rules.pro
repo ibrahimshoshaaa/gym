@@ -6,18 +6,13 @@
 -dontwarn com.google.android.play.core.**
 -keep class com.google.android.play.core.** { *; }
 
-# Firebase
--keep class com.google.firebase.** { *; }
 -keep class com.google.android.gms.** { *; }
--dontwarn com.google.firebase.**
 -dontwarn com.google.android.gms.**
 
 # Firestore
 -keep class com.google.firestore.** { *; }
 -dontwarn com.google.firestore.**
 
-# Firebase Messaging
--keep class com.google.firebase.messaging.** { *; }
 
 # local_auth (Biometric)
 -keep class androidx.biometric.** { *; }

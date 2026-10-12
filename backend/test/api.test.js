@@ -363,6 +363,36 @@ test('API account, tenant, subscription and money flows', async t => {
     assert.equal((await call('/api/backups',null,adminA,'GET')).status,403);
     assert.equal((await call('/api/cron/backup',null,null,'GET')).status,401);
   });
+  await t.test('freeze limits, automatic thaw and zero-paid subscriptions retain correct lifecycle state',async()=>{
+    const m=(await call('/api/commands/member-save',{gymId:gymA,data:{name:'Thaw',phone:'01055559999'}},adminA)).data.id;
+    const sub=await call('/api/commands/subscribe',{gymId:gymA,memberId:m,planId,paidAmount:0,requestId:'zero-sub'},adminA);assert.equal(sub.status,200);
+    await call('/api/commands/gym-policy',{gymId:gymA,freezeMaxDays:2,freezeMaxTimes:1,bookingCancelHours:24},adminA);
+    assert.equal((await call('/api/commands/subscription-freeze',{gymId:gymA,memberId:m,days:3,reason:'Trip'},adminA)).status,400);
+    assert.equal((await call('/api/commands/subscription-freeze',{gymId:gymA,memberId:m,days:1,reason:'Trip'},adminA)).status,200);
+    const row=await store.get(`gyms/${gymA}/members/${m}`),end=new Date(row.data.subscriptionEnd.value);
+    await store.put(row.path,{...row.data,frozenAt:stamp(new Date(Date.now()-2*86400000)),frozenUntil:stamp(new Date(Date.now()-86400000))});
+    assert.equal((await call('/api/commands/check-in',{gymId:gymA,memberId:m},adminA)).status,200);
+    const thawed=await store.get(row.path);assert.equal(thawed.data.status,'active');assert.equal(new Date(thawed.data.subscriptionEnd.value)-end,86400000);
+    assert.equal((await call('/api/commands/subscription-freeze',{gymId:gymA,memberId:m,days:1,reason:'Again'},adminA)).status,400);
+    const next=await call('/api/commands/subscribe',{gymId:gymA,memberId:m,planId,paidAmount:0,startAfterCurrent:true,requestId:'queued-cancel'},adminA);assert.equal(next.status,200);
+    assert.equal((await call('/api/commands/subscription-cancel',{gymId:gymA,memberId:m,subscriptionId:next.data.id,refundAmount:0,reason:'Cancel next'},adminA)).status,200);
+    const preserved=await store.get(row.path);assert.equal(preserved.data.currentSubscriptionId,sub.data.id);assert.equal(preserved.data.visitsUsed,1);assert.equal(preserved.data.nextSubscription,null);
+  });
+  await t.test('account reset scopes, forced password change and reminder ownership are enforced',async()=>{
+    const staff=await call('/api/auth/staff',{gymId:gymA,name:'Recover staff',email:'recover-staff@example.com',password:'Staff-initial1',phone:'01055550001',role:'staff'},adminA);assert.equal(staff.status,200);
+    assert.equal((await call('/api/auth/staff-reset',{gymId:gymB,email:'recover-staff@example.com'},adminB)).status,404);
+    assert.equal((await call('/api/auth/staff-reset',{gymId:gymB,email:'admin-b@example.com'},adminA)).status,403);
+    const reset=await call('/api/auth/staff-reset',{gymId:gymA,email:'recover-staff@example.com'},adminA);assert.equal(reset.status,200);
+    const login=await call('/api/auth/login',{email:'recover-staff@example.com',password:reset.data.temporaryPassword});assert.equal(login.data.user.data.mustChangePassword,true);
+    const uid=staff.data.id;
+    assert.equal((await call('/api/commands/staff-settings',{gymId:gymA,uid,permissions:['invalid'],isActive:false},adminA)).status,400);
+    assert.equal((await store.get(`users/${uid}`)).data.isActive,undefined);
+    const profile=await service.authenticate(memberToken),row=await store.get(`gyms/${gymA}/members/${profile.memberId}`);
+    await store.put(row.path,{...row.data,status:'active',subscriptionEnd:stamp(new Date(Date.now()+2*86400000)),nextSubscription:null});
+    const scheduled=await call('/api/reminders',null,memberToken,'GET');assert.equal(scheduled.status,200);assert.ok(scheduled.data.some(r=>r.kind==='expiry-now'));
+    assert.deepEqual((await call('/api/reminders',null,adminA,'GET')).data,[]);
+    await store.put(row.path,{...row.data,status:'cancelled'});assert.ok(!(await call('/api/reminders',null,memberToken,'GET')).data.some(r=>r.id.startsWith('expiry')));
+  });
   await t.test('server enforces gym suspension and logout revokes saved sessions', async () => {
     assert.equal((await call('/api/data/write', { path: `gyms/${gymA}`, operation: 'update', data: { isActive: false } }, system)).status, 200);
     assert.equal((await call('/api/commands/check-in', { gymId: gymA, memberId: memberA }, adminA)).status, 403);
